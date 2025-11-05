@@ -480,20 +480,17 @@ func (cc *CodeController) GetEIDCode(c *gin.Context) {
 
 	// Check if user exists
 	var existingUser bson.M
-	errUser := cc.UserCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existingUser)
-	if errUser != nil {
+	if errUser := cc.UserCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existingUser); errUser != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
 		return
 	}
 
-	// Check for existing active code
-	var existing models.EmailCode
-	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": req.Email, "isActive": true}).Decode(&existing)
-	if err == nil && time.Since(existing.SentAt) < 15*time.Minute {
-		log.Println("Resending existing code:", existing.Code)
-		c.JSON(http.StatusOK, gin.H{"code": existing.Code})
-		return
-	}
+	// Deactivate all previous active codes for this email
+	_, _ = cc.EmailCodeCollection.UpdateMany(
+		ctx,
+		bson.M{"email": req.Email, "isActive": true},
+		bson.M{"$set": bson.M{"isActive": false}},
+	)
 
 	// Generate new code
 	newCode := utils.GenerateCode(6)
@@ -504,23 +501,21 @@ func (cc *CodeController) GetEIDCode(c *gin.Context) {
 		IsActive: true,
 	}
 
-	_, err = cc.EmailCodeCollection.UpdateOne(
+	_, err := cc.EmailCodeCollection.InsertOne(
 		ctx,
-		bson.M{"email": req.Email},
-		bson.M{"$set": emailDoc},
-		options.Update().SetUpsert(true),
+		emailDoc,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	errMail := services.SendEmail(
+	// Send email
+	if errMail := services.SendEmail(
 		req.Email,
 		"Your EID Code",
 		fmt.Sprintf("<h1>Your code is: %s</h1>", newCode),
-	)
-	if errMail != nil {
+	); errMail != nil {
 		log.Println("Failed to send email:", errMail)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
 		return
@@ -554,10 +549,10 @@ func (cc *CodeController) VerifyEIDCode(c *gin.Context) {
 	valid := req.Code == existing.Code && time.Since(existing.SentAt) < 15*time.Minute
 	if valid {
 		// deactivate after use
-		_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
-			bson.M{"_id": existing.ID},
-			bson.M{"$set": bson.M{"isActive": false}},
-		)
+		// _, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+		// 	bson.M{"_id": existing.ID},
+		// 	bson.M{"$set": bson.M{"isActive": false}},
+		// )
 		c.JSON(http.StatusOK, gin.H{"valid": true})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"valid": false})
@@ -596,6 +591,12 @@ func (cc *CodeController) ForgotEID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
 		return
 	}
+
+	_, _ = cc.EmailCodeCollection.UpdateOne(
+		ctx,
+		bson.M{"email": user.Email, "isActive": true},
+		bson.M{"$set": bson.M{"isActive": false}},
+	)
 
 	c.JSON(http.StatusOK, gin.H{"message": "EID sent successfully"})
 }

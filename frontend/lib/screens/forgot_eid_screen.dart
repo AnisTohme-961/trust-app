@@ -17,8 +17,10 @@ class ForgotEidPage extends StatefulWidget {
 class _ForgotEidPageState extends State<ForgotEidPage>
     with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
-  final List<TextEditingController> _otpControllers =
-      List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
@@ -51,8 +53,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1), // Start below screen
       end: const Offset(0, 0), // End at bottom
-    ).animate(
-        CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
   }
 
   @override
@@ -66,13 +67,15 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   }
 
   Future<bool> verifyCode(String email, String code) async {
-    if (email.isEmpty) return false;
-    if (code.length != 6) return false;
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) return false;
+  if (email.isEmpty || code.length != 6) return false;
 
-    // TODO: Replace with real server verification
-    return true;
+  try {
+    return await AuthService.verifyEidCode(email: email, code: code);
+  } catch (e) {
+    _errorStackKey.currentState?.showError('Failed to verify code: $e');
+    return false;
   }
+}
 
   void _startTimer() {
     setState(() {
@@ -113,9 +116,6 @@ class _ForgotEidPageState extends State<ForgotEidPage>
         _codeSent = true;
         _startTimer();
       });
-
-      _errorStackKey.currentState
-          ?.showError('Verification code sent to your email.');
     } catch (e) {
       _errorStackKey.currentState?.showError('Error sending code: $e');
     }
@@ -277,129 +277,127 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       ),
     );
   }
-Widget buildOtpInput() {
-  return SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    physics: const NeverScrollableScrollPhysics(),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ...List.generate(6, (index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: Column(
-              children: [
-                SizedBox(
-                  width: 35,
-                  child: TextField(
-                    controller: _otpControllers[index],
-                    focusNode: _otpFocusNodes[index],
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 1,
-                    showCursor: !isCodeCorrect, // Hide caret when correct
-                    enabled: !isCodeCorrect,    // Disable editing
-                    readOnly: isCodeCorrect,    // Safety
-                    style: TextStyle(
-                      color: isCodeCorrect
-                          ? const Color(0xFF00F0FF)
+
+  Widget buildOtpInput() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...List.generate(6, (index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 35,
+                    child: TextField(
+                      controller: _otpControllers[index],
+                      focusNode: _otpFocusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      maxLength: 1,
+                      showCursor: !isCodeCorrect, // Hide caret when correct
+                      enabled: !isCodeCorrect, // Disable editing
+                      readOnly: isCodeCorrect, // Safety
+                      style: TextStyle(
+                        color: isCodeCorrect
+                            ? const Color(0xFF00F0FF)
+                            : (_isCodeValid == false
+                                  ? Colors.red
+                                  : Colors.white),
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      cursorColor: isCodeCorrect
+                          ? Colors.transparent
                           : (_isCodeValid == false ? Colors.red : Colors.white),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    cursorColor: isCodeCorrect
-                        ? Colors.transparent
-                        : (_isCodeValid == false ? Colors.red : Colors.white),
-                    decoration: const InputDecoration(
-                      counterText: '',
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (value) async {
-                      if (isCodeCorrect) return; // Stop editing once correct
+                      decoration: const InputDecoration(
+                        counterText: '',
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (value) async {
+                        if (isCodeCorrect) return; // Stop editing once correct
 
-                      if (value.length > 1) {
-                        _otpControllers[index].text = value[0];
-                      }
+                        if (value.length > 1) {
+                          _otpControllers[index].text = value[0];
+                        }
 
-                      if (value.isNotEmpty && index < 5) {
-                        _otpFocusNodes[index + 1].requestFocus();
-                      }
-                      if (value.isEmpty && index > 0) {
-                        _otpFocusNodes[index - 1].requestFocus();
-                      }
-
-                      setState(() {
-                        code[index] = _otpControllers[index].text;
-                        _isCodeValid = true;
-                      });
-
-                      if (code.every((c) => c.isNotEmpty)) {
-                        final email = _controller.text.trim();
-                        bool valid = await verifyCode(email, code.join());
+                        if (value.isNotEmpty && index < 5) {
+                          _otpFocusNodes[index + 1].requestFocus();
+                        }
+                        if (value.isEmpty && index > 0) {
+                          _otpFocusNodes[index - 1].requestFocus();
+                        }
 
                         setState(() {
-                          isCodeCorrect = valid;
-                          _isCodeValid = valid;
+                          code[index] = _otpControllers[index].text;
+                          _isCodeValid = true;
                         });
 
-                        if (!valid) {
-                          Timer(const Duration(seconds: 3), () {
-                            if (!mounted) return;
-                            setState(() {
-                              for (var c in _otpControllers) c.clear();
-                              code = List.generate(6, (_) => "");
-                              _isCodeValid = true;
-                            });
-                            _otpFocusNodes[0].requestFocus();
+                        if (code.every((c) => c.isNotEmpty)) {
+                          final email = _controller.text.trim();
+                          bool valid = await verifyCode(email, code.join());
+
+                          setState(() {
+                            isCodeCorrect = valid;
+                            _isCodeValid = valid;
                           });
-                        } else {
-                          _timer?.cancel();
+
+                          if (!valid) {
+                            Timer(const Duration(seconds: 3), () {
+                              if (!mounted) return;
+                              setState(() {
+                                for (var c in _otpControllers) c.clear();
+                                code = List.generate(6, (_) => "");
+                                _isCodeValid = true;
+                              });
+                              _otpFocusNodes[0].requestFocus();
+                            });
+                          } else {
+                            _timer?.cancel();
+                          }
                         }
-                      }
-                    },
+                      },
+                    ),
                   ),
-                ),
 
-                // ↓ Underline (hidden if code is correct)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 35,
-                  height: isCodeCorrect ? 0 : 2, // Hide line when correct
-                  color: isCodeCorrect
-                      ? Colors.transparent
-                      : (_isCodeValid == false ? Colors.red : Colors.white),
-                ),
-              ],
+                  // ↓ Underline (hidden if code is correct)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 35,
+                    height: isCodeCorrect ? 0 : 2, // Hide line when correct
+                    color: isCodeCorrect
+                        ? Colors.transparent
+                        : (_isCodeValid == false ? Colors.red : Colors.white),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (isCodeCorrect || _isCodeValid == false) ...[
+            const SizedBox(width: 6),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isCodeCorrect ? const Color(0xFF00F0FF) : Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isCodeCorrect ? Icons.check : Icons.close,
+                color: isCodeCorrect ? Colors.black : Colors.white,
+                size: 16,
+              ),
             ),
-          );
-        }),
-        if (isCodeCorrect || _isCodeValid == false) ...[
-          const SizedBox(width: 6),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: isCodeCorrect ? const Color(0xFF00F0FF) : Colors.red,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isCodeCorrect ? Icons.check : Icons.close,
-              color: isCodeCorrect ? Colors.black : Colors.white,
-              size: 16,
-            ),
-          ),
+          ],
         ],
-      ],
-    ),
-  );
-}
-
-
-
-
-
+      ),
+    );
+  }
 
   Row signInAndSignUpButtons() {
     return Row(
@@ -494,8 +492,9 @@ Widget buildOtpInput() {
                     if (_isEmailNotEmpty) {
                       _controller.clear();
                     } else {
-                      final clipboardData =
-                          await Clipboard.getData('text/plain');
+                      final clipboardData = await Clipboard.getData(
+                        'text/plain',
+                      );
                       if (clipboardData?.text != null) {
                         _controller.text = clipboardData!.text!;
                       }
@@ -535,9 +534,7 @@ Widget buildOtpInput() {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: _codeSent ? buildOtpInput() : Container(height: 40),
-          ),
+          Expanded(child: _codeSent ? buildOtpInput() : Container(height: 40)),
           const SizedBox(width: 10),
           GestureDetector(
             onTap: _isTimerRunning ? null : _handleSendCode,
@@ -605,23 +602,32 @@ Widget buildOtpInput() {
           borderColor: const Color(0xFF00F0FF),
           backgroundColor: const Color(0xFF0B1320),
           text: 'Send EID',
-          onTap: () async {
-            if (!_codeSent) {
-              _errorStackKey.currentState
-                  ?.showError('Please click "Send Code" first.');
-              return;
-            }
-            final email = _controller.text.trim();
-            final code = _otpControllers.map((c) => c.text).join();
+       onTap: () async {
+  if (!_codeSent) {
+    _errorStackKey.currentState?.showError(
+      'Please click "Send Code" first.',
+    );
+    return;
+  }
+  final email = _controller.text.trim();
+  final code = _otpControllers.map((c) => c.text).join();
+  
+  bool valid = await AuthService.verifyEidCode(email: email, code: code);
+  if (!valid) {
+    _errorStackKey.currentState?.showError(
+      "Invalid or expired code.",
+    );
+    return;
+  }
 
-            if (!await AuthService.verifyEidCode(email: email, code: code)) {
-              _errorStackKey.currentState
-                  ?.showError("Invalid or expired code.");
-              return;
-            }
+  try {
+    await AuthService.sendEidEmail(email);
+    _openOverlay();
+  } catch (e) {
+    _errorStackKey.currentState?.showError('Failed to send EID: $e');
+  }
+},
 
-            _openOverlay();
-          },
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -656,7 +662,10 @@ Widget buildOtpInput() {
         borderColor: const Color(0xFF00F0FF),
         fontFamily: 'Inter',
         fontWeight: FontWeight.w500,
-        onTap: _closeOverlay,
+        onTap: () {
+          // Navigate to sign-in page
+          Navigator.pushReplacementNamed(context, '/sign-in');
+        },
       ),
     );
   }

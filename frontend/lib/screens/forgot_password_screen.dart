@@ -62,13 +62,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   bool _validationPerformed = false;
 
-
   Timer? _timer;
   int _remainingSeconds = 0;
 
   List<String> code = List.generate(6, (_) => "");
-  bool isCodeCorrect = false;
-  bool _isCodeValid = true;
+  Map<String, bool> isCodeCorrectMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
   bool _codeSent = false;
 
   bool _showPasswordChangedOverlay = false;
@@ -109,60 +113,60 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   // Updated _fetchCode to handle timer
   // Changed the _fetchCode to call the api in auth service
- void _fetchCode(String type) async {
-  if (_countdowns[type]! > 0) return;
+  void _fetchCode(String type) async {
+    if (_countdowns[type]! > 0) return;
 
-  if (_controller.text.isEmpty) {
-    _errorStackKey.currentState?.showError("Please enter your EID / Email");
-    return;
-  }
-
-  try {
-    if (type == 'auth') {
-      final totpData = await AuthService.generateTOTP(_controller.text.trim());
-      print("Secret: ${totpData['secret']} QR URL: ${totpData['qrUrl']}");
-    } else {
-      await AuthService.sendResetCode(_controller.text.trim());
+    if (_controller.text.isEmpty) {
+      _errorStackKey.currentState?.showError("Please enter your EID / Email");
+      return;
     }
 
-    // Temporarily show "Code Sent"
-    _setCodeSentFlag(type, true);
+    try {
+      if (type == 'auth') {
+        final totpData = await AuthService.generateTOTP(
+          _controller.text.trim(),
+        );
+        print("Secret: ${totpData['secret']} QR URL: ${totpData['qrUrl']}");
+      } else {
+        await AuthService.sendResetCode(_controller.text.trim());
+      }
 
-    // Hide "Code Sent" after 2 seconds (does not block input)
-    Timer(const Duration(seconds: 2), () {
-      _setCodeSentFlag(type, false);
-    });
+      // Temporarily show "Code Sent"
+      _setCodeSentFlag(type, true);
 
-    // Start 2-minute cooldown for button
-    setState(() {
-      _countdowns[type] = 120;
-    });
-
-    _timers[type]?.cancel();
-    _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_countdowns[type]! > 0) {
-          _countdowns[type] = _countdowns[type]! - 1;
-        } else {
-          timer.cancel();
-          _timers.remove(type);
-        }
+      // Hide "Code Sent" after 2 seconds (does not block input)
+      Timer(const Duration(seconds: 2), () {
+        _setCodeSentFlag(type, false);
       });
-    });
-  } catch (e) {
-    _errorStackKey.currentState?.showError(e.toString());
+
+      // Start 2-minute cooldown for button
+      setState(() {
+        _countdowns[type] = 120;
+      });
+
+      _timers[type]?.cancel();
+      _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          if (_countdowns[type]! > 0) {
+            _countdowns[type] = _countdowns[type]! - 1;
+          } else {
+            timer.cancel();
+            _timers.remove(type);
+          }
+        });
+      });
+    } catch (e) {
+      _errorStackKey.currentState?.showError(e.toString());
+    }
   }
-}
 
-void _setCodeSentFlag(String type, bool value) {
-  setState(() {
-    if (type == 'email') _showEmailCodeSent = value;
-    if (type == 'sms') _showSMSCodeSent = value;
-    if (type == 'auth') _showAuthCodeSent = value;
-  });
-}
-
-
+  void _setCodeSentFlag(String type, bool value) {
+    setState(() {
+      if (type == 'email') _showEmailCodeSent = value;
+      if (type == 'sms') _showSMSCodeSent = value;
+      if (type == 'auth') _showAuthCodeSent = value;
+    });
+  }
 
   String generatePassword() {
     // Define character sets
@@ -222,20 +226,19 @@ void _setCodeSentFlag(String type, bool value) {
         : Colors.red; // Green for valid, red for invalid
   }
 
-void _updatePasswordRules() {
-  final password = _passwordController.text;
-  final confirm = _confirmPasswordController.text;
+  void _updatePasswordRules() {
+    final password = _passwordController.text;
+    final confirm = _confirmPasswordController.text;
 
-  setState(() {
-    _has2Caps = RegExp(r'[A-Z]').allMatches(password).length >= 2;
-    _has2Lower = RegExp(r'[a-z]').allMatches(password).length >= 2;
-    _has2Numbers = RegExp(r'\d').allMatches(password).length >= 2;
-    _has2Special = RegExp(r'[!@#\$%^&*()]').allMatches(password).length >= 2;
-    _hasMin10 = password.length >= 10;
-    _passwordsMatch = password == confirm;
-  });
-}
-
+    setState(() {
+      _has2Caps = RegExp(r'[A-Z]').allMatches(password).length >= 2;
+      _has2Lower = RegExp(r'[a-z]').allMatches(password).length >= 2;
+      _has2Numbers = RegExp(r'\d').allMatches(password).length >= 2;
+      _has2Special = RegExp(r'[!@#\$%^&*()]').allMatches(password).length >= 2;
+      _hasMin10 = password.length >= 10;
+      _passwordsMatch = password == confirm;
+    });
+  }
 
   void _validatePassword() {
     setState(() {
@@ -583,7 +586,9 @@ void _updatePasswordRules() {
                             setState(() {
                               _passwordsMatch =
                                   _passwordController.text == value;
-                              _hasTextInPassword = _passwordController.text.isNotEmpty || _confirmPasswordController.text.isNotEmpty;
+                              _hasTextInPassword =
+                                  _passwordController.text.isNotEmpty ||
+                                  _confirmPasswordController.text.isNotEmpty;
                             });
                           },
                         ),
@@ -879,266 +884,274 @@ void _updatePasswordRules() {
     );
   }
 
-Widget buildVerificationSection({
-  required String title,
-  required bool showCodeSent,
-  required List<TextEditingController> codeControllers,
-  required List<FocusNode> focusNodes,
-  required List<String> codeList,
-  required String type,
-}) {
-
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 0),
-    child: SizedBox(
-      height: 85,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // 🟦 Title
-          Positioned(
-            top: -4,
-            left: -1,
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                fontSize: 20,
-                height: 1.0,
-                color: Colors.white,
+  Widget buildVerificationSection({
+    required String title,
+    required bool showCodeSent,
+    required List<TextEditingController> codeControllers,
+    required List<FocusNode> focusNodes,
+    required List<String> codeList,
+    required String type,
+  }) {
+    bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
+    bool isCodeValid = isCodeValidMap[type] ?? true;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 0),
+      child: SizedBox(
+        height: 85,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 🟦 Title
+            Positioned(
+              top: -4,
+              left: -1,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  height: 1.0,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
 
-          // 🟦 "Code Sent" indicator
-          if (showCodeSent)
-            Positioned(
-              top: 25,
-              left: 50,
-              child: Container(
-                width: 110,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00F0FF),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  "Code Sent",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
-                    color: Colors.black,
+            // 🟦 "Code Sent" indicator
+            if (showCodeSent)
+              Positioned(
+                top: 25,
+                left: 50,
+                child: Container(
+                  width: 110,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00F0FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    "Code Sent",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-          // 🔢 OTP Fields
-          if (!showCodeSent)
-            Positioned(
-              top: 25,
-              left: 0,
-              child: Row(
-                children: [
-                  ...List.generate(6, (index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: 35,
-                            height: 35,
-                            child: TextField(
-                              controller: codeControllers[index],
-                              focusNode: focusNodes[index],
-                              showCursor: !(isCodeCorrect),
-                              enabled: !isCodeCorrect,
-                              readOnly: isCodeCorrect,
-                              textAlign: TextAlign.center,
-                              maxLength: 1,
-                              keyboardType: TextInputType.number,
-                              style: TextStyle(
-                                color: isCodeCorrect
-                                    ? const Color(0xFF00F0FF)
-                                    : (_isCodeValid == false
-                                        ? Colors.red
-                                        : Colors.white),
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              cursorColor: isCodeCorrect
-                                  ? Colors.transparent
-                                  : (_isCodeValid == false
-                                      ? Colors.red
-                                      : Colors.white),
-                              decoration: const InputDecoration(
-                                counterText: "",
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              onChanged: (value) async {
-                                if (isCodeCorrect) return;
+            // 🔢 OTP Fields
+            if (!showCodeSent)
+              Positioned(
+                top: 25,
+                left: 0,
+                child: Row(
+                  children: [
+                    ...List.generate(6, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 35,
+                              height: 35,
+                              child: TextField(
+                                controller: codeControllers[index],
+                                focusNode: focusNodes[index],
+                                showCursor: !(isCodeCorrect),
+                                enabled: !isCodeCorrect,
+                                readOnly: isCodeCorrect,
+                                textAlign: TextAlign.center,
+                                maxLength: 1,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(
+                                  color: isCodeCorrect
+                                      ? const Color(0xFF00F0FF)
+                                      : (isCodeValid == false
+                                            ? Colors.red
+                                            : Colors.white),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                cursorColor: isCodeCorrect
+                                    ? Colors.transparent
+                                    : (isCodeValid == false
+                                          ? Colors.red
+                                          : Colors.white),
+                                decoration: const InputDecoration(
+                                  counterText: "",
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (value) async {
+                                  if (isCodeCorrect) return;
 
-                                if (value.length > 1) {
-                                  codeControllers[index].text = value[0];
-                                }
-
-                                if (value.isNotEmpty && index < 5) {
-                                  focusNodes[index + 1].requestFocus();
-                                } else if (value.isEmpty && index > 0) {
-                                  focusNodes[index - 1].requestFocus();
-                                }
-
-                                setState(() {
-                                  codeList[index] = codeControllers[index].text;
-                                  _isCodeValid = true;
-                                });
-
-                                // When all digits are filled
-                                if (codeList.every((c) => c.isNotEmpty)) {
-                                  final email = _controller.text.trim();
-                                  bool valid = false;
-                                  if (type == 'auth') {
-                                    valid = await AuthService.verifyTOTP(
-                                      email: email,
-                                      code: codeList.join(),
-                                    );
-                                  } else {
-                                    valid = await AuthService.verifyResetCode(
-                                      identifier: email,
-                                      code: codeList.join(),
-                                    );
+                                  if (value.length > 1) {
+                                    codeControllers[index].text = value[0];
                                   }
 
+                                  if (value.isNotEmpty && index < 5) {
+                                    focusNodes[index + 1].requestFocus();
+                                  } else if (value.isEmpty && index > 0) {
+                                    focusNodes[index - 1].requestFocus();
+                                  }
 
                                   setState(() {
-                                    isCodeCorrect = valid;
-                                    _isCodeValid = valid;
+                                    codeList[index] =
+                                        codeControllers[index].text;
+                                    isCodeValidMap[type] = true;
                                   });
 
-                                  if (!valid) {
-                                    Timer(const Duration(seconds: 3), () {
-                                      if (!mounted) return;
-                                      setState(() {
-                                        for (var c in codeControllers) c.clear();
-                                        codeList = List.generate(6, (_) => "");
-                                        _isCodeValid = true;
-                                      });
-                                      focusNodes[0].requestFocus();
+                                  // When all digits are filled
+                                  if (codeList.every((c) => c.isNotEmpty)) {
+                                    final email = _controller.text.trim();
+                                    bool valid = false;
+                                    if (type == 'auth') {
+                                      valid = await AuthService.verifyTOTP(
+                                        email: email,
+                                        code: codeList.join(),
+                                      );
+                                    } else {
+                                      valid = await AuthService.verifyResetCode(
+                                        identifier: email,
+                                        code: codeList.join(),
+                                      );
+                                    }
+
+                                    setState(() {
+                                      isCodeCorrectMap[type] = valid;
+                                      isCodeValidMap[type] = valid;
                                     });
-                                  } else {
-                                    _timer?.cancel();
+
+                                    // ✅ Pause/Stop timer if code is correct
+                                    if (valid) {
+                                       _timers[type]?.cancel();
+                                       _timers[type] = null;
+                                       _countdowns[type] = 0;
+                                    } else {
+                                      // reset fields after 3s if invalid
+                                      Timer(const Duration(seconds: 3), () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          for (var c in codeControllers)
+                                            c.clear();
+                                          codeList = List.generate(
+                                            6,
+                                            (_) => "",
+                                          );
+                                          isCodeValidMap[type] = true;
+                                        });
+                                        focusNodes[0].requestFocus();
+                                      });
+                                    }
                                   }
-                                }
-                              },
+                                },
+                              ),
                             ),
-                          ),
 
-                          // 🔹 Underline (vanishes when correct)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: 35,
-                            height: isCodeCorrect ? 0 : 2,
+                            // 🔹 Underline (vanishes when correct)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 35,
+                              height: isCodeCorrect ? 0 : 2,
+                              color: isCodeCorrect
+                                  ? Colors.transparent
+                                  : (isCodeValid == false
+                                        ? Colors.red
+                                        : Colors.white),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // ✅ or ❌ icon
+                    if (isCodeCorrect || isCodeValid == false)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
                             color: isCodeCorrect
-                                ? Colors.transparent
-                                : (_isCodeValid == false
-                                    ? Colors.red
-                                    : Colors.white),
+                                ? const Color(0xFF00F0FF)
+                                : Colors.red,
+                            shape: BoxShape.circle,
                           ),
-                        ],
-                      ),
-                    );
-                  }),
-
-                  // ✅ or ❌ icon
-                  if (isCodeCorrect || _isCodeValid == false)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: isCodeCorrect
-                              ? const Color(0xFF00F0FF)
-                              : Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isCodeCorrect ? Icons.check : Icons.close,
-                          color: isCodeCorrect ? Colors.black : Colors.white,
-                          size: 16,
+                          child: Icon(
+                            isCodeCorrect ? Icons.check : Icons.close,
+                            color: isCodeCorrect ? Colors.black : Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-
-          // 📩 Get Code button
-          Positioned(
-            top: 21,
-            left: 300,
-            child: GestureDetector(
-              onTap: () {
-                if (_controller.text.isEmpty) {
-                  _errorStackKey.currentState
-                      ?.showError("Please enter your EID / Email");
-                  return;
-                }
-                _fetchCode(type);
-              },
-              child: Container(
-                width: 100,
-                height: 26,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00F0FF).withOpacity(1),
-                      blurRadius: 11.5,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 0),
-                    ),
                   ],
                 ),
-                alignment: Alignment.center,
-                child: _countdowns[type]! > 0
-                    ? Text(
-                        "${_countdowns[type]! ~/ 60}m ${_countdowns[type]! % 60}s",
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                          color: Colors.black,
-                        ),
-                      )
-                    : const Text(
-                        "Get Code",
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                          color: Colors.black,
-                        ),
+              ),
+
+            // 📩 Get Code button
+            Positioned(
+              top: 21,
+              left: 300,
+              child: GestureDetector(
+                onTap: () {
+                  if (_controller.text.isEmpty) {
+                    _errorStackKey.currentState?.showError(
+                      "Please enter your EID / Email",
+                    );
+                    return;
+                  }
+                  _fetchCode(type);
+                },
+                child: Container(
+                  width: 100,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00F0FF).withOpacity(1),
+                        blurRadius: 11.5,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 0),
                       ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: _countdowns[type]! > 0
+                      ? Text(
+                          "${_countdowns[type]! ~/ 60}m ${_countdowns[type]! % 60}s",
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text(
+                          "Get Code",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                        ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
-
-
+    );
+  }
 
   Widget buildBackAndChangeButtons() {
     return Row(
@@ -1241,7 +1254,7 @@ Widget buildVerificationSection({
                   code: codeList.join(),
                   newPassword: _passwordController.text,
                   confirmPassword: _confirmPasswordController.text,
-                  method: type  
+                  method: type,
                 );
 
                 // Show overlay after successful verification and reset

@@ -759,7 +759,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         fontFamily: 'Inter',
                                       ),
                                       decoration: const InputDecoration(
-                                        hintText: "Countr",
+                                        hintText: "Country",
                                         hintStyle: TextStyle(
                                           color: Color(0xFFA5A6A8),
                                           fontSize: 15,
@@ -1433,7 +1433,17 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   right: 0,
                   child: FooterWidget(),
                 ),
-                ErrorStack(key: errorStackKey),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 20,
+                    ), // space from footer
+                    child: ErrorStack(key: errorStackKey),
+                  ),
+                ),
+                // ErrorStack(key: errorStackKey),
 
                 // Dropdowns (Country and DOB) - same as original
                 AnimatedPositioned(

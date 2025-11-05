@@ -236,7 +236,7 @@ class AuthService {
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': identifier}),
+      body: jsonEncode({'identifier': identifier}),
     );
     if (response.statusCode != 200) {
       throw Exception(jsonDecode(response.body)['error']);

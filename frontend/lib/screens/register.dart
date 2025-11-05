@@ -43,7 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
         listen: false,
       );
 
-      userProvider.loadFromStorage(storage); // restore saved registration
+      await userProvider.loadFromStorage(storage); // restore saved registration
       await languageProvider.loadLanguages();
 
       setState(() {
@@ -94,7 +94,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
         listen: false,
       );
 
-      userProvider.loadFromStorage(storage);
+      await userProvider.loadFromStorage(storage);
       await languageProvider.loadLanguages();
 
       setState(() {
@@ -454,7 +454,7 @@ class _RegisterPageTabletState extends State<RegisterPageTablet> {
         listen: false,
       );
 
-      userProvider.loadFromStorage(storage);
+      await userProvider.loadFromStorage(storage);
       await languageProvider.loadLanguages();
 
       setState(() {
