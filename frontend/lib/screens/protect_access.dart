@@ -759,7 +759,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         fontFamily: 'Inter',
                                       ),
                                       decoration: const InputDecoration(
-                                        hintText: "Countr",
+                                        hintText: "Country",
                                         hintStyle: TextStyle(
                                           color: Color(0xFFA5A6A8),
                                           fontSize: 15,
@@ -1817,7 +1817,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (_, __, ___) => PasswordPage(),
+        pageBuilder: (_, __, ___) => ResponsivePasswordPage(),
         transitionsBuilder: (_, animation, __, child) {
           final tween = Tween(
             begin: const Offset(1.0, 0.0),
@@ -2259,10 +2259,13 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
 
   @override
   Widget build(BuildContext context) {
+    final signUpData = Provider.of<UserProvider>(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final isLandscape = screenWidth > screenHeight;
 
     final userProvider = Provider.of<UserProvider>(context);
+    final orientation = MediaQuery.of(context).orientation;
 
     // Prefill logic (same as mobile)
     if (userProvider.country.isNotEmpty && _selectedCountry.isEmpty) {
@@ -2319,733 +2322,61 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
         children: [
-          // Tablet layout with SingleChildScrollView and Column
-          Positioned.fill(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.05,
-                  vertical: screenHeight * 0.05,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+          // Main content with image at bottom right
+          Column(
+            children: [
+              Expanded(
+                child: Stack(
                   children: [
-                    // Sign Up / Sign In buttons
-                    SizedBox(
-                      width: 230,
-                      height: 40,
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            left: 126,
-                            child: CustomButton(
-                              text: 'Sign Up',
-                              width: 104,
-                              height: 40,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              onTap: () {},
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF00F0FF,
-                                  ).withOpacity(0.5),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Positioned(
-                            left: 0,
-                            child: GestureDetector(
-                              child: Container(
-                                width: 106,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    width: 1,
-                                    color: const Color(0xFF00F0FF),
-                                  ),
-                                ),
-                                child: CustomButton(
-                                  text: 'Sign In',
-                                  width: 106,
-                                  height: 40,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  onTap: () {},
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Title
-                    const Text(
-                      "Your Digital Pass Into Egety",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 30,
-                        height: 1.0,
-                        color: Colors.white,
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // Progress Steps
-                    Center(
-                      child: SizedBox(
-                        width: 394,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              top: 9.5,
-                              left: 32,
-                              right: 40,
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  const totalSteps = 5;
-                                  const completedSteps = 2;
-                                  final segmentCount = totalSteps - 1;
-                                  final filledSegments = completedSteps - 1;
-
-                                  final totalWidth = constraints.maxWidth;
-                                  final filledWidth =
-                                      totalWidth *
-                                      (filledSegments / segmentCount);
-                                  final remainingWidth =
-                                      totalWidth - filledWidth;
-
-                                  return Row(
-                                    children: [
-                                      Container(
-                                        width: filledWidth,
-                                        height: 5,
-                                        decoration: const BoxDecoration(
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(100),
-                                            bottomLeft: Radius.circular(100),
-                                          ),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Color(0xFF00F0FF),
-                                              Color(0xFF0EA0BB),
-                                            ],
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight,
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: remainingWidth,
-                                        height: 5,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.only(
-                                            topRight: Radius.circular(100),
-                                            bottomRight: Radius.circular(100),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildStep("Profile\nStart", filled: true),
-                                _buildStep(
-                                  "Contact\nand Verify",
-                                  filled: true,
-                                  filledColor: const Color(0xFF0EA0BB),
-                                ),
-                                _buildStep("Security\nBase"),
-                                _buildStep("Register\nLive"),
-                                _buildStep("Register\nPattern"),
-                              ],
-                            ),
-                          ],
+                    // Scrollable content
+                    SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.1,
+                          vertical: screenHeight * 0.05,
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Form Fields
-                    SizedBox(
-                      width: 500, // Fixed width for tablet form
-                      child: Column(
-                        children: [
-                          // Country Input
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "What Is Your Country Of Residence?",
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 20,
-                                  height: 1.0,
-                                  color: Colors.white,
-                                ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isLandscape ? 450 : 420,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.only(
+                                top: 50,
+                                bottom: 20,
+                                left: 10,
+                                right: 10,
                               ),
-                              const SizedBox(height: 12),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _countryDropdownOpen =
-                                        !_countryDropdownOpen;
-                                  });
-                                },
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      width: 400,
-                                      height: 50,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF0B1320),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: const Color(0xFF00F0FF),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 4.0,
-                                            ),
-                                            child: SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: SvgPicture.asset(
-                                                'assets/images/iconFlag.svg',
-                                                fit: BoxFit.contain,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 18),
-                                          Expanded(
-                                            child: TextField(
-                                              controller:
-                                                  _countryFieldController,
-                                              readOnly: true,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                fontFamily: 'Inter',
-                                              ),
-                                              decoration: const InputDecoration(
-                                                hintText: "Country",
-                                                hintStyle: TextStyle(
-                                                  color: Color(0xFFA5A6A8),
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w500,
-                                                  fontFamily: 'Inter',
-                                                  height: 1.0,
-                                                ),
-                                                border: InputBorder.none,
-                                                isDense: true,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 16,
-                                      right: 16,
-                                      child: SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: Image.asset(
-                                          'assets/images/Blacksun-icon-chevron-down.png',
-                                          width: 18,
-                                          height: 18,
-                                          fit: BoxFit.contain,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 25),
-
-                          // Date of Birth Input
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "When Were You Born?",
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 20,
-                                  height: 1.0,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _dobDropdownOpen = !_dobDropdownOpen;
-                                  });
-                                },
-                                child: Container(
-                                  width: 400,
-                                  height: 50,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF0B1320),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: const Color(0xFF00F0FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Image.asset(
-                                        'assets/images/DOB.png',
-                                        width: 16,
-                                        height: 18,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Text(
-                                          _datePicked
-                                              ? _dobDisplayText
-                                              : "Date Of Birth",
-                                          style: TextStyle(
-                                            color: _datePicked
-                                                ? Colors.white
-                                                : const Color(0xFFA5A6A8),
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w500,
-                                            fontFamily: 'Inter',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 25),
-
-                          // Email Input
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Where Can We Reach You?",
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 20,
-                                  height: 1.0,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Stack(
-                                children: [
-                                  Container(
-                                    width: 400,
-                                    height: 50,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0B1320),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: const Color(0xFF00F0FF),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 4.0,
-                                          ),
-                                          child: Image.asset(
-                                            'assets/images/SVGRepo_iconCarrier.png',
-                                            width: 16,
-                                            height: 18,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _emailController,
-                                            decoration: const InputDecoration(
-                                              hintText: "Email",
-                                              hintStyle: TextStyle(
-                                                color: Color(0xFFA5A6A8),
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w500,
-                                                fontFamily: 'Inter',
-                                                height: 1.0,
-                                              ),
-                                              border: InputBorder.none,
-                                              isCollapsed: true,
-                                            ),
-                                            onChanged: (value) {
-                                              final userProvider =
-                                                  Provider.of<UserProvider>(
-                                                    context,
-                                                    listen: false,
-                                                  );
-                                              userProvider.setEmail(
-                                                value.trim(),
-                                              );
-                                            },
-                                            style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w500,
-                                              fontFamily: 'Inter',
-                                              color: Color(0xFF00F0FF),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 10,
-                                    right: 10,
-                                    child: MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          final userProvider =
-                                              Provider.of<UserProvider>(
-                                                context,
-                                                listen: false,
-                                              );
-                                          if (_emailController.text.isEmpty) {
-                                            ClipboardData? clipboardData =
-                                                await Clipboard.getData(
-                                                  Clipboard.kTextPlain,
-                                                );
-                                            if (clipboardData?.text != null) {
-                                              setState(() {
-                                                _emailController.text =
-                                                    clipboardData!.text!;
-                                                userProvider.setEmail(
-                                                  _emailController.text,
-                                                );
-                                              });
-                                            }
-                                          } else {
-                                            setState(() {
-                                              _emailController.clear();
-                                              userProvider.setEmail("");
-                                            });
-                                          }
-                                        },
-                                        child: Container(
-                                          width: 55,
-                                          height: 30,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              7,
-                                            ),
-                                            border: Border.all(
-                                              color: const Color(0xFF00F0FF),
-                                            ),
-                                            color: Colors.transparent,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              _emailController.text.isEmpty
-                                                  ? "Paste"
-                                                  : "Clear",
-                                              style: const TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 15,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0B1320),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF00F0FF),
+                                    blurRadius: 7,
+                                    spreadRadius: 0,
                                   ),
                                 ],
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 25),
-
-                          // Email Verification
-                          SizedBox(
-                            width: 400,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Email Verification",
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 20,
-                                    height: 1.0,
-                                    color: Colors.white,
-                                    letterSpacing: -0.08,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-
-                                if (_hideInputFields)
-                                  Opacity(
-                                    opacity: 1,
-                                    child: Transform.rotate(
-                                      angle: 0,
-                                      child: Container(
-                                        width: 88,
-                                        height: 24,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: Color(0xFF00F0FF),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "Code Sent",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 20,
-                                            height: 1.0,
-                                            letterSpacing: -0.08 * 20,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                else if (_tooManyAttempts)
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Sign Up / Sign In buttons
                                   SizedBox(
-                                    width: 270,
-                                    height: 26,
+                                    width: 230,
+                                    height: 40,
                                     child: Stack(
                                       children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Color(0xFF0B1320),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                        ),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.centerLeft,
-                                              end: Alignment.centerRight,
-                                              colors: [
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.0,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.61,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.61,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.0,
-                                                ),
-                                              ],
-                                              stops: [0.0, 0.101, 0.9038, 1.0],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                        ),
-                                        Center(
-                                          child: Text(
-                                            "Too many attempts. Try again later.",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                else
-                                  Row(
-                                    children: [
-                                      // Code input fields
-                                      ...List.generate(6, (index) {
-                                        return GestureDetector(
-                                          onTap: () =>
-                                              _focusNodes[index].requestFocus(),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 5,
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                SizedBox(
-                                                  width: 40,
-                                                  child: TextField(
-                                                    controller:
-                                                        _codecontrollers[index],
-                                                    focusNode:
-                                                        _focusNodes[index],
-                                                    showCursor: !(code.every(
-                                                      (c) => c.isNotEmpty,
-                                                    )),
-                                                    textAlign: TextAlign.center,
-                                                    maxLength: 1,
-                                                    keyboardType:
-                                                        TextInputType.number,
-                                                    style: TextStyle(
-                                                      color: isCodeCorrect
-                                                          ? const Color(
-                                                              0xFF00F0FF,
-                                                            )
-                                                          : (_isCodeValid ==
-                                                                    false
-                                                                ? Colors.red
-                                                                : Colors.white),
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                    cursorColor: isCodeCorrect
-                                                        ? const Color(
-                                                            0xFF00F0FF,
-                                                          )
-                                                        : (_isCodeValid == false
-                                                              ? Colors.red
-                                                              : Colors.white),
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          counterText: "",
-                                                          border:
-                                                              InputBorder.none,
-                                                        ),
-                                                    onChanged: (value) =>
-                                                        _onChanged(
-                                                          value,
-                                                          index,
-                                                        ),
-                                                  ),
-                                                ),
-                                                Container(
-                                                  width: 40,
-                                                  height: 2,
-                                                  color: code[index].isEmpty
-                                                      ? Colors.white
-                                                      : Colors.transparent,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      }),
-
-                                      const SizedBox(width: 15),
-
-                                      // Success/Error icon
-                                      if (isCodeCorrect ||
-                                          _isCodeValid == false) ...[
-                                        AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 300,
-                                          ),
-                                          width: 24,
-                                          height: 24,
-                                          decoration: BoxDecoration(
-                                            color: isCodeCorrect
-                                                ? const Color(0xFF00F0FF)
-                                                : Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            isCodeCorrect
-                                                ? Icons.check
-                                                : Icons.close,
-                                            color: isCodeCorrect
-                                                ? Colors.black
-                                                : Colors.white,
-                                            size: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 15),
-                                      ],
-
-                                      // Get Code button
-                                      GestureDetector(
-                                        onTap:
-                                            (_secondsLeft == 0 &&
-                                                !_tooManyAttempts &&
-                                                !_isTyping)
-                                            ? fetchCodeFromGo
-                                            : null,
-                                        child: Container(
-                                          width: 85,
-                                          height: 23,
-                                          decoration: BoxDecoration(
+                                        Positioned(
+                                          left: 126,
+                                          child: CustomButton(
+                                            text: 'Sign Up',
+                                            width: 104,
+                                            height: 40,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
+                                            onTap: () {},
                                             gradient: const LinearGradient(
                                               colors: [
                                                 Color(0xFF00F0FF),
@@ -3058,181 +2389,1128 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                               BoxShadow(
                                                 color: const Color(
                                                   0xFF00F0FF,
-                                                ).withOpacity(0.8),
-                                                blurRadius: 15,
+                                                ).withOpacity(0.5),
+                                                blurRadius: 10,
                                                 spreadRadius: 2,
-                                                offset: const Offset(0, 0),
                                               ),
                                             ],
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 0,
+                                          child: GestureDetector(
+                                            child: Container(
+                                              width: 106,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  width: 1,
+                                                  color: const Color(
+                                                    0xFF00F0FF,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: CustomButton(
+                                                text: 'Sign In',
+                                                width: 106,
+                                                height: 40,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w600,
+                                                onTap: () {},
+                                              ),
                                             ),
                                           ),
-                                          child: Center(
-                                            child: _secondsLeft > 0
-                                                ? Text(
-                                                    "${_secondsLeft ~/ 60}m ${_secondsLeft % 60}s",
-                                                    style: const TextStyle(
-                                                      fontFamily: 'Inter',
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      fontSize: 20,
-                                                      color: Colors.black,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 20),
+
+                                  // Title
+                                  const Text(
+                                    "Your Digital Pass Into Egety",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 30,
+                                      height: 1.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 30),
+
+                                  // Progress Steps
+                                  Center(
+                                    child: SizedBox(
+                                      width: 394,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Positioned(
+                                            top: 9.5,
+                                            left: 32,
+                                            right: 40,
+                                            child: LayoutBuilder(
+                                              builder: (context, constraints) {
+                                                const totalSteps = 5;
+                                                const completedSteps = 2;
+                                                final segmentCount =
+                                                    totalSteps - 1;
+                                                final filledSegments =
+                                                    completedSteps - 1;
+
+                                                final totalWidth =
+                                                    constraints.maxWidth;
+                                                final filledWidth =
+                                                    totalWidth *
+                                                    (filledSegments /
+                                                        segmentCount);
+                                                final remainingWidth =
+                                                    totalWidth - filledWidth;
+
+                                                return Row(
+                                                  children: [
+                                                    Container(
+                                                      width: filledWidth,
+                                                      height: 5,
+                                                      decoration: const BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius.only(
+                                                              topLeft:
+                                                                  Radius.circular(
+                                                                    100,
+                                                                  ),
+                                                              bottomLeft:
+                                                                  Radius.circular(
+                                                                    100,
+                                                                  ),
+                                                            ),
+                                                        gradient:
+                                                            LinearGradient(
+                                                              colors: [
+                                                                Color(
+                                                                  0xFF00F0FF,
+                                                                ),
+                                                                Color(
+                                                                  0xFF0EA0BB,
+                                                                ),
+                                                              ],
+                                                              begin: Alignment
+                                                                  .centerLeft,
+                                                              end: Alignment
+                                                                  .centerRight,
+                                                            ),
+                                                      ),
                                                     ),
-                                                  )
-                                                : const Text(
-                                                    "Get Code",
-                                                    style: TextStyle(
-                                                      fontFamily: 'Inter',
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      fontSize: 18,
-                                                      color: Colors.white,
+                                                    Container(
+                                                      width: remainingWidth,
+                                                      height: 5,
+                                                      decoration: const BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius.only(
+                                                              topRight:
+                                                                  Radius.circular(
+                                                                    100,
+                                                                  ),
+                                                              bottomRight:
+                                                                  Radius.circular(
+                                                                    100,
+                                                                  ),
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ),
+
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              _buildStep(
+                                                "Profile\nStart",
+                                                filled: true,
+                                              ),
+                                              _buildStep(
+                                                "Contact\nand Verify",
+                                                filled: true,
+                                                filledColor: const Color(
+                                                  0xFF0EA0BB,
+                                                ),
+                                              ),
+                                              _buildStep("Security\nBase"),
+                                              _buildStep("Register\nLive"),
+                                              _buildStep("Register\nPattern"),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 40),
+
+                                  // Form Fields
+                                  SizedBox(
+                                    width: 500, // Fixed width for tablet form
+                                    child: Column(
+                                      children: [
+                                        // Country Input
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              "What Is Your Country Of Residence?",
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 20,
+                                                height: 1.0,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _countryDropdownOpen =
+                                                      !_countryDropdownOpen;
+                                                });
+                                              },
+                                              child: Stack(
+                                                children: [
+                                                  Container(
+                                                    width: 400,
+                                                    height: 50,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 16,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                        0xFF0B1320,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFF00F0FF,
+                                                        ),
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                top: 4.0,
+                                                              ),
+                                                          child: SizedBox(
+                                                            width: 18,
+                                                            height: 18,
+                                                            child: SvgPicture.asset(
+                                                              'assets/images/iconFlag.svg',
+                                                              fit: BoxFit
+                                                                  .contain,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 18,
+                                                        ),
+                                                        Expanded(
+                                                          child: TextField(
+                                                            controller:
+                                                                _countryFieldController,
+                                                            readOnly: true,
+                                                            style:
+                                                                const TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize: 20,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  fontFamily:
+                                                                      'Inter',
+                                                                ),
+                                                            decoration: const InputDecoration(
+                                                              hintText:
+                                                                  "Country",
+                                                              hintStyle: TextStyle(
+                                                                color: Color(
+                                                                  0xFFA5A6A8,
+                                                                ),
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontFamily:
+                                                                    'Inter',
+                                                                height: 1.0,
+                                                              ),
+                                                              border:
+                                                                  InputBorder
+                                                                      .none,
+                                                              isDense: true,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
+                                                  Positioned(
+                                                    top: 16,
+                                                    right: 16,
+                                                    child: SizedBox(
+                                                      width: 18,
+                                                      height: 18,
+                                                      child: Image.asset(
+                                                        'assets/images/Blacksun-icon-chevron-down.png',
+                                                        width: 18,
+                                                        height: 18,
+                                                        fit: BoxFit.contain,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 25),
+
+                                        // Date of Birth Input
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              "When Were You Born?",
+                                              style: const TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 20,
+                                                height: 1.0,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _dobDropdownOpen =
+                                                      !_dobDropdownOpen;
+                                                });
+                                              },
+                                              child: Container(
+                                                width: 400,
+                                                height: 50,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF0B1320,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF00F0FF,
+                                                    ),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Image.asset(
+                                                      'assets/images/DOB.png',
+                                                      width: 16,
+                                                      height: 18,
+                                                      color: Colors.white,
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Text(
+                                                        _datePicked
+                                                            ? _dobDisplayText
+                                                            : "Date Of Birth",
+                                                        style: TextStyle(
+                                                          color: _datePicked
+                                                              ? Colors.white
+                                                              : const Color(
+                                                                  0xFFA5A6A8,
+                                                                ),
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          fontFamily: 'Inter',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 25),
+
+                                        // Email Input
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              "Where Can We Reach You?",
+                                              style: const TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 20,
+                                                height: 1.0,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Stack(
+                                              children: [
+                                                Container(
+                                                  width: 400,
+                                                  height: 50,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFF0B1320,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFF00F0FF,
+                                                      ),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              top: 4.0,
+                                                            ),
+                                                        child: Image.asset(
+                                                          'assets/images/SVGRepo_iconCarrier.png',
+                                                          width: 16,
+                                                          height: 18,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 16),
+                                                      Expanded(
+                                                        child: TextField(
+                                                          controller:
+                                                              _emailController,
+                                                          decoration:
+                                                              const InputDecoration(
+                                                                hintText:
+                                                                    "Email",
+                                                                hintStyle: TextStyle(
+                                                                  color: Color(
+                                                                    0xFFA5A6A8,
+                                                                  ),
+                                                                  fontSize: 15,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  fontFamily:
+                                                                      'Inter',
+                                                                  height: 1.0,
+                                                                ),
+                                                                border:
+                                                                    InputBorder
+                                                                        .none,
+                                                                isCollapsed:
+                                                                    true,
+                                                              ),
+                                                          onChanged: (value) {
+                                                            final userProvider =
+                                                                Provider.of<
+                                                                  UserProvider
+                                                                >(
+                                                                  context,
+                                                                  listen: false,
+                                                                );
+                                                            userProvider
+                                                                .setEmail(
+                                                                  value.trim(),
+                                                                );
+                                                          },
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 20,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontFamily:
+                                                                    'Inter',
+                                                                color: Color(
+                                                                  0xFF00F0FF,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  top: 10,
+                                                  right: 10,
+                                                  child: MouseRegion(
+                                                    cursor: SystemMouseCursors
+                                                        .click,
+                                                    child: GestureDetector(
+                                                      onTap: () async {
+                                                        final userProvider =
+                                                            Provider.of<
+                                                              UserProvider
+                                                            >(
+                                                              context,
+                                                              listen: false,
+                                                            );
+                                                        if (_emailController
+                                                            .text
+                                                            .isEmpty) {
+                                                          ClipboardData?
+                                                          clipboardData =
+                                                              await Clipboard.getData(
+                                                                Clipboard
+                                                                    .kTextPlain,
+                                                              );
+                                                          if (clipboardData
+                                                                  ?.text !=
+                                                              null) {
+                                                            setState(() {
+                                                              _emailController
+                                                                      .text =
+                                                                  clipboardData!
+                                                                      .text!;
+                                                              userProvider.setEmail(
+                                                                _emailController
+                                                                    .text,
+                                                              );
+                                                            });
+                                                          }
+                                                        } else {
+                                                          setState(() {
+                                                            _emailController
+                                                                .clear();
+                                                            userProvider
+                                                                .setEmail("");
+                                                          });
+                                                        }
+                                                      },
+                                                      child: Container(
+                                                        width: 55,
+                                                        height: 30,
+                                                        decoration: BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                7,
+                                                              ),
+                                                          border: Border.all(
+                                                            color: const Color(
+                                                              0xFF00F0FF,
+                                                            ),
+                                                          ),
+                                                          color: Colors
+                                                              .transparent,
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            _emailController
+                                                                    .text
+                                                                    .isEmpty
+                                                                ? "Paste"
+                                                                : "Clear",
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontFamily:
+                                                                      'Inter',
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  fontSize: 15,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 25),
+
+                                        // Email Verification
+                                        SizedBox(
+                                          width: 400,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                "Email Verification",
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 20,
+                                                  height: 1.0,
+                                                  color: Colors.white,
+                                                  letterSpacing: -0.08,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 0),
+
+                                              if (_hideInputFields)
+                                                Opacity(
+                                                  opacity: 1,
+                                                  child: Transform.rotate(
+                                                    angle: 0,
+                                                    child: Container(
+                                                      width: 88,
+                                                      height: 24,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                        color: Color(
+                                                          0xFF00F0FF,
+                                                        ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        "Code Sent",
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                          fontFamily: 'Inter',
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          fontSize: 20,
+                                                          height: 1.0,
+                                                          letterSpacing:
+                                                              -0.08 * 20,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                              else if (_tooManyAttempts)
+                                                SizedBox(
+                                                  width: 270,
+                                                  height: 26,
+                                                  child: Stack(
+                                                    children: [
+                                                      Container(
+                                                        decoration: BoxDecoration(
+                                                          color: Color(
+                                                            0xFF0B1320,
+                                                          ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      Container(
+                                                        decoration: BoxDecoration(
+                                                          gradient: LinearGradient(
+                                                            begin: Alignment
+                                                                .centerLeft,
+                                                            end: Alignment
+                                                                .centerRight,
+                                                            colors: [
+                                                              Color.fromRGBO(
+                                                                175,
+                                                                34,
+                                                                34,
+                                                                0.0,
+                                                              ),
+                                                              Color.fromRGBO(
+                                                                175,
+                                                                34,
+                                                                34,
+                                                                0.61,
+                                                              ),
+                                                              Color.fromRGBO(
+                                                                175,
+                                                                34,
+                                                                34,
+                                                                0.61,
+                                                              ),
+                                                              Color.fromRGBO(
+                                                                175,
+                                                                34,
+                                                                34,
+                                                                0.0,
+                                                              ),
+                                                            ],
+                                                            stops: [
+                                                              0.0,
+                                                              0.101,
+                                                              0.9038,
+                                                              1.0,
+                                                            ],
+                                                          ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      Center(
+                                                        child: Text(
+                                                          "Too many attempts. Try again later.",
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              else
+                                                Row(
+                                                  children: [
+                                                    // Code input fields
+                                                    ...List.generate(6, (
+                                                      index,
+                                                    ) {
+                                                      return GestureDetector(
+                                                        onTap: () =>
+                                                            _focusNodes[index]
+                                                                .requestFocus(),
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 5,
+                                                              ),
+                                                          child: Column(
+                                                            children: [
+                                                              SizedBox(
+                                                                width: 40,
+                                                                height: 20,
+                                                                child: TextField(
+                                                                  controller:
+                                                                      _codecontrollers[index],
+                                                                  focusNode:
+                                                                      _focusNodes[index],
+                                                                  showCursor:
+                                                                      !(code.every(
+                                                                        (c) => c
+                                                                            .isNotEmpty,
+                                                                      )),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  maxLength: 1,
+                                                                  keyboardType:
+                                                                      TextInputType
+                                                                          .number,
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        isCodeCorrect
+                                                                        ? const Color(
+                                                                            0xFF00F0FF,
+                                                                          )
+                                                                        : (_isCodeValid ==
+                                                                                  false
+                                                                              ? Colors.red
+                                                                              : Colors.white),
+                                                                    fontSize:
+                                                                        20,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                  ),
+                                                                  cursorColor:
+                                                                      isCodeCorrect
+                                                                      ? const Color(
+                                                                          0xFF00F0FF,
+                                                                        )
+                                                                      : (_isCodeValid ==
+                                                                                false
+                                                                            ? Colors.red
+                                                                            : Colors.white),
+                                                                  decoration: const InputDecoration(
+                                                                    counterText:
+                                                                        "",
+                                                                    border:
+                                                                        InputBorder
+                                                                            .none,
+                                                                  ),
+                                                                  onChanged:
+                                                                      (
+                                                                        value,
+                                                                      ) => _onChanged(
+                                                                        value,
+                                                                        index,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                              Container(
+                                                                width: 40,
+                                                                height: 2,
+                                                                color:
+                                                                    code[index]
+                                                                        .isEmpty
+                                                                    ? Colors
+                                                                          .white
+                                                                    : Colors
+                                                                          .transparent,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }),
+
+                                                    const SizedBox(width: 15),
+
+                                                    // Success/Error icon
+                                                    if (isCodeCorrect ||
+                                                        _isCodeValid ==
+                                                            false) ...[
+                                                      AnimatedContainer(
+                                                        duration:
+                                                            const Duration(
+                                                              milliseconds: 300,
+                                                            ),
+                                                        width: 24,
+                                                        height: 24,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                              color:
+                                                                  isCodeCorrect
+                                                                  ? const Color(
+                                                                      0xFF00F0FF,
+                                                                    )
+                                                                  : Colors.red,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                        child: Icon(
+                                                          isCodeCorrect
+                                                              ? Icons.check
+                                                              : Icons.close,
+                                                          color: isCodeCorrect
+                                                              ? Colors.black
+                                                              : Colors.white,
+                                                          size: 16,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 15),
+                                                    ],
+
+                                                    // Get Code button
+                                                    GestureDetector(
+                                                      onTap:
+                                                          (_secondsLeft == 0 &&
+                                                              !_tooManyAttempts &&
+                                                              !_isTyping)
+                                                          ? fetchCodeFromGo
+                                                          : null,
+                                                      child: Container(
+                                                        width: 85,
+                                                        height: 23,
+                                                        decoration: BoxDecoration(
+                                                          gradient:
+                                                              const LinearGradient(
+                                                                colors: [
+                                                                  Color(
+                                                                    0xFF00F0FF,
+                                                                  ),
+                                                                  Color(
+                                                                    0xFF0177B3,
+                                                                  ),
+                                                                ],
+                                                                begin: Alignment
+                                                                    .centerLeft,
+                                                                end: Alignment
+                                                                    .centerRight,
+                                                              ),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color:
+                                                                  const Color(
+                                                                    0xFF00F0FF,
+                                                                  ).withOpacity(
+                                                                    0.8,
+                                                                  ),
+                                                              blurRadius: 15,
+                                                              spreadRadius: 2,
+                                                              offset:
+                                                                  const Offset(
+                                                                    0,
+                                                                    0,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6,
+                                                              ),
+                                                        ),
+                                                        child: Center(
+                                                          child:
+                                                              _secondsLeft > 0
+                                                              ? Text(
+                                                                  "${_secondsLeft ~/ 60}m ${_secondsLeft % 60}s",
+                                                                  style: const TextStyle(
+                                                                    fontFamily:
+                                                                        'Inter',
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                    fontSize:
+                                                                        20,
+                                                                    color: Colors
+                                                                        .black,
+                                                                  ),
+                                                                )
+                                                              : const Text(
+                                                                  "Get Code",
+                                                                  style: TextStyle(
+                                                                    fontFamily:
+                                                                        'Inter',
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                    fontSize:
+                                                                        18,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ),
 
-                          const SizedBox(height: 40),
+                                        const SizedBox(height: 40),
 
-                          // Navigation Buttons
-                          SizedBox(
-                            width: 500,
-                            height: 40,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  width: 64,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(11),
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.centerRight,
-                                      end: Alignment.centerLeft,
-                                      colors: [
-                                        Color(0xFF00F0FF),
-                                        Color(0xFF0B1320),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                        // Navigation Buttons
+                                        SizedBox(
+                                          width: 400,
+                                          height: 40,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Container(
+                                                width: 64,
+                                                height: 4,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(11),
+                                                  gradient:
+                                                      const LinearGradient(
+                                                        begin: Alignment
+                                                            .centerRight,
+                                                        end: Alignment
+                                                            .centerLeft,
+                                                        colors: [
+                                                          Color(0xFF00F0FF),
+                                                          Color(0xFF0B1320),
+                                                        ],
+                                                      ),
+                                                ),
+                                              ),
 
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: Container(
-                                      width: 120,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: const Color(0xFF00F0FF),
-                                          width: 1,
+                                              MouseRegion(
+                                                cursor:
+                                                    SystemMouseCursors.click,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                  child: Container(
+                                                    width: 106,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFF00F0FF,
+                                                        ),
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: const Center(
+                                                      child: Text(
+                                                        "Back",
+                                                        style: TextStyle(
+                                                          fontFamily: 'Inter',
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 20,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
+                                              MouseRegion(
+                                                cursor:
+                                                    SystemMouseCursors.click,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    _validateAndNavigate(
+                                                      context,
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    width: 105,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFF00F0FF,
+                                                        ),
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: const Center(
+                                                      child: Text(
+                                                        "Next",
+                                                        style: TextStyle(
+                                                          fontFamily: 'Inter',
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 20,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
+                                              Container(
+                                                width: 64,
+                                                height: 4,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(11),
+                                                  gradient:
+                                                      const LinearGradient(
+                                                        begin: Alignment
+                                                            .centerRight,
+                                                        end: Alignment
+                                                            .centerLeft,
+                                                        colors: [
+                                                          Color(0xFF0B1320),
+                                                          Color(0xFF00F0FF),
+                                                        ],
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      child: const Center(
-                                        child: Text(
-                                          "Back",
+
+                                        const SizedBox(height: 30),
+
+                                        // Verification Message
+                                        const Text(
+                                          "Your ID is now verified\nYour vault is a step closer to being yours",
+                                          textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w600,
+                                            fontStyle: FontStyle.normal,
                                             fontSize: 20,
+                                            height: 1.0,
+                                            letterSpacing: 0,
                                             color: Colors.white,
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
 
-                                MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      _validateAndNavigate(context);
-                                    },
-                                    child: Container(
-                                      width: 120,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: const Color(0xFF00F0FF),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: const Center(
-                                        child: Text(
-                                          "Next",
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 20,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                        const SizedBox(height: 40),
 
-                                Container(
-                                  width: 64,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(11),
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.centerRight,
-                                      end: Alignment.centerLeft,
-                                      colors: [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
+                                        // Footer
+                                        FooterWidget(),
                                       ],
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-
-                          const SizedBox(height: 30),
-
-                          // Verification Message
-                          const Text(
-                            "Your ID is now verified\nYour vault is a step closer to being yours",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.normal,
-                              fontSize: 20,
-                              height: 1.0,
-                              letterSpacing: 0,
-                              color: Colors.white,
-                            ),
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // Footer
-                          FooterWidget(),
-                        ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+
+          Positioned(
+            bottom: 0, // Distance from bottom
+            right: -10, // Distance from right
+            child: Image.asset(
+              'assets/images/Rectangle2.png',
+              width: isLandscape
+                  ? 150
+                  : 120, // Adjust size based on orientation
+              height: isLandscape ? 150 : 120,
+              fit: BoxFit.contain,
             ),
           ),
 
@@ -3608,7 +3886,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (_, __, ___) => PasswordPage(),
+        pageBuilder: (_, __, ___) => ResponsivePasswordPage(),
         transitionsBuilder: (_, animation, __, child) {
           final tween = Tween(
             begin: const Offset(1.0, 0.0),
