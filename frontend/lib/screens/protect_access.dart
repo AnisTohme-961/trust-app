@@ -146,7 +146,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     }
 
     final response = await http.post(
-      Uri.parse("http://10.0.2.2:8080/get-code"),
+      Uri.parse('${ApiConstants.baseUrl}/get-code'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email}),
     );
@@ -204,7 +204,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     print("➡ Sending verify request: $body");
 
     final response = await http.post(
-      Uri.parse("http://10.0.2.2:8080/verify-code"),
+      Uri.parse('${ApiConstants.baseUrl}/verify-code'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
@@ -1989,7 +1989,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     }
 
     final response = await http.post(
-      Uri.parse("http://10.0.2.2:8080/get-code"),
+      Uri.parse('${ApiConstants.baseUrl}/get-code'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email}),
     );
@@ -2041,7 +2041,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     final body = {"email": email.trim(), "code": code.trim()};
 
     final response = await http.post(
-      Uri.parse("http://10.0.2.2:8080/verify-code"),
+      Uri.parse('${ApiConstants.baseUrl}/verify-code'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );

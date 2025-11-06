@@ -9,6 +9,7 @@ import '../screens/select_account_second_sign_in_screen.dart';
 import '../screens/sign_in_second_time_screen.dart';
 import '../screens/sign_in_pin_screen.dart';
 import '../screens/sign_in_pattern_screen.dart';
+import '../screens/coming_soon_screen.dart';
 
 Map<String, WidgetBuilder> appRoutes() {
   return {
@@ -24,5 +25,6 @@ Map<String, WidgetBuilder> appRoutes() {
     '/sign-in-second-screen': (_) => const SignInSecondTimeScreen(),
     '/sign-in-register-pin': (_) => const SignInRegisterPinScreen(),
     '/sign-in-pattern': (_) => const SignInPatternScreen(),
+    '/coming-soon': (_) => const ComingSoonPage(),
   };
 }

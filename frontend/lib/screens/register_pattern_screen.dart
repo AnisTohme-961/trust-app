@@ -165,7 +165,7 @@ class _MobileRegisterPatternScreenState
         try {
           await AuthService.registerPattern(selectedDots);
           print("Pattern registered successfully");
-          Navigator.pushNamed(context, '/sign-in');
+          Navigator.pushNamed(context, '/coming-soon');
         } catch (e) {
           print("Error registering pattern: $e");
         }
@@ -605,7 +605,7 @@ class _TabletRegisterPatternScreenState
         try {
           await AuthService.registerPattern(selectedDots);
           print("Pattern registered successfully");
-          Navigator.pushNamed(context, '/sign-in');
+          Navigator.pushNamed(context, '/coming-soon');
         } catch (e) {
           print("Error registering pattern: $e");
         }
