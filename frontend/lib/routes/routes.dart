@@ -15,14 +15,14 @@ Map<String, WidgetBuilder> appRoutes() {
     '/sign-up': (_) => const SignUpPage(),
     '/sign-in': (_) => const SignInPage(),
     '/forgot-password': (_) => const ForgotPasswordScreen(),
-    '/register-pin': (_) => const RegisterPinScreen(title: "Register Pin"),
-    '/register-pattern': (_) => const RegisterPatternScreen(),
+    '/register-pin': (_) =>
+        const ResponsiveRegisterPinScreen(title: "Register Pin"),
+    '/register-pattern': (_) => const ResponsiveRegisterPatternScreen(),
     '/forgot-eid': (_) => const ForgotEidPage(),
     '/select-account-second-signin': (_) =>
         const SelectAccountSecondSignInScreen(),
     '/sign-in-second-screen': (_) => const SignInSecondTimeScreen(),
     '/sign-in-register-pin': (_) => const SignInRegisterPinScreen(),
     '/sign-in-pattern': (_) => const SignInPatternScreen(),
-    
   };
 }
