@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
             cursorColor: Color(0xFF00F0FF),
           ),
         ),
-        home: const ResponsiveRegisterPatternScreen(),
+        home: const ResponsiveHomePage(),
         routes: appRoutes(),
       ),
     );
