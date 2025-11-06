@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import 'screens/protect_access.dart';
+import 'screens/register_pattern_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,6 +36,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home: ResponsiveHomePage(),
+        home: const ResponsiveRegisterPatternScreen(),
         routes: appRoutes(),
       ),
     );

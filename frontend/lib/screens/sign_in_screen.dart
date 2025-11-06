@@ -3,7 +3,7 @@ import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
 import 'dart:async';
 import '../widgets/error_widgets.dart';
-import 'dart:convert'; // Added for jsonDecode
+import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../widgets/footer_widgets.dart';
 
@@ -38,10 +38,10 @@ class _SignInPageState extends State<SignInPage> {
   int _secondsLeft = 0;
 
   int _getCodeAttempts = 0;
+
   void fetchCodeFromGo() async {
     final identifier = _controller.text.trim();
 
-    // ✅ Show an error if the field is empty
     if (identifier.isEmpty) {
       errorStackKey.currentState?.showError(
         'Please enter your eid/email first',
@@ -57,7 +57,6 @@ class _SignInPageState extends State<SignInPage> {
           duration: const Duration(seconds: 5),
         );
 
-        // reset after 10 minutes
         Timer(const Duration(minutes: 10), () {
           setState(() => _getCodeAttempts = 0);
         });
@@ -80,7 +79,7 @@ class _SignInPageState extends State<SignInPage> {
         });
       });
 
-      _secondsLeft = 120; // 2 minutes
+      _secondsLeft = 120;
       Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_secondsLeft <= 0) {
           timer.cancel();
@@ -110,7 +109,6 @@ class _SignInPageState extends State<SignInPage> {
       }
     });
 
-    // Verify code automatically when all 6 digits are filled
     if (getEnteredCode().length == 6 &&
         getEnteredCode().split('').every((d) => d.isNotEmpty)) {
       try {
@@ -125,7 +123,6 @@ class _SignInPageState extends State<SignInPage> {
         });
 
         if (res) {
-          // Stop timer when code is correct
           _secondsLeft = 0;
         } else {
           errorStackKey.currentState?.showError(
@@ -162,83 +159,181 @@ class _SignInPageState extends State<SignInPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 50),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const SizedBox(height: 75),
-                Image.asset(
-                  'assets/images/egetyPerfectStar.png',
-                  width: 111,
-                  height: 126,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 0),
-                const Text(
-                  'Egety Trust',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Colors.white,
-                    fontSize: 50,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                signInAndSignUpButtons(),
-                const SizedBox(height: 10),
-                const Text(
-                  'Welcome back!',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Text(
-                  'Please enter your credentials to continue',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                buildEmailInput(),
-                const SizedBox(height: 15),
-                buildPasswordInput(),
-                buildForgotRow(),
-                buildRememberMe(),
-                const SizedBox(height: 10),
-                buildEmailVerification(),
-                buildSignInButton(),
-                const SizedBox(height: 20),
-                const Text(
-                  'You built your vault \nNow unlock it',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FooterWidget(),
-              ],
-            ),
-          ),
-          ErrorStack(key: errorStackKey),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 600) {
+            return TabletSignInPage(
+              controller: _controller,
+              passwordController: _passwordController,
+              showPassword: _showPassword,
+              rememberMe: _rememberMe,
+              isEmailNotEmpty: _isEmailNotEmpty,
+              isPasswordNotEmpty: _isPasswordNotEmpty,
+              hideInputFields: _hideInputFields,
+              isCodeCorrect: isCodeCorrect,
+              isCodeValid: _isCodeValid,
+              codecontrollers: _codecontrollers,
+              focusNodes: _focusNodes,
+              code: code,
+              secondsLeft: _secondsLeft,
+              errorStackKey: errorStackKey,
+              onShowPasswordChanged: (value) =>
+                  setState(() => _showPassword = value),
+              onRememberMeChanged: (value) =>
+                  setState(() => _rememberMe = value),
+              onFetchCode: fetchCodeFromGo,
+              onCodeChanged: _onChanged,
+            );
+          } else {
+            return MobileSignInPage(
+              controller: _controller,
+              passwordController: _passwordController,
+              showPassword: _showPassword,
+              rememberMe: _rememberMe,
+              isEmailNotEmpty: _isEmailNotEmpty,
+              isPasswordNotEmpty: _isPasswordNotEmpty,
+              hideInputFields: _hideInputFields,
+              isCodeCorrect: isCodeCorrect,
+              isCodeValid: _isCodeValid,
+              codecontrollers: _codecontrollers,
+              focusNodes: _focusNodes,
+              code: code,
+              secondsLeft: _secondsLeft,
+              errorStackKey: errorStackKey,
+              onShowPasswordChanged: (value) =>
+                  setState(() => _showPassword = value),
+              onRememberMeChanged: (value) =>
+                  setState(() => _rememberMe = value),
+              onFetchCode: fetchCodeFromGo,
+              onCodeChanged: _onChanged,
+            );
+          }
+        },
       ),
     );
   }
+}
 
-  Widget buildEmailInput() {
+class MobileSignInPage extends StatelessWidget {
+  final TextEditingController controller;
+  final TextEditingController passwordController;
+  final bool showPassword;
+  final bool rememberMe;
+  final bool isEmailNotEmpty;
+  final bool isPasswordNotEmpty;
+  final bool hideInputFields;
+  final bool isCodeCorrect;
+  final bool? isCodeValid;
+  final List<TextEditingController> codecontrollers;
+  final List<FocusNode> focusNodes;
+  final List<String> code;
+  final int secondsLeft;
+  final GlobalKey<ErrorStackState> errorStackKey;
+  final ValueChanged<bool> onShowPasswordChanged;
+  final ValueChanged<bool> onRememberMeChanged;
+  final VoidCallback onFetchCode;
+  final void Function(String, int) onCodeChanged; // Fixed type
+
+  const MobileSignInPage({
+    super.key,
+    required this.controller,
+    required this.passwordController,
+    required this.showPassword,
+    required this.rememberMe,
+    required this.isEmailNotEmpty,
+    required this.isPasswordNotEmpty,
+    required this.hideInputFields,
+    required this.isCodeCorrect,
+    required this.isCodeValid,
+    required this.codecontrollers,
+    required this.focusNodes,
+    required this.code,
+    required this.secondsLeft,
+    required this.errorStackKey,
+    required this.onShowPasswordChanged,
+    required this.onRememberMeChanged,
+    required this.onFetchCode,
+    required this.onCodeChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 50),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(height: 75),
+              Image.asset(
+                'assets/images/egetyPerfectStar.png',
+                width: 111,
+                height: 126,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 0),
+              const Text(
+                'Egety Trust',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  color: Colors.white,
+                  fontSize: 50,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildSignInAndSignUpButtons(context),
+              const SizedBox(height: 10),
+              const Text(
+                'Welcome back!',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Text(
+                'Please enter your credentials to continue',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 15),
+              _buildEmailInput(),
+              const SizedBox(height: 15),
+              _buildPasswordInput(),
+              _buildForgotRow(context),
+              _buildRememberMe(),
+              const SizedBox(height: 10),
+              _buildEmailVerification(),
+              _buildSignInButton(context),
+              const SizedBox(height: 20),
+              const Text(
+                'You built your vault \nNow unlock it',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FooterWidget(),
+            ],
+          ),
+        ),
+        ErrorStack(key: errorStackKey),
+      ],
+    );
+  }
+
+  Widget _buildEmailInput() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -264,7 +359,7 @@ class _SignInPageState extends State<SignInPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
-                    controller: _controller,
+                    controller: controller,
                     style: const TextStyle(
                       color: Color(0xFF00F0FF),
                       fontSize: 15,
@@ -280,12 +375,12 @@ class _SignInPageState extends State<SignInPage> {
                       ),
                       border: InputBorder.none,
                     ),
-                    onChanged: (value) => setState(() {}),
+                    onChanged: (value) {},
                   ),
                 ),
                 const SizedBox(width: 10),
                 CustomButton(
-                  text: _isEmailNotEmpty ? 'Clear' : 'Paste',
+                  text: isEmailNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
                   fontSize: 15,
@@ -295,23 +390,22 @@ class _SignInPageState extends State<SignInPage> {
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   onTap: () async {
-                    if (_isEmailNotEmpty) {
-                      _controller.clear();
+                    if (isEmailNotEmpty) {
+                      controller.clear();
                     } else {
                       final clipboardData = await Clipboard.getData(
                         'text/plain',
                       );
                       if (clipboardData?.text != null) {
-                        _controller.text = clipboardData!.text!;
+                        controller.text = clipboardData!.text!;
                       }
                     }
-                    setState(() {});
                   },
                 ),
               ],
             ),
           ),
-          if (_controller.text.isNotEmpty)
+          if (controller.text.isNotEmpty)
             Positioned(
               left: 15,
               top: -12,
@@ -334,7 +428,7 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  Widget buildPasswordInput() {
+  Widget _buildPasswordInput() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -360,8 +454,8 @@ class _SignInPageState extends State<SignInPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
-                    controller: _passwordController,
-                    obscureText: !_showPassword,
+                    controller: passwordController,
+                    obscureText: !showPassword,
                     style: const TextStyle(
                       color: Color(0xFF00F0FF),
                       fontSize: 15,
@@ -377,20 +471,20 @@ class _SignInPageState extends State<SignInPage> {
                       ),
                       border: InputBorder.none,
                     ),
-                    onChanged: (value) => setState(() {}),
+                    onChanged: (value) {},
                   ),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () => setState(() => _showPassword = !_showPassword),
+                  onTap: () => onShowPasswordChanged(!showPassword),
                   child: Icon(
-                    _showPassword ? Icons.visibility : Icons.visibility_off,
+                    showPassword ? Icons.visibility : Icons.visibility_off,
                     color: const Color(0xFF00F0FF),
                   ),
                 ),
                 const SizedBox(width: 10),
                 CustomButton(
-                  text: _isPasswordNotEmpty ? 'Clear' : 'Paste',
+                  text: isPasswordNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
                   fontSize: 15,
@@ -400,23 +494,22 @@ class _SignInPageState extends State<SignInPage> {
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   onTap: () async {
-                    if (_isPasswordNotEmpty) {
-                      _passwordController.clear();
+                    if (isPasswordNotEmpty) {
+                      passwordController.clear();
                     } else {
                       final clipboardData = await Clipboard.getData(
                         'text/plain',
                       );
                       if (clipboardData?.text != null) {
-                        _passwordController.text = clipboardData!.text!;
+                        passwordController.text = clipboardData!.text!;
                       }
                     }
-                    setState(() {});
                   },
                 ),
               ],
             ),
           ),
-          if (_passwordController.text.isNotEmpty)
+          if (passwordController.text.isNotEmpty)
             Positioned(
               left: 15,
               top: -12,
@@ -439,47 +532,46 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  Widget buildForgotRow() {
+  Widget _buildForgotRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-       children: [
-  GestureDetector(
-    onTap: () {
-      Navigator.pushNamed(context, '/forgot-eid');
-    },
-    child: const Text(
-      'Forgot EID?',
-      style: TextStyle(
-        color: Color(0xFF00F0FF),
-        fontSize: 15,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-  ),
-  GestureDetector(
-    onTap: () {
-      Navigator.pushNamed(context, '/forgot-password');
-    },
-    child: const Text(
-      'Forgot Password?',
-      style: TextStyle(
-        color: Color(0xFF00F0FF),
-        fontSize: 15,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-  ),
-],
-
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/forgot-eid');
+            },
+            child: const Text(
+              'Forgot EID?',
+              style: TextStyle(
+                color: Color(0xFF00F0FF),
+                fontSize: 15,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/forgot-password');
+            },
+            child: const Text(
+              'Forgot Password?',
+              style: TextStyle(
+                color: Color(0xFF00F0FF),
+                fontSize: 15,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget buildRememberMe() {
+  Widget _buildRememberMe() {
     return Padding(
       padding: const EdgeInsets.only(left: 5),
       child: Row(
@@ -487,9 +579,8 @@ class _SignInPageState extends State<SignInPage> {
           Transform.scale(
             scale: 1.1,
             child: Checkbox(
-              value: _rememberMe,
-              onChanged: (value) =>
-                  setState(() => _rememberMe = value ?? false),
+              value: rememberMe,
+              onChanged: (value) => onRememberMeChanged(value ?? false),
               side: const BorderSide(color: Color(0xFF00F0FF)),
               checkColor: Colors.black,
               activeColor: const Color(0xFF00F0FF),
@@ -512,7 +603,7 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  Widget buildEmailVerification() {
+  Widget _buildEmailVerification() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: SizedBox(
@@ -535,7 +626,7 @@ class _SignInPageState extends State<SignInPage> {
                 ),
               ),
             ),
-            if (_hideInputFields)
+            if (hideInputFields)
               Positioned(
                 top: 21,
                 left: 50,
@@ -561,7 +652,7 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                 ),
               ),
-            if (!_hideInputFields)
+            if (!hideInputFields)
               Positioned(
                 top: 22,
                 left: 0,
@@ -575,8 +666,8 @@ class _SignInPageState extends State<SignInPage> {
                             width: 30,
                             height: 24,
                             child: TextField(
-                              controller: _codecontrollers[index],
-                              focusNode: _focusNodes[index],
+                              controller: codecontrollers[index],
+                              focusNode: focusNodes[index],
                               showCursor: !(code.every((c) => c.isNotEmpty)),
                               textAlign: TextAlign.center,
                               maxLength: 1,
@@ -584,7 +675,7 @@ class _SignInPageState extends State<SignInPage> {
                               style: TextStyle(
                                 color: isCodeCorrect
                                     ? const Color(0xFF00F0FF)
-                                    : (_isCodeValid == false
+                                    : (isCodeValid == false
                                           ? Colors.red
                                           : Colors.white),
                                 fontSize: 20,
@@ -592,14 +683,15 @@ class _SignInPageState extends State<SignInPage> {
                               ),
                               cursorColor: isCodeCorrect
                                   ? const Color(0xFF00F0FF)
-                                  : (_isCodeValid == false
+                                  : (isCodeValid == false
                                         ? Colors.red
                                         : Colors.white),
                               decoration: const InputDecoration(
                                 counterText: "",
                                 border: InputBorder.none,
                               ),
-                              onChanged: (value) => _onChanged(value, index),
+                              onChanged: (value) =>
+                                  onCodeChanged(value, index), // Fixed
                             ),
                           ),
                           Container(
@@ -629,9 +721,7 @@ class _SignInPageState extends State<SignInPage> {
               top: 21,
               left: 270,
               child: GestureDetector(
-                onTap: (_secondsLeft == 0 && !_tooManyAttempts)
-                    ? fetchCodeFromGo
-                    : null,
+                onTap: (secondsLeft == 0) ? onFetchCode : null,
                 child: Container(
                   width: 100,
                   height: 26,
@@ -652,9 +742,9 @@ class _SignInPageState extends State<SignInPage> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Center(
-                    child: _secondsLeft > 0
+                    child: secondsLeft > 0
                         ? Text(
-                            "${_secondsLeft ~/ 60}m ${_secondsLeft % 60}s",
+                            "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -681,7 +771,7 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  Widget buildSignInButton() {
+  Widget _buildSignInButton(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -711,11 +801,12 @@ class _SignInPageState extends State<SignInPage> {
           borderColor: const Color(0xFF00F0FF),
           backgroundColor: const Color(0xFF0B1320),
           onTap: () async {
-            final identifier = _controller.text.trim();
-            final password = _passwordController.text.trim();
-            final code = getEnteredCode();
+            final identifier = controller.text.trim();
+            final password = passwordController.text.trim();
+            final enteredCode = codecontrollers
+                .map((c) => c.text.trim())
+                .join();
 
-            // Basic validations
             if (identifier.isEmpty) {
               errorStackKey.currentState?.showError(
                 'Please enter your eid/email',
@@ -730,7 +821,7 @@ class _SignInPageState extends State<SignInPage> {
               );
               return;
             }
-            if (code.length != 6) {
+            if (enteredCode.length != 6) {
               errorStackKey.currentState?.showError(
                 'Enter the 6-digit code sent to your email address',
                 duration: const Duration(seconds: 5),
@@ -749,8 +840,8 @@ class _SignInPageState extends State<SignInPage> {
               final success = await AuthService.signIn(
                 identifier: identifier,
                 password: password,
-                code: code,
-                rememberMe: _rememberMe,
+                code: enteredCode,
+                rememberMe: rememberMe,
               );
 
               if (success) {
@@ -765,7 +856,6 @@ class _SignInPageState extends State<SignInPage> {
               final s = e.toString();
 
               try {
-                // Remove "Exception: " prefix if present
                 final jsonStr = s.startsWith('Exception: ')
                     ? s.substring(11)
                     : s;
@@ -795,7 +885,6 @@ class _SignInPageState extends State<SignInPage> {
             }
           },
         ),
-
         const SizedBox(width: 20),
         Expanded(
           child: Padding(
@@ -816,7 +905,7 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  Row signInAndSignUpButtons() {
+  Row _buildSignInAndSignUpButtons(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -843,7 +932,823 @@ class _SignInPageState extends State<SignInPage> {
           borderColor: const Color(0xFF00F0FF),
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
+          onTap: () {
+            Navigator.pushNamed(context, '/register');
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class TabletSignInPage extends StatelessWidget {
+  final TextEditingController controller;
+  final TextEditingController passwordController;
+  final bool showPassword;
+  final bool rememberMe;
+  final bool isEmailNotEmpty;
+  final bool isPasswordNotEmpty;
+  final bool hideInputFields;
+  final bool isCodeCorrect;
+  final bool? isCodeValid;
+  final List<TextEditingController> codecontrollers;
+  final List<FocusNode> focusNodes;
+  final List<String> code;
+  final int secondsLeft;
+  final GlobalKey<ErrorStackState> errorStackKey;
+  final ValueChanged<bool> onShowPasswordChanged;
+  final ValueChanged<bool> onRememberMeChanged;
+  final VoidCallback onFetchCode;
+  final void Function(String, int) onCodeChanged; // Fixed type
+
+  const TabletSignInPage({
+    super.key,
+    required this.controller,
+    required this.passwordController,
+    required this.showPassword,
+    required this.rememberMe,
+    required this.isEmailNotEmpty,
+    required this.isPasswordNotEmpty,
+    required this.hideInputFields,
+    required this.isCodeCorrect,
+    required this.isCodeValid,
+    required this.codecontrollers,
+    required this.focusNodes,
+    required this.code,
+    required this.secondsLeft,
+    required this.errorStackKey,
+    required this.onShowPasswordChanged,
+    required this.onRememberMeChanged,
+    required this.onFetchCode,
+    required this.onCodeChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLandscape = screenWidth > screenHeight;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B1320),
+      body: Stack(
+        children: [
+          // Main content with image at bottom right
+          Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    // Scrollable content
+                    SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.1,
+                          vertical: screenHeight * 0.05,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isLandscape ? 450 : 420,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0B1320),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF00F0FF),
+                                    blurRadius: 7,
+                                    spreadRadius: 0,
+                                  ),
+                                ],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(height: screenHeight * 0.02),
+                                  Image.asset(
+                                    'assets/images/egetyPerfectStar.png',
+                                    width: 111,
+                                    height: 126,
+                                    fit: BoxFit.contain,
+                                  ),
+                                  const Text(
+                                    'Egety Trust',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: Colors.white,
+                                      fontSize: 50,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildSignInAndSignUpButtons(context),
+                                  const SizedBox(height: 0),
+                                  const Text(
+                                    'Welcome back!',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: Colors.white,
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 0),
+                                  const Text(
+                                    'Please enter your credentials to continue',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildEmailInput(),
+                                  const SizedBox(height: 10),
+                                  _buildPasswordInput(),
+                                  _buildForgotRow(context),
+                                  _buildRememberMe(),
+                                  const SizedBox(height: 20),
+                                  _buildEmailVerification(),
+                                  const SizedBox(height: 20),
+                                  _buildSignInButton(context),
+                                  const SizedBox(height: 40),
+                                  const Text(
+                                    'You built your vault\nNow unlock it',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  FooterWidget(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: -10,
+                      child: Image.asset(
+                        'assets/images/Rectangle2.png',
+                        width: screenWidth > 600
+                            ? 120
+                            : 450, // Larger on tablets
+                        height: screenWidth > 600
+                            ? 120
+                            : 450, // Larger on tablets
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          ErrorStack(key: errorStackKey),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmailInput() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 394,
+            height: 50,
+            padding: const EdgeInsets.only(left: 5, right: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1320),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF00F0FF)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 10),
+                Image.asset(
+                  'assets/images/SVGRepo_iconCarrier.png',
+                  width: 16,
+                  height: 14,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 15),
+                // ✅ Align TextField vertically with icon
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    textAlignVertical:
+                        TextAlignVertical.center, // ✅ centers text vertically
+                    style: const TextStyle(
+                      color: Color(0xFF00F0FF),
+                      fontSize: 15,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: const InputDecoration(
+                      isCollapsed: true, // ✅ removes extra vertical padding
+                      contentPadding: EdgeInsets.only(
+                        bottom: 2,
+                      ), // fine tune alignment
+                      hintText: 'EID / Email',
+                      hintStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                CustomButton(
+                  text: isEmailNotEmpty ? 'Clear' : 'Paste',
+                  width: 60,
+                  height: 30,
+                  fontSize: 15,
+                  textColor: Colors.white,
+                  backgroundColor: const Color(0xFF0B1320),
+                  borderColor: const Color(0xFF00F0FF),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  onTap: () async {
+                    if (isEmailNotEmpty) {
+                      controller.clear();
+                    } else {
+                      final clipboardData = await Clipboard.getData(
+                        'text/plain',
+                      );
+                      if (clipboardData?.text != null) {
+                        controller.text = clipboardData!.text!;
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          if (controller.text.isNotEmpty)
+            Positioned(
+              left: 20,
+              top: -12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                color: const Color(0xFF0B1320),
+                child: const Text(
+                  'E-mail',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordInput() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 394, // ✅ fixed width
+            height: 50, // ✅ fixed height
+            padding: const EdgeInsets.only(left: 5, right: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1320),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF00F0FF)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 10),
+                Image.asset(
+                  'assets/images/Icon.png',
+                  width: 14,
+                  height: 18,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: TextField(
+                    controller: passwordController,
+                    obscureText: !showPassword,
+                    textAlignVertical:
+                        TextAlignVertical.center, // ✅ aligns text with icon
+                    style: const TextStyle(
+                      color: Color(0xFF00F0FF),
+                      fontSize: 18,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: const InputDecoration(
+                      isCollapsed: true, // ✅ removes internal padding
+                      contentPadding: EdgeInsets.only(bottom: 2),
+                      hintText: 'Password',
+                      hintStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                GestureDetector(
+                  onTap: () => onShowPasswordChanged(!showPassword),
+                  child: Icon(
+                    showPassword ? Icons.visibility : Icons.visibility_off,
+                    color: const Color(0xFF00F0FF),
+                    size: 21,
+                  ),
+                ),
+                const SizedBox(width: 15),
+                CustomButton(
+                  text: isPasswordNotEmpty ? 'Clear' : 'Paste',
+                  width: 60,
+                  height: 30,
+                  fontSize: 15,
+                  textColor: Colors.white,
+                  backgroundColor: const Color(0xFF0B1320),
+                  borderColor: const Color(0xFF00F0FF),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  onTap: () async {
+                    if (isPasswordNotEmpty) {
+                      passwordController.clear();
+                    } else {
+                      final clipboardData = await Clipboard.getData(
+                        'text/plain',
+                      );
+                      if (clipboardData?.text != null) {
+                        passwordController.text = clipboardData!.text!;
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          if (passwordController.text.isNotEmpty)
+            Positioned(
+              left: 20,
+              top: -12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                color: const Color(0xFF0B1320),
+                child: const Text(
+                  'Password',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForgotRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+      child: Container(
+        width: 394, // ✅ set fixed width
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/forgot-eid');
+              },
+              child: const Text(
+                'Forgot EID?',
+                style: TextStyle(
+                  color: Color(0xFF00F0FF),
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/forgot-password');
+              },
+              child: const Text(
+                'Forgot Password?',
+                style: TextStyle(
+                  color: Color(0xFF00F0FF),
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRememberMe() {
+    return Center(
+      child: Container(
+        width: 394,
+        child: Row(
+          children: [
+            Transform.scale(
+              scale: 1.2,
+              child: Checkbox(
+                value: rememberMe,
+                onChanged: (value) => onRememberMeChanged(value ?? false),
+                side: const BorderSide(color: Color(0xFF00F0FF)),
+                checkColor: Colors.black,
+                activeColor: const Color(0xFF00F0FF),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const Expanded(
+              child: Text(
+                'Remember Me On This Device',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailVerification() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: SizedBox(
+        width: 394,
+        height: 140,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Positioned(
+              top: -4,
+              left: -2,
+              child: Text(
+                "Email Verification",
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  height: 1.0,
+                  color: Colors.white,
+                  letterSpacing: -0.08,
+                ),
+              ),
+            ),
+            if (hideInputFields)
+              Positioned(
+                top: 20,
+                left: 80,
+                child: Container(
+                  width: 94,
+                  height: 23,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00F0FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    "Code Sent",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      height: 1.0,
+                      letterSpacing: -1.6,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            if (!hideInputFields)
+              Positioned(
+                top: 10,
+                left: -5,
+                child: Row(
+                  children: List.generate(6, (index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            height: 30,
+                            child: TextField(
+                              controller: codecontrollers[index],
+                              focusNode: focusNodes[index],
+                              showCursor: !(code.every((c) => c.isNotEmpty)),
+                              textAlign: TextAlign.center,
+                              maxLength: 1,
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(
+                                color: isCodeCorrect
+                                    ? const Color(0xFF00F0FF)
+                                    : (isCodeValid == false
+                                          ? Colors.red
+                                          : Colors.white),
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              cursorColor: isCodeCorrect
+                                  ? const Color(0xFF00F0FF)
+                                  : (isCodeValid == false
+                                        ? Colors.red
+                                        : Colors.white),
+                              decoration: const InputDecoration(
+                                counterText: "",
+                                border: InputBorder.none,
+                              ),
+                              onChanged: (value) =>
+                                  onCodeChanged(value, index), // Fixed
+                            ),
+                          ),
+                          Container(
+                            width: 35,
+                            height: 3,
+                            color: code[index].isEmpty
+                                ? Colors.white
+                                : Colors.transparent,
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            if (isCodeCorrect)
+              const Positioned(
+                top: 20,
+                left: 257,
+                child: CircleAvatar(
+                  radius: 12,
+                  backgroundColor: Color(0xFF00F0FF),
+                  child: Icon(Icons.check, color: Colors.white, size: 16),
+                ),
+              ),
+            Positioned(
+              top: 20,
+              left: 285,
+              child: GestureDetector(
+                onTap: (secondsLeft == 0) ? onFetchCode : null,
+                child: Container(
+                  width: 94,
+                  height: 23,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00F0FF).withOpacity(0.8),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 0),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: secondsLeft > 0
+                        ? Text(
+                            "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                          )
+                        : const Text(
+                            "Get Code",
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignInButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 50),
+      child: Center(
+        child: Container(
+          width: 394, // ✅ fixed width
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              CustomButton(
+                text: 'Sign In',
+                width: 106,
+                height: 40,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                textColor: Colors.white,
+                borderColor: const Color(0xFF00F0FF),
+                backgroundColor: const Color(0xFF0B1320),
+                onTap: () async {
+                  final identifier = controller.text.trim();
+                  final password = passwordController.text.trim();
+                  final enteredCode = codecontrollers
+                      .map((c) => c.text.trim())
+                      .join();
+
+                  if (identifier.isEmpty) {
+                    errorStackKey.currentState?.showError(
+                      'Please enter your eid/email',
+                      duration: const Duration(seconds: 5),
+                    );
+                    return;
+                  }
+                  if (password.isEmpty) {
+                    errorStackKey.currentState?.showError(
+                      'Please enter your password',
+                      duration: const Duration(seconds: 5),
+                    );
+                    return;
+                  }
+                  if (enteredCode.length != 6) {
+                    errorStackKey.currentState?.showError(
+                      'Enter the 6-digit code sent to your email address',
+                      duration: const Duration(seconds: 5),
+                    );
+                    return;
+                  }
+                  if (!isCodeCorrect) {
+                    errorStackKey.currentState?.showError(
+                      'Please wait for code verification',
+                      duration: const Duration(seconds: 5),
+                    );
+                    return;
+                  }
+
+                  try {
+                    final success = await AuthService.signIn(
+                      identifier: identifier,
+                      password: password,
+                      code: enteredCode,
+                      rememberMe: rememberMe,
+                    );
+
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Sign in successful!')),
+                      );
+                      Navigator.pushReplacementNamed(context, '/register-pin');
+                    }
+                  } catch (e) {
+                    print('Sign in error: $e');
+                    String message = 'Invalid login credentials';
+                    final s = e.toString();
+
+                    try {
+                      final jsonStr = s.startsWith('Exception: ')
+                          ? s.substring(11)
+                          : s;
+                      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+                      if (map.containsKey('remainingSeconds')) {
+                        final secs = (map['remainingSeconds'] as num).toInt();
+                        final h = secs ~/ 3600;
+                        final m = (secs % 3600) ~/ 60;
+                        final sec = secs % 60;
+                        message =
+                            'Your account is locked. It will be unlocked in\n${h}h ${m}m ${sec}s';
+                      } else if (map.containsKey('error') &&
+                          map['error'].toString().toLowerCase().contains(
+                            'expired',
+                          )) {
+                        message = 'Code expired. Please request a new one';
+                      } else if (map.containsKey('error')) {
+                        message = map['error'];
+                      }
+                    } catch (_) {
+                      // Fallback generic message
+                    }
+
+                    errorStackKey.currentState?.showError(
+                      message,
+                      duration: const Duration(seconds: 5),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Container(
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Row _buildSignInAndSignUpButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CustomButton(
+          text: 'Sign In',
+          width: 106,
+          height: 40,
+          fontSize: 20,
+          textColor: Colors.black,
+          backgroundColor: const Color(0xFF00F0FF),
+          borderColor: const Color(0xFF00F0FF),
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w600,
           onTap: () {},
+        ),
+        const SizedBox(width: 15),
+        CustomButton(
+          text: 'Sign Up',
+          width: 106,
+          height: 40,
+          fontSize: 20,
+          textColor: Colors.white,
+          backgroundColor: const Color(0xFF0B1320),
+          borderColor: const Color(0xFF00F0FF),
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w600,
+          onTap: () {
+            Navigator.pushNamed(context, '/register');
+          },
         ),
       ],
     );

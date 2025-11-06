@@ -1615,7 +1615,6 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                     ),
 
                     // Bottom right image - positioned at the bottom right of the screen
-                    // Bottom right image - positioned at the bottom right of the screen
                     Positioned(
                       bottom: 0,
                       right: -10,
