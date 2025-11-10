@@ -176,7 +176,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"flutter_project_backend/models"
 	"flutter_project_backend/services"
 	"flutter_project_backend/utils"
@@ -828,16 +827,13 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 		Code            string `json:"code"`       // Email code or TOTP
 		NewPassword     string `json:"newPassword"`
 		ConfirmPassword string `json:"confirmPassword"`
-		Method          string `json:"method"` // "email" or "authenticator"
+		Method          string `json:"method"` // "email" or "auth"
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-
-	reqJSON, _ := json.MarshalIndent(req, "", "  ")
-	log.Printf("📩 ResetPassword request body:\n%s\n", string(reqJSON))
 
 	if req.NewPassword != req.ConfirmPassword {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Passwords do not match"})
@@ -847,10 +843,9 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Resolve user
 	var user models.User
 	var email string
-
-	// Resolve identifier
 	if strings.Contains(req.Identifier, "@") {
 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
 		if err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
@@ -865,7 +860,7 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 		email = user.Email
 	}
 
-	// Verify code based on method
+	// Verify code
 	switch strings.ToLower(req.Method) {
 	case "auth":
 		if user.TwoFASecret == "" {
@@ -889,34 +884,35 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 			return
 		}
 
-		// Check expiry (5 min)
+		// Expiry check
 		if time.Since(codeDoc.SentAt) > 5*time.Minute {
 			_, _ = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Code expired"})
 			return
 		}
 
-		// Deactivate used email code
-		_, _ = uc.CodeController.EmailCodeCollection.UpdateOne(ctx,
-			bson.M{"_id": codeDoc.ID},
-			bson.M{"$set": bson.M{"isActive": false}})
+		// ✅ Defer deactivation/deletion until after password reset
+		defer func() {
+			_, _ = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
+		}()
 
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid method"})
 		return
 	}
 
-	// Hash new password
+	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Password encryption failed"})
 		return
 	}
 
-	// Update password in User collection
+	// Update password
 	_, err = uc.UserCollection.UpdateOne(ctx,
 		bson.M{"email": email},
-		bson.M{"$set": bson.M{"password": string(hashed)}})
+		bson.M{"$set": bson.M{"password": string(hashed)}},
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
@@ -924,85 +920,3 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }
-
-// func (uc *UserController) ResetPassword(c *gin.Context) {
-// 	var req struct {
-// 		Identifier      string `json:"identifier"` // Email or EID
-// 		Code            string `json:"code"`
-// 		NewPassword     string `json:"newPassword"`
-// 		ConfirmPassword string `json:"confirmPassword"`
-// 	}
-
-// 	if err := c.ShouldBindJSON(&req); err != nil || req.Identifier == "" || req.Code == "" {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-// 		return
-// 	}
-
-// 	if req.NewPassword != req.ConfirmPassword {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Passwords do not match"})
-// 		return
-// 	}
-
-// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-// 	defer cancel()
-
-// 	var user models.User
-// 	var email string
-
-// 	// Resolve identifier
-// 	if strings.Contains(req.Identifier, "@") {
-// 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
-// 		if err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
-// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
-// 			return
-// 		}
-// 	} else {
-// 		if err := uc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user); err != nil {
-// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
-// 			return
-// 		}
-// 		email = user.Email
-// 	}
-
-// 	// Verify the code
-// 	var codeDoc models.EmailCode
-// 	err := uc.CodeController.EmailCodeCollection.FindOne(ctx, bson.M{
-// 		"email":    email,
-// 		"code":     req.Code,
-// 		"isActive": true,
-// 	}).Decode(&codeDoc)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired code"})
-// 		return
-// 	}
-
-// 	// Check expiry (5 min)
-// 	if time.Since(codeDoc.SentAt) > 5*time.Minute {
-// 		_, _ = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code expired"})
-// 		return
-// 	}
-
-// 	// Hash new password
-// 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Password encryption failed"})
-// 		return
-// 	}
-
-// 	// Update password in User collection
-// 	_, err = uc.UserCollection.UpdateOne(ctx,
-// 		bson.M{"email": email},
-// 		bson.M{"$set": bson.M{"password": string(hashed)}})
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
-// 		return
-// 	}
-
-// 	// Deactivate used reset code
-// 	_, _ = uc.CodeController.EmailCodeCollection.UpdateOne(ctx,
-// 		bson.M{"_id": codeDoc.ID},
-// 		bson.M{"$set": bson.M{"isActive": false}})
-
-// 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
-// }

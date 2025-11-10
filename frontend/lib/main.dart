@@ -36,8 +36,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // home: SelectAccountContent(onClose: () {}),
-        home: const SignInPage(),
+        home: const ResponsiveHomePage(),
         routes: appRoutes(),
       ),
     );
