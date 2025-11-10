@@ -946,7 +946,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             // 🔢 OTP Fields
             if (!showCodeSent)
               Positioned(
-                top: 25,
+                top: 12,
                 left: 0,
                 child: Row(
                   children: [
@@ -986,6 +986,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                 ),
+
+                                // Replace the onChanged callback in buildVerificationSection with this:
                                 onChanged: (value) async {
                                   if (isCodeCorrect) return;
 
@@ -1002,42 +1004,73 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   setState(() {
                                     codeList[index] =
                                         codeControllers[index].text;
-                                    isCodeValidMap[type] = true;
+                                    isCodeValidMap[type] =
+                                        true; // Reset to true while typing
                                   });
 
                                   // When all digits are filled
                                   if (codeList.every((c) => c.isNotEmpty)) {
                                     final email = _controller.text.trim();
                                     bool valid = false;
-                                    if (type == 'auth') {
-                                      valid = await AuthService.verifyTOTP(
-                                        email: email,
-                                        code: codeList.join(),
-                                      );
-                                    } else {
-                                      valid = await AuthService.verifyResetCode(
-                                        identifier: email,
-                                        code: codeList.join(),
-                                      );
-                                    }
 
-                                    setState(() {
-                                      isCodeCorrectMap[type] = valid;
-                                      isCodeValidMap[type] = valid;
-                                    });
+                                    try {
+                                      if (type == 'auth') {
+                                        valid = await AuthService.verifyTOTP(
+                                          email: email,
+                                          code: codeList.join(),
+                                        );
+                                      } else {
+                                        valid =
+                                            await AuthService.verifyResetCode(
+                                              identifier: email,
+                                              code: codeList.join(),
+                                            );
+                                      }
 
-                                    // ✅ Pause/Stop timer if code is correct
-                                    if (valid) {
-                                       _timers[type]?.cancel();
-                                       _timers[type] = null;
-                                       _countdowns[type] = 0;
-                                    } else {
-                                      // reset fields after 3s if invalid
+                                      setState(() {
+                                        isCodeCorrectMap[type] = valid;
+                                        isCodeValidMap[type] =
+                                            valid; // ✅ This is the key fix - set to false when invalid
+                                      });
+
+                                      // ✅ Pause/Stop timer if code is correct
+                                      if (valid) {
+                                        _timers[type]?.cancel();
+                                        _timers[type] = null;
+                                        _countdowns[type] = 0;
+                                      } else {
+                                        // reset fields after 3s if invalid
+                                        Timer(const Duration(seconds: 3), () {
+                                          if (!mounted) return;
+                                          setState(() {
+                                            for (var c in codeControllers) {
+                                              c.clear();
+                                            }
+                                            codeList = List.generate(
+                                              6,
+                                              (_) => "",
+                                            );
+                                            isCodeValidMap[type] =
+                                                true; // Reset to neutral state
+                                          });
+                                          focusNodes[0].requestFocus();
+                                        });
+                                      }
+                                    } catch (e) {
+                                      // Handle error case
+                                      setState(() {
+                                        isCodeCorrectMap[type] = false;
+                                        isCodeValidMap[type] =
+                                            false; // Show red X on error
+                                      });
+
+                                      // reset fields after 3s
                                       Timer(const Duration(seconds: 3), () {
                                         if (!mounted) return;
                                         setState(() {
-                                          for (var c in codeControllers)
+                                          for (var c in codeControllers) {
                                             c.clear();
+                                          }
                                           codeList = List.generate(
                                             6,
                                             (_) => "",
@@ -1071,7 +1104,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     // ✅ or ❌ icon
                     if (isCodeCorrect || isCodeValid == false)
                       Padding(
-                        padding: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.only(left: 6, top: 10),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           width: 24,
@@ -1096,7 +1129,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             // 📩 Get Code button
             Positioned(
               top: 21,
-              left: 300,
+              left: 280,
               child: GestureDetector(
                 onTap: () {
                   if (_controller.text.isEmpty) {
@@ -1108,8 +1141,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   _fetchCode(type);
                 },
                 child: Container(
-                  width: 100,
-                  height: 26,
+                  width: 94,
+                  height: 23,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
