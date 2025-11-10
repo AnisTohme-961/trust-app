@@ -126,7 +126,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
         children: [
           Positioned(
             top: 60,
-            left: 389,
+            left: 370,
             child: GestureDetector(
               onTap: () {
                 setState(() {

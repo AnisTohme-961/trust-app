@@ -81,8 +81,13 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
     });
     _nextClicked = true;
 
-    if (password.isEmpty || confirmPassword.isEmpty) {
+    if (password.isEmpty) {
       _errorStackKey.currentState?.showError("Please enter your password.");
+      return;
+    }
+
+    if (confirmPassword.isEmpty) {
+      _errorStackKey.currentState?.showError("Please confirm your password.");
       return;
     }
 
@@ -421,123 +426,93 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                     ),
 
                     // Password Input Field Container
+                    // Password Input Field Container with floating label
                     Positioned(
                       top: 36,
                       left: 0,
                       child: Container(
                         width: 374,
-                        height: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(7.64),
-                          border: Border.all(
-                            color: const Color(0xFF00F0FF),
-                            width: 1,
+                        height: 70, // a bit taller to fit floating label
+                        child: TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          style: const TextStyle(
+                            color: Color(0xFF00F0FF),
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
                           ),
-                          color: Colors.transparent,
-                        ),
-                        child: Row(
-                          children: [
-                            // Lock icon
-                            Container(
-                              width: 20,
-                              height: 20,
+                          decoration: InputDecoration(
+                            labelText: "Password",
+                            labelStyle: const TextStyle(
+                              color: Colors.white70,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                            ),
+                            floatingLabelStyle: const TextStyle(
+                              color: Color(0xFF00F0FF),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(
+                                left: 10,
+                                right: 8,
+                              ),
                               child: Image.asset(
                                 'assets/images/Icon.png',
+                                width: 20,
+                                height: 20,
                                 fit: BoxFit.contain,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            // TextField
-                            Expanded(
-                              child: TextField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                style: const TextStyle(
-                                  color: Color(0xFF00F0FF),
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                ),
-                                decoration: const InputDecoration(
-                                  hintText: "Password",
-                                  hintStyle: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                    color: Colors.white54,
-                                  ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
+                            prefixIconConstraints: const BoxConstraints(
+                              minWidth: 35,
+                              minHeight: 20,
                             ),
-                            // Eye toggle
-                            GestureDetector(
-                              onTap: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: Image.asset(
-                                  _obscurePassword
-                                      ? 'assets/images/eyeSlash.png'
-                                      : 'assets/images/eye1.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Paste button
-                            GestureDetector(
-                              onTap: () async {
-                                if (_hasTextInPassword) {
-                                  // Clear both fields
-                                  _passwordController.clear();
-                                  _confirmPasswordController.clear();
-                                  setState(() {
-                                    _hasTextInPassword = false;
-                                  });
-                                } else {
-                                  // Paste from clipboard into both fields
-                                  final clipboardData = await Clipboard.getData(
-                                    'text/plain',
-                                  );
-                                  if (clipboardData != null) {
-                                    final text = clipboardData.text ?? '';
-                                    _passwordController.text = text;
-                                    _confirmPasswordController.text = text;
-                                    setState(() {
-                                      _hasTextInPassword = text.isNotEmpty;
-                                    });
-                                  }
-                                }
-                              },
-                              child: Container(
-                                width: 60,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(7),
-                                  border: Border.all(
-                                    color: const Color(0xFF00F0FF),
-                                    width: 1,
+                            suffixIcon: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  }),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Image.asset(
+                                      _obscurePassword
+                                          ? 'assets/images/eyeSlash.png'
+                                          : 'assets/images/eye1.png',
+                                      width: 22,
+                                      height: 22,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  _hasTextInPassword ? "Clear" : "Paste",
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                              ],
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7.64),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00F0FF),
+                                width: 1,
                               ),
                             ),
-                          ],
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7.64),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00F0FF),
+                                width: 1.5,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 0,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -643,6 +618,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                             setState(() {
                               _passwordController.text =
                                   newPassword; // your password TextEditingController
+                              _confirmPasswordController.text = newPassword;
                             });
                           },
                           child: Row(

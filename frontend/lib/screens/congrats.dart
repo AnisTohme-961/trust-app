@@ -5,6 +5,7 @@ import 'package:flutter_project/widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_button.dart';
+import 'package:flutter/services.dart';
 
 class ResponsiveRegisterLivePage extends StatelessWidget {
   const ResponsiveRegisterLivePage({super.key});
@@ -114,6 +115,8 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                           ),
                         ),
 
+                        // Add this import at the top
+
                         // EID + Icon
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -128,13 +131,26 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                               ),
                             ),
                             const SizedBox(width: 5),
-                            Container(
-                              width: 18,
-                              height: 18,
-                              child: Image.asset(
-                                'assets/images/DoubleSquare.png',
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: userProvider.eid),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('EID copied to clipboard!'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              child: SizedBox(
                                 width: 18,
                                 height: 18,
+                                child: Image.asset(
+                                  'assets/images/DoubleSquare.png',
+                                  width: 18,
+                                  height: 18,
+                                ),
                               ),
                             ),
                           ],

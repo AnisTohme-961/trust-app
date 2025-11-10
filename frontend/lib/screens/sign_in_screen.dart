@@ -18,6 +18,9 @@ class _SignInPageState extends State<SignInPage> {
   final GlobalKey<ErrorStackState> errorStackKey = GlobalKey<ErrorStackState>();
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
   bool _showPassword = false;
   bool _rememberMe = false;
 
@@ -28,6 +31,27 @@ class _SignInPageState extends State<SignInPage> {
   bool _tooManyAttempts = false;
   bool isCodeCorrect = false;
   bool? _isCodeValid;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+    _passwordController.addListener(() => setState(() {}));
+    _emailFocus.addListener(() => setState(() {}));
+    _passwordFocus.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _codecontrollers.forEach((c) => c.dispose());
+    _focusNodes.forEach((f) => f.dispose());
+
+    super.dispose();
+  }
 
   List<TextEditingController> _codecontrollers = List.generate(
     6,
@@ -147,15 +171,6 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    _passwordController.dispose();
-    _codecontrollers.forEach((c) => c.dispose());
-    _focusNodes.forEach((f) => f.dispose());
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -206,6 +221,8 @@ class _SignInPageState extends State<SignInPage> {
                   setState(() => _rememberMe = value),
               onFetchCode: fetchCodeFromGo,
               onCodeChanged: _onChanged,
+              emailFocus: _emailFocus, // <-- add this
+              passwordFocus: _passwordFocus,
             );
           }
         },
@@ -233,6 +250,8 @@ class MobileSignInPage extends StatelessWidget {
   final ValueChanged<bool> onRememberMeChanged;
   final VoidCallback onFetchCode;
   final void Function(String, int) onCodeChanged; // Fixed type
+  final FocusNode emailFocus;
+  final FocusNode passwordFocus;
 
   const MobileSignInPage({
     super.key,
@@ -254,6 +273,8 @@ class MobileSignInPage extends StatelessWidget {
     required this.onRememberMeChanged,
     required this.onFetchCode,
     required this.onCodeChanged,
+    required this.emailFocus,
+    required this.passwordFocus,
   });
 
   @override
@@ -360,6 +381,7 @@ class MobileSignInPage extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: controller,
+                    focusNode: emailFocus,
                     style: const TextStyle(
                       color: Color(0xFF00F0FF),
                       fontSize: 15,
@@ -367,7 +389,7 @@ class MobileSignInPage extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: const InputDecoration(
-                      hintText: 'EID / Email ',
+                      hintText: 'EID / Email',
                       hintStyle: TextStyle(
                         color: Colors.white54,
                         fontSize: 15,
@@ -375,7 +397,6 @@ class MobileSignInPage extends StatelessWidget {
                       ),
                       border: InputBorder.none,
                     ),
-                    onChanged: (value) {},
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -455,6 +476,7 @@ class MobileSignInPage extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: passwordController,
+                    focusNode: passwordFocus,
                     obscureText: !showPassword,
                     style: const TextStyle(
                       color: Color(0xFF00F0FF),
@@ -471,7 +493,6 @@ class MobileSignInPage extends StatelessWidget {
                       ),
                       border: InputBorder.none,
                     ),
-                    onChanged: (value) {},
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -690,8 +711,7 @@ class MobileSignInPage extends StatelessWidget {
                                 counterText: "",
                                 border: InputBorder.none,
                               ),
-                              onChanged: (value) =>
-                                  onCodeChanged(value, index), // Fixed
+                              onChanged: (value) => onCodeChanged(value, index),
                             ),
                           ),
                           Container(
@@ -707,16 +727,27 @@ class MobileSignInPage extends StatelessWidget {
                   }),
                 ),
               ),
-            if (isCodeCorrect)
-              const Positioned(
+
+            if (isCodeCorrect || isCodeValid == false)
+              Positioned(
                 top: 25,
                 left: 240,
-                child: CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Color(0xFF00F0FF),
-                  child: Icon(Icons.check, color: Colors.white, size: 16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: isCodeCorrect ? const Color(0xFF00F0FF) : Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isCodeCorrect ? Icons.check : Icons.close,
+                    color: isCodeCorrect ? Colors.black : Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
+
             Positioned(
               top: 21,
               left: 270,
@@ -845,9 +876,6 @@ class MobileSignInPage extends StatelessWidget {
               );
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Sign in successful!')),
-                );
                 Navigator.pushReplacementNamed(context, '/register-pin');
               }
             } catch (e) {
