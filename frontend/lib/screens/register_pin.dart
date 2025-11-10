@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import "../services/auth_service.dart";
 import 'package:flutter_project/widgets/footer_widgets.dart';
+import '../widgets/error_widgets.dart';
 
 class ResponsiveRegisterPinScreen extends StatelessWidget {
   final String title;
@@ -53,6 +54,9 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   bool _obscurePin = true;
   late final List<String> _numbers;
 
+  final GlobalKey<ErrorStackState> _errorStackKey =
+      GlobalKey<ErrorStackState>();
+
   @override
   void initState() {
     super.initState();
@@ -83,31 +87,34 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   void _onNext() async {
     final enteredPin = _pin.join();
 
+    // Check PIN length first
+    if (enteredPin.length < 4) {
+      _errorStackKey.currentState?.showError("Please enter 4 digits");
+      return;
+    }
+
+    // If confirming PIN
     if (widget.originalPin != null) {
       if (enteredPin == widget.originalPin) {
         try {
           await AuthService.registerPin(enteredPin);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("PIN registered successfully!")),
-          );
-
-          Navigator.pushReplacementNamed(context, '/register-pattern');
-        } catch (e) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Error: $e")));
           _pin.clear();
           setState(() {});
+          Navigator.pushReplacementNamed(context, '/register-pattern');
+        } catch (e) {
+          _pin.clear();
+          setState(() {});
+          _errorStackKey.currentState?.showError("Error: $e");
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("PIN does not match. Try again.")),
-        );
         _pin.clear();
         setState(() {});
+        _errorStackKey.currentState?.showError(
+          "PIN does not match. Try again.",
+        );
       }
     } else {
+      // Enter original PIN
       if (_pin.length == 4) {
         Navigator.push(
           context,
@@ -119,10 +126,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
           ),
         );
         _pin.clear();
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Enter 4 digits.")));
+        setState(() {});
       }
     }
   }
@@ -300,7 +304,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                   ),
                 ),
               ),
-
+              ErrorStack(key: _errorStackKey),
               // ===== Footer =====
               Positioned(bottom: 20, left: 0, right: 0, child: FooterWidget()),
             ],

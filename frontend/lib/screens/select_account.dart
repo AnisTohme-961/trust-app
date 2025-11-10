@@ -126,7 +126,7 @@ class MobileSelectAccountContent extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 30),
+        const SizedBox(height: 0),
 
         // Add New Profile Button
         _buildAddNewProfileButton(context, false),
@@ -275,42 +275,6 @@ List<Map<String, String?>> _getAccounts(UserProvider userProvider) {
       'lastName': userProvider.lastName,
       'eid': userProvider.eid,
       'image': 'assets/images/image1.png',
-    },
-    {
-      'firstName': 'John',
-      'lastName': 'Doe',
-      'eid': '123456',
-      'image': 'assets/images/image2.png',
-    },
-    {
-      'firstName': 'John',
-      'lastName': 'Doe',
-      'eid': '123456',
-      'image': 'assets/images/image2.png',
-    },
-    {
-      'firstName': 'John',
-      'lastName': 'Doe',
-      'eid': '123456',
-      'image': 'assets/images/image2.png',
-    },
-    {
-      'firstName': 'John',
-      'lastName': 'Doe',
-      'eid': '123456',
-      'image': 'assets/images/image2.png',
-    },
-    {
-      'firstName': 'John',
-      'lastName': 'Doe',
-      'eid': '123456',
-      'image': 'assets/images/image2.png',
-    },
-    {
-      'firstName': 'Johnny',
-      'lastName': 'Doe',
-      'eid': '123456',
-      'image': 'assets/images/image2.png',
     },
   ];
 }

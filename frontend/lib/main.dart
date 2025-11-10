@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import 'screens/register_pattern_screen.dart';
+import 'screens/sign_in_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,7 +35,9 @@ class MyApp extends StatelessWidget {
             cursorColor: Color(0xFF00F0FF),
           ),
         ),
-        home: const ResponsiveHomePage(),
+
+        // home: SelectAccountContent(onClose: () {}),
+        home: const SignInPage(),
         routes: appRoutes(),
       ),
     );

@@ -67,15 +67,15 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   }
 
   Future<bool> verifyCode(String email, String code) async {
-  if (email.isEmpty || code.length != 6) return false;
+    if (email.isEmpty || code.length != 6) return false;
 
-  try {
-    return await AuthService.verifyEidCode(email: email, code: code);
-  } catch (e) {
-    _errorStackKey.currentState?.showError('Failed to verify code: $e');
-    return false;
+    try {
+      return await AuthService.verifyEidCode(email: email, code: code);
+    } catch (e) {
+      _errorStackKey.currentState?.showError('Failed to verify code: $e');
+      return false;
+    }
   }
-}
 
   void _startTimer() {
     setState(() {
@@ -117,7 +117,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
         _startTimer();
       });
     } catch (e) {
-      _errorStackKey.currentState?.showError('Error sending code: $e');
+      _errorStackKey.currentState?.showError('Email not registered');
     }
   }
 
@@ -602,32 +602,34 @@ class _ForgotEidPageState extends State<ForgotEidPage>
           borderColor: const Color(0xFF00F0FF),
           backgroundColor: const Color(0xFF0B1320),
           text: 'Send EID',
-       onTap: () async {
-  if (!_codeSent) {
-    _errorStackKey.currentState?.showError(
-      'Please click "Send Code" first.',
-    );
-    return;
-  }
-  final email = _controller.text.trim();
-  final code = _otpControllers.map((c) => c.text).join();
-  
-  bool valid = await AuthService.verifyEidCode(email: email, code: code);
-  if (!valid) {
-    _errorStackKey.currentState?.showError(
-      "Invalid or expired code.",
-    );
-    return;
-  }
+          onTap: () async {
+            if (!_codeSent) {
+              _errorStackKey.currentState?.showError(
+                'Please click "Send Code" first.',
+              );
+              return;
+            }
+            final email = _controller.text.trim();
+            final code = _otpControllers.map((c) => c.text).join();
 
-  try {
-    await AuthService.sendEidEmail(email);
-    _openOverlay();
-  } catch (e) {
-    _errorStackKey.currentState?.showError('Failed to send EID: $e');
-  }
-},
+            bool valid = await AuthService.verifyEidCode(
+              email: email,
+              code: code,
+            );
+            if (!valid) {
+              _errorStackKey.currentState?.showError(
+                "Invalid or expired code.",
+              );
+              return;
+            }
 
+            try {
+              await AuthService.sendEidEmail(email);
+              _openOverlay();
+            } catch (e) {
+              _errorStackKey.currentState?.showError('Failed to send EID: $e');
+            }
+          },
         ),
         const SizedBox(width: 20),
         Expanded(

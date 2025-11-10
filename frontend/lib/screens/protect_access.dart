@@ -146,7 +146,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     }
 
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/get-code'),
+      Uri.parse("http://10.0.2.2:8080/get-code"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email}),
     );
@@ -204,7 +204,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     print("➡ Sending verify request: $body");
 
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/verify-code'),
+      Uri.parse("http://10.0.2.2:8080/verify-code"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
@@ -894,7 +894,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           Container(
                             width: 374,
                             height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.only(left: 12, right: 70),
+
                             decoration: BoxDecoration(
                               color: const Color(0xFF0B1320),
                               borderRadius: BorderRadius.circular(8),
@@ -1044,7 +1045,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                         if (_hideInputFields)
                           Positioned(
-                            top: 30,
+                            top: 25,
                             left: 50,
                             child: Opacity(
                               opacity: 1,
@@ -1141,35 +1142,54 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       ],
                                     ),
                                   )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      ...List.generate(6, (index) {
-                                        return GestureDetector(
-                                          onTap: () =>
-                                              _focusNodes[index].requestFocus(),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 5,
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                SizedBox(
-                                                  width: 30,
-                                                  child: TextField(
-                                                    controller:
-                                                        _codecontrollers[index],
-                                                    focusNode:
-                                                        _focusNodes[index],
-                                                    showCursor: !(code.every(
-                                                      (c) => c.isNotEmpty,
-                                                    )),
-                                                    textAlign: TextAlign.center,
-                                                    maxLength: 1,
-                                                    keyboardType:
-                                                        TextInputType.number,
-                                                    style: TextStyle(
-                                                      color: isCodeCorrect
+                                : Padding(
+                                    padding: const EdgeInsets.only(top: 25.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        ...List.generate(6, (index) {
+                                          return GestureDetector(
+                                            onTap: () => _focusNodes[index]
+                                                .requestFocus(),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 5,
+                                                  ),
+                                              child: Column(
+                                                children: [
+                                                  SizedBox(
+                                                    width: 30,
+                                                    height: 20,
+                                                    child: TextField(
+                                                      controller:
+                                                          _codecontrollers[index],
+                                                      focusNode:
+                                                          _focusNodes[index],
+                                                      showCursor: !(code.every(
+                                                        (c) => c.isNotEmpty,
+                                                      )),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      maxLength: 1,
+                                                      keyboardType:
+                                                          TextInputType.number,
+                                                      style: TextStyle(
+                                                        color: isCodeCorrect
+                                                            ? const Color(
+                                                                0xFF00F0FF,
+                                                              )
+                                                            : (_isCodeValid ==
+                                                                      false
+                                                                  ? Colors.red
+                                                                  : Colors
+                                                                        .white),
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                      cursorColor: isCodeCorrect
                                                           ? const Color(
                                                               0xFF00F0FF,
                                                             )
@@ -1177,70 +1197,60 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                                     false
                                                                 ? Colors.red
                                                                 : Colors.white),
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            counterText: "",
+                                                            border: InputBorder
+                                                                .none,
+                                                          ),
+                                                      onChanged: (value) =>
+                                                          _onChanged(
+                                                            value,
+                                                            index,
+                                                          ),
                                                     ),
-                                                    cursorColor: isCodeCorrect
-                                                        ? const Color(
-                                                            0xFF00F0FF,
-                                                          )
-                                                        : (_isCodeValid == false
-                                                              ? Colors.red
-                                                              : Colors.white),
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          counterText: "",
-                                                          border:
-                                                              InputBorder.none,
-                                                        ),
-                                                    onChanged: (value) =>
-                                                        _onChanged(
-                                                          value,
-                                                          index,
-                                                        ),
                                                   ),
-                                                ),
-                                                Container(
-                                                  width: 30,
-                                                  height: 2,
-                                                  color: code[index].isEmpty
-                                                      ? Colors.white
-                                                      : Colors.transparent,
-                                                ),
-                                              ],
+                                                  Container(
+                                                    width: 30,
+                                                    height: 2,
+                                                    color: code[index].isEmpty
+                                                        ? Colors.white
+                                                        : Colors.transparent,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }),
+
+                                        if (isCodeCorrect ||
+                                            _isCodeValid == false) ...[
+                                          const SizedBox(width: 10),
+                                          AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              color: isCodeCorrect
+                                                  ? const Color(0xFF00F0FF)
+                                                  : Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              isCodeCorrect
+                                                  ? Icons.check
+                                                  : Icons.close,
+                                              color: isCodeCorrect
+                                                  ? Colors.black
+                                                  : Colors.white,
+                                              size: 16,
                                             ),
                                           ),
-                                        );
-                                      }),
-
-                                      if (isCodeCorrect ||
-                                          _isCodeValid == false) ...[
-                                        const SizedBox(width: 10),
-                                        AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 300,
-                                          ),
-                                          width: 24,
-                                          height: 24,
-                                          decoration: BoxDecoration(
-                                            color: isCodeCorrect
-                                                ? const Color(0xFF00F0FF)
-                                                : Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            isCodeCorrect
-                                                ? Icons.check
-                                                : Icons.close,
-                                            color: isCodeCorrect
-                                                ? Colors.black
-                                                : Colors.white,
-                                            size: 16,
-                                          ),
-                                        ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                           ),
 
@@ -1427,23 +1437,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   ),
                 ),
 
-                Positioned(
-                  bottom: 20,
-                  left: 0,
-                  right: 0,
-                  child: FooterWidget(),
-                ),
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 20,
+                    padding: const EdgeInsets.only(
+                      right: 20,
                     ), // space from footer
                     child: ErrorStack(key: errorStackKey),
                   ),
                 ),
-                // ErrorStack(key: errorStackKey),
 
                 // Dropdowns (Country and DOB) - same as original
                 AnimatedPositioned(
@@ -1989,7 +1991,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     }
 
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/get-code'),
+      Uri.parse("http://10.0.2.2:8080/get-code"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email}),
     );
@@ -2041,7 +2043,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     final body = {"email": email.trim(), "code": code.trim()};
 
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/verify-code'),
+      Uri.parse("http://10.0.2.2:8080/verify-code"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
