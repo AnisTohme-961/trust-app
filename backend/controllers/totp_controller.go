@@ -19,38 +19,6 @@ type TOTPController struct {
 	UserCollection *mongo.Collection
 }
 
-// func (tc *TOTPController) GenerateTOTP(c *gin.Context) {
-// 	var req struct {
-// 		Email string `json:"email"`
-// 	}
-
-// 	if err := c.ShouldBindJSON(&req); err != nil || req.Email == "" {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
-// 		return
-// 	}
-
-// 	secret, qrUrl, err := services.GenerateTOTPSecret(req.Email)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate secret"})
-// 		return
-// 	}
-
-// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-// 	defer cancel()
-
-// 	_, err = tc.UserCollection.UpdateOne(ctx,
-// 		bson.M{"email": req.Email},
-// 		bson.M{"$set": bson.M{"twofa_secret": secret}},
-// 	)
-
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save secret"})
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{"secret": secret, "qrUrl": qrUrl})
-// }
-
 func (tc *TOTPController) GenerateTOTP(c *gin.Context) {
 	var req struct {
 		Email string `json:"email"`

@@ -47,6 +47,8 @@ func main() {
 
 	controllers.SetupEmailCodeTTL(emailCodeCollection)
 
+	go controllers.CleanupExpiredCodes(emailCodeCollection)
+
 	if err := seed.SeedLanguages(languageCollection); err != nil {
 		log.Fatal("Failed to seed languages:", err)
 	}

@@ -23,6 +23,31 @@ type CodeController struct {
 	UserCollection      *mongo.Collection
 }
 
+func CleanupExpiredCodes(collection *mongo.Collection) {
+	ticker := time.NewTicker(24 * time.Hour) // run every 24 hours
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		cutoff := time.Now().Add(-2 * time.Minute) // codes older than 2 minutes
+		filter := bson.M{
+			"sentAt":   bson.M{"$lt": cutoff},
+			"isActive": true,
+		}
+
+		result, err := collection.UpdateMany(ctx, filter, bson.M{"$set": bson.M{"isActive": false}})
+		if err != nil {
+			log.Println("Error cleaning up expired codes:", err)
+			continue
+		}
+
+		log.Printf("Cleanup job: %d expired codes deactivated\n", result.ModifiedCount)
+	}
+}
+
 // Send a verification code
 func (cc *CodeController) GetCode(c *gin.Context) {
 	var req struct {
@@ -88,7 +113,6 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": newCode})
 }
 
-// Verify submitted code
 func (cc *CodeController) VerifyCode(c *gin.Context) {
 	var req struct {
 		Email string `json:"email"`
@@ -110,18 +134,85 @@ func (cc *CodeController) VerifyCode(c *gin.Context) {
 		return
 	}
 
-	valid := req.Code == existing.Code && time.Since(existing.SentAt) < 15*time.Minute
-	if valid {
-		// deactivate after use
+	// Expired code
+	if time.Since(existing.SentAt) > 2*time.Minute {
+		// delete immediately
+		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
+		return
+	}
+
+	// Correct code
+	if req.Code == existing.Code {
+		// deactivate after use (or you could delete instead)
 		_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
 			bson.M{"_id": existing.ID},
 			bson.M{"$set": bson.M{"isActive": false}},
 		)
 		c.JSON(http.StatusOK, gin.H{"valid": true})
-	} else {
-		c.JSON(http.StatusOK, gin.H{"valid": false})
+		return
 	}
+
+	// Incorrect code
+	c.JSON(http.StatusOK, gin.H{"valid": false})
 }
+
+// Verify submitted code
+// func (cc *CodeController) VerifyCode(c *gin.Context) {
+// 	var req struct {
+// 		Email string `json:"email"`
+// 		Code  string `json:"code"`
+// 	}
+
+// 	if err := c.BindJSON(&req); err != nil || req.Email == "" || req.Code == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+// 		return
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+
+// 	var existing models.EmailCode
+// 	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": req.Email, "isActive": true}).Decode(&existing)
+// 	if err != nil {
+// 		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "no active code found"})
+// 		return
+// 	}
+
+// 	if time.Since(existing.SentAt) > 2*time.Minute {
+// 		// deactivate immediately
+// 		_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+// 			bson.M{"_id": existing.ID},
+// 			bson.M{"$set": bson.M{"isActive": false}},
+// 		)
+// 		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
+// 		return
+// 	}
+
+// 	if req.Code == existing.Code {
+// 		// deactivate after use
+// 		_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+// 			bson.M{"_id": existing.ID},
+// 			bson.M{"$set": bson.M{"isActive": false}},
+// 		)
+// 		c.JSON(http.StatusOK, gin.H{"valid": true})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"valid": false})
+
+// 	// valid := req.Code == existing.Code && time.Since(existing.SentAt) < 15*time.Minute
+// 	// if valid {
+// 	// 	// deactivate after use
+// 	// 	_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+// 	// 		bson.M{"_id": existing.ID},
+// 	// 		bson.M{"$set": bson.M{"isActive": false}},
+// 	// 	)
+// 	// 	c.JSON(http.StatusOK, gin.H{"valid": true})
+// 	// } else {
+// 	// 	c.JSON(http.StatusOK, gin.H{"valid": false})
+// 	// }
+// }
 
 // ConsumeCode checks and deactivates a verification code
 func (cc *CodeController) ConsumeCode(email, code string) (bool, error) {
@@ -371,7 +462,16 @@ func (cc *CodeController) SendResetCode(c *gin.Context) {
 		email = user.Email
 	}
 
-	// Generate and store reset code
+	// Check if an active code exists
+	var existing models.EmailCode
+	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email, "isActive": true}).Decode(&existing)
+	if err == nil && time.Since(existing.SentAt) < 5*time.Minute { // 5-min validity
+		log.Println("Resending existing reset code:", existing.Code)
+		c.JSON(http.StatusOK, gin.H{"code": existing.Code})
+		return
+	}
+
+	// Generate new code
 	code := utils.GenerateCode(6)
 	resetDoc := models.EmailCode{
 		Email:    email,
@@ -380,7 +480,7 @@ func (cc *CodeController) SendResetCode(c *gin.Context) {
 		IsActive: true,
 	}
 
-	_, err := cc.EmailCodeCollection.UpdateOne(
+	_, err = cc.EmailCodeCollection.UpdateOne(
 		ctx,
 		bson.M{"email": email},
 		bson.M{"$set": resetDoc},
@@ -401,14 +501,72 @@ func (cc *CodeController) SendResetCode(c *gin.Context) {
 		return
 	}
 
-	// if user.Phone != "" {
-	// 	if err := services.SendSMS(user.Phone, code); err != nil {
-	// 		fmt.Println("Failed to send SMS:", err)
-	// 	}
-	// }
-
-	c.JSON(http.StatusOK, gin.H{"message": "Reset code sent"})
+	c.JSON(http.StatusOK, gin.H{"code": code})
 }
+
+// func (cc *CodeController) SendResetCode(c *gin.Context) {
+// 	var req struct {
+// 		Identifier string `json:"identifier"` // Email or EID
+// 	}
+
+// 	if err := c.ShouldBindJSON(&req); err != nil || req.Identifier == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Identifier required"})
+// 		return
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+
+// 	var user models.User
+// 	var email string
+
+// 	// Resolve identifier to email
+// 	if strings.Contains(req.Identifier, "@") {
+// 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
+// 		if err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+// 			return
+// 		}
+// 	} else {
+// 		if err := cc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user); err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+// 			return
+// 		}
+// 		email = user.Email
+// 	}
+
+// 	// Generate and store reset code
+// 	code := utils.GenerateCode(6)
+// 	resetDoc := models.EmailCode{
+// 		Email:    email,
+// 		Code:     code,
+// 		SentAt:   time.Now(),
+// 		IsActive: true,
+// 	}
+
+// 	_, err := cc.EmailCodeCollection.UpdateOne(
+// 		ctx,
+// 		bson.M{"email": email},
+// 		bson.M{"$set": resetDoc},
+// 		options.Update().SetUpsert(true),
+// 	)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+// 		return
+// 	}
+
+// 	// Send email
+// 	if err := services.SendEmail(
+// 		email,
+// 		"Password Reset Code",
+// 		fmt.Sprintf("<h3>Your password reset code is: <b>%s</b></h3>", code),
+// 	); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"message": "Reset code sent"})
+// }
 
 func (cc *CodeController) VerifyResetCode(c *gin.Context) {
 	var req struct {
@@ -421,7 +579,7 @@ func (cc *CodeController) VerifyResetCode(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var user models.User
@@ -442,28 +600,86 @@ func (cc *CodeController) VerifyResetCode(c *gin.Context) {
 		email = user.Email
 	}
 
-	// Lookup code using resolved email
-	var codeDoc models.EmailCode
-	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{
-		"email":    email,
-		"code":     req.Code,
-		"isActive": true,
-	}).Decode(&codeDoc)
-
+	var existing models.EmailCode
+	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email, "isActive": true}).Decode(&existing)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired code"})
+		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "no active code found"})
 		return
 	}
 
-	// 5-minute validity
-	if time.Since(codeDoc.SentAt) > 5*time.Minute {
-		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code expired"})
+	// Expiry check
+	if time.Since(existing.SentAt) > 2*time.Minute {
+		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"verified": true})
+	if req.Code == existing.Code {
+		_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+			bson.M{"_id": existing.ID},
+			bson.M{"$set": bson.M{"isActive": false}},
+		)
+		c.JSON(http.StatusOK, gin.H{"valid": true})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"valid": false})
 }
+
+// func (cc *CodeController) VerifyResetCode(c *gin.Context) {
+// 	var req struct {
+// 		Identifier string `json:"identifier"` // Email or EID
+// 		Code       string `json:"code"`
+// 	}
+
+// 	if err := c.ShouldBindJSON(&req); err != nil || req.Identifier == "" || req.Code == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+// 		return
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+// 	defer cancel()
+
+// 	var user models.User
+// 	var email string
+
+// 	// Resolve identifier to email
+// 	if strings.Contains(req.Identifier, "@") {
+// 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
+// 		if err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+// 			return
+// 		}
+// 	} else {
+// 		if err := cc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user); err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+// 			return
+// 		}
+// 		email = user.Email
+// 	}
+
+// 	// Lookup code using resolved email
+// 	var codeDoc models.EmailCode
+// 	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{
+// 		"email":    email,
+// 		"code":     req.Code,
+// 		"isActive": true,
+// 	}).Decode(&codeDoc)
+
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired code"})
+// 		return
+// 	}
+
+// 	// 5-minute validity
+// 	if time.Since(codeDoc.SentAt) > 5*time.Minute {
+// 		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Code expired"})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"verified": true})
+// }
 
 func (cc *CodeController) GetEIDCode(c *gin.Context) {
 	var req struct {
@@ -546,18 +762,60 @@ func (cc *CodeController) VerifyEIDCode(c *gin.Context) {
 		return
 	}
 
-	valid := req.Code == existing.Code && time.Since(existing.SentAt) < 15*time.Minute
-	if valid {
-		// deactivate after use
-		// _, _ = cc.EmailCodeCollection.UpdateOne(ctx,
-		// 	bson.M{"_id": existing.ID},
-		// 	bson.M{"$set": bson.M{"isActive": false}},
-		// )
-		c.JSON(http.StatusOK, gin.H{"valid": true})
-	} else {
-		c.JSON(http.StatusOK, gin.H{"valid": false})
+	// Expired code
+	if time.Since(existing.SentAt) > 15*time.Minute {
+		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
+		return
 	}
+
+	// Correct code
+	if req.Code == existing.Code {
+		_, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+			bson.M{"_id": existing.ID},
+			bson.M{"$set": bson.M{"isActive": false}},
+		)
+		c.JSON(http.StatusOK, gin.H{"valid": true})
+		return
+	}
+
+	// Incorrect code
+	c.JSON(http.StatusOK, gin.H{"valid": false})
 }
+
+// func (cc *CodeController) VerifyEIDCode(c *gin.Context) {
+// 	var req struct {
+// 		Email string `json:"email"`
+// 		Code  string `json:"code"`
+// 	}
+
+// 	if err := c.BindJSON(&req); err != nil || req.Email == "" || req.Code == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+// 		return
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+
+// 	var existing models.EmailCode
+// 	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": req.Email, "isActive": true}).Decode(&existing)
+// 	if err != nil {
+// 		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "no active code found"})
+// 		return
+// 	}
+
+// 	valid := req.Code == existing.Code && time.Since(existing.SentAt) < 15*time.Minute
+// 	if valid {
+// 		// deactivate after use
+// 		// _, _ = cc.EmailCodeCollection.UpdateOne(ctx,
+// 		// 	bson.M{"_id": existing.ID},
+// 		// 	bson.M{"$set": bson.M{"isActive": false}},
+// 		// )
+// 		c.JSON(http.StatusOK, gin.H{"valid": true})
+// 	} else {
+// 		c.JSON(http.StatusOK, gin.H{"valid": false})
+// 	}
+// }
 
 // ForgotEID handles sending the EID to the user's email
 func (cc *CodeController) ForgotEID(c *gin.Context) {
