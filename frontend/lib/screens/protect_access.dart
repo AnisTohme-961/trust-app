@@ -73,6 +73,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _selectController = TextEditingController();
 
+  final FocusNode _emailFocusNode = FocusNode();
+  bool _isEmailFocused = false;
+
   bool _dobDropdownOpen = false;
   bool isCodeValid = false;
 
@@ -369,6 +372,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     _timer?.cancel();
     _focusNodes.forEach((f) => f.dispose());
     _codecontrollers.forEach((c) => c.dispose());
+    _emailController.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -888,20 +893,21 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Stack(
+                        clipBehavior: Clip.none,
                         children: [
+                          // Main Input Container
                           Container(
                             width: 374,
                             height: 50,
                             padding: const EdgeInsets.only(left: 12, right: 70),
-
                             decoration: BoxDecoration(
                               color: const Color(0xFF0B1320),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: const Color(0xFF00F0FF),
-                                width: 1,
+                                width: 1.2,
                               ),
                             ),
                             child: Row(
@@ -917,39 +923,75 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
-                                  child: TextField(
-                                    controller: _emailController,
-                                    decoration: const InputDecoration(
-                                      hintText: "Email",
-                                      hintStyle: TextStyle(
-                                        color: Color(0xFFA5A6A8),
+                                  child: Focus(
+                                    onFocusChange: (hasFocus) {
+                                      setState(
+                                        () => _isEmailFocused = hasFocus,
+                                      );
+                                    },
+                                    child: TextField(
+                                      controller: _emailController,
+                                      focusNode: _emailFocusNode,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        isCollapsed: true,
+                                        contentPadding: EdgeInsets.only(top: 0),
+                                      ),
+                                      onChanged: (value) {
+                                        final userProvider =
+                                            Provider.of<UserProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        userProvider.setEmail(value.trim());
+                                        setState(
+                                          () {},
+                                        ); // Update label position
+                                      },
+                                      style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Inter',
-                                        height: 1.0,
+                                        color: Color(0xFF00F0FF),
                                       ),
-                                      border: InputBorder.none,
-                                      isCollapsed: true,
-                                    ),
-                                    onChanged: (value) {
-                                      final userProvider =
-                                          Provider.of<UserProvider>(
-                                            context,
-                                            listen: false,
-                                          );
-                                      userProvider.setEmail(value.trim());
-                                    },
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
-                                      fontFamily: 'Inter',
-                                      color: Color(0xFF00F0FF),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
+
+                          // Floating Label
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 200),
+                            left: 40,
+                            top:
+                                (_emailController.text.isNotEmpty ||
+                                    _isEmailFocused)
+                                ? -10
+                                : 15,
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                color: const Color(0xFFA5A6A8),
+                                fontSize:
+                                    (_emailController.text.isNotEmpty ||
+                                        _isEmailFocused)
+                                    ? 13
+                                    : 15,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Inter',
+                                backgroundColor:
+                                    (_emailController.text.isNotEmpty ||
+                                        _isEmailFocused)
+                                    ? const Color(0xFF0B1320)
+                                    : Colors.transparent,
+                              ),
+                              child: const Text("Email"),
+                            ),
+                          ),
+
+                          // Paste / Clear Button
                           Positioned(
                             top: 10,
                             right: 10,

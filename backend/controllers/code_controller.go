@@ -857,8 +857,6 @@ func (cc *CodeController) VerifyEIDCode(c *gin.Context) {
 	}
 
 	if req.Code == existing.Code {
-		// delete the code immediately after successful verification
-		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
 		c.JSON(http.StatusOK, gin.H{"valid": true})
 		return
 	}
