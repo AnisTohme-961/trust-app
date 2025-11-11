@@ -153,6 +153,15 @@ class _SignInPageState extends State<SignInPage> {
             'Incorrect or expired code. Please request a new one',
             duration: const Duration(seconds: 5),
           );
+
+          // Clear input fields and hide red container after 2 seconds
+          Timer(const Duration(seconds: 2), () {
+            setState(() {
+              code = List.generate(6, (_) => "");
+              _codecontrollers.forEach((c) => c.clear());
+              _isCodeValid = null; // hide red container
+            });
+          });
         }
       } catch (e) {
         setState(() {
@@ -166,6 +175,15 @@ class _SignInPageState extends State<SignInPage> {
           msg,
           duration: const Duration(seconds: 5),
         );
+
+        // Clear input fields and hide red container after 2 seconds
+        Timer(const Duration(seconds: 2), () {
+          setState(() {
+            code = List.generate(6, (_) => "");
+            _codecontrollers.forEach((c) => c.clear());
+            _isCodeValid = null; // hide red container
+          });
+        });
       }
     }
   }

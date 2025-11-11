@@ -231,8 +231,6 @@ class AuthService {
   }
 
   static Future<void> sendResetCode(String identifier) async {
-    
-
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
       headers: {'Content-Type': 'application/json'},
@@ -267,7 +265,7 @@ class AuthService {
     required String code,
     required String newPassword,
     required String confirmPassword,
-     required String method, 
+    required String method,
   }) async {
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/reset-password"),
@@ -276,7 +274,7 @@ class AuthService {
         'identifier': identifier,
         'code': code,
         'newPassword': newPassword,
-        'confirmPassword': confirmPassword, 
+        'confirmPassword': confirmPassword,
         'method': method,
       }),
     );
@@ -288,7 +286,6 @@ class AuthService {
     }
   }
 
-
   static Future<Map<String, String>> generateTOTP(String email) async {
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/generate-totp"),
@@ -298,16 +295,15 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return {
-        'secret': data['secret'],
-        'qrUrl': data['qrUrl'],
-      };
+      return {'secret': data['secret'], 'qrUrl': data['qrUrl']};
     } else {
-      final error = jsonDecode(response.body)['error'] ?? 'Failed to generate TOTP';
+      final error =
+          jsonDecode(response.body)['error'] ?? 'Failed to generate TOTP';
       throw Exception(error);
     }
   }
-    static Future<bool> verifyTOTP({
+
+  static Future<bool> verifyTOTP({
     required String email,
     required String code,
   }) async {
@@ -323,12 +319,13 @@ class AuthService {
     } else if (response.statusCode == 401) {
       return false;
     } else {
-      final error = jsonDecode(response.body)['error'] ?? 'Failed to verify code';
+      final error =
+          jsonDecode(response.body)['error'] ?? 'Failed to verify code';
       throw Exception(error);
     }
   }
 
-     static Future<String> sendEidCode(String email) async {
+  static Future<String> sendEidCode(String email) async {
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
       headers: {'Content-Type': 'application/json'},
@@ -361,7 +358,8 @@ class AuthService {
     } else if (response.statusCode == 401) {
       return false; // invalid or expired
     } else {
-      final error = jsonDecode(response.body)['error'] ?? 'Failed to verify code';
+      final error =
+          jsonDecode(response.body)['error'] ?? 'Failed to verify code';
       throw Exception(error);
     }
   }
@@ -384,6 +382,4 @@ class AuthService {
       return false;
     }
   }
-
-
 }
