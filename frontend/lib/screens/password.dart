@@ -426,7 +426,6 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                     ),
 
                     // Password Input Field Container
-                    // Password Input Field Container with floating label
                     Positioned(
                       top: 36,
                       left: 0,
@@ -518,75 +517,94 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                     ),
 
                     // Confirm Password
+                    // Confirm Password
                     Positioned(
                       top: 100,
                       left: 0,
                       child: Container(
-                        width: 240,
-                        height: 52,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF00F0FF),
-                            width: 1,
+                        width: 245,
+                        height: 52, // Taller to fit floating label
+                        child: TextField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          style: const TextStyle(
+                            color: Color(0xFF00F0FF),
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
                           ),
-                          color: Colors.transparent,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Lock icon
-                            SizedBox(
-                              width: 20,
-                              height: 20,
+                          decoration: InputDecoration(
+                            labelText: "Confirm Password",
+                            labelStyle: const TextStyle(
+                              color: Colors.white70,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                            ),
+                            floatingLabelStyle: const TextStyle(
+                              color: Color(0xFF00F0FF),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(
+                                left: 10,
+                                right: 8,
+                              ),
                               child: Image.asset(
                                 'assets/images/Icon.png',
+                                width: 20,
+                                height: 20,
                                 fit: BoxFit.contain,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _confirmPasswordController,
-                                obscureText: _obscureConfirmPassword,
-                                style: const TextStyle(
-                                  color: Color(0xFF00F0FF),
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                ),
-                                decoration: const InputDecoration(
-                                  hintText: "Confirm Password",
-                                  hintStyle: TextStyle(
-                                    color: Colors.white54,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
+                            prefixIconConstraints: const BoxConstraints(
+                              minWidth: 35,
+                              minHeight: 20,
+                            ),
+                            suffixIcon: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  }),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Image.asset(
+                                      _obscureConfirmPassword
+                                          ? 'assets/images/eyeSlash.png'
+                                          : 'assets/images/eye1.png',
+                                      width: 22,
+                                      height: 22,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
                                 ),
+                              ],
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7.64),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00F0FF),
+                                width: 1,
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () => setState(
-                                () => _obscureConfirmPassword =
-                                    !_obscureConfirmPassword,
-                              ),
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: Image.asset(
-                                  _obscureConfirmPassword
-                                      ? 'assets/images/eyeSlash.png'
-                                      : 'assets/images/eye1.png',
-                                  fit: BoxFit.contain,
-                                ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7.64),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00F0FF),
+                                width: 1.5,
                               ),
                             ),
-                          ],
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 0,
+                            ),
+                          ),
                         ),
                       ),
                     ),

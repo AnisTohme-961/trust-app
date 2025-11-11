@@ -519,7 +519,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   hint, // Display 'Password'
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        home: const ResponsiveHomePage(),
+        home: const SignInPage(),
         routes: appRoutes(),
       ),
     );
