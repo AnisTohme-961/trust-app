@@ -133,6 +133,7 @@ flutter:
     - assets/images/blueCircleCheck.png
     - assets/images/backgorundRectangle.png
     - assets/images/whiteBackArrow.png
+    - assets/images/closeWindow.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

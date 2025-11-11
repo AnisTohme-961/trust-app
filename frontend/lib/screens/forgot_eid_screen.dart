@@ -345,7 +345,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 _buildEmailInput(),
                 const SizedBox(height: 22),
                 _buildSendCodeSection(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
                 _buildSendEidButton(),
                 const SizedBox(height: 120),
                 const Text(
@@ -447,6 +447,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 children: [
                   SizedBox(
                     width: 35,
+                    height: 25,
                     child: TextField(
                       controller: widget.otpControllers[index],
                       focusNode: widget.otpFocusNodes[index],
