@@ -101,7 +101,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
             children: [
               const SizedBox(height: 8),
               Image.asset(
-                'egetyPerfectStar.png',
+                'assets/images/egetyPerfectStar.png',
                 width: 111,
                 height: 126,
                 fit: BoxFit.contain,
@@ -152,8 +152,8 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                           height: 22,
                           child: Image.asset(
                             isEyeVisible
-                                ? 'whiteEye.png'
-                                : 'whiteEyeSlash.png',
+                                ? 'assets/images/whiteEye.png'
+                                : 'assets/images/whiteEyeSlash.png',
                             fit: BoxFit.contain,
                           ),
                         ),

@@ -147,7 +147,7 @@ class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 75.0),
                     child: Image.asset(
-                      'egetyPerfectStar.png',
+                      'assets/images/egetyPerfectStar.png',
                       width: 111,
                       height: 126,
                       fit: BoxFit.contain,
@@ -189,8 +189,8 @@ class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
                           height: 22,
                           child: Image.asset(
                             isEyeVisible
-                                ? 'whiteEyeSlash.png'
-                                : 'whiteEye.png',
+                                ? 'assets/images/whiteEyeSlash.png'
+                                : 'assets/images/whiteEye.png',
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -330,7 +330,7 @@ class _Keypad extends StatelessWidget {
                   alignment: Alignment.center,
                   child: isBack
                       ? Image.asset(
-                          'whiteBackArrow.png',
+                          'assets/images/whiteBackArrow.png',
                           width: 25,
                           height: 25,
                           fit: BoxFit.contain,

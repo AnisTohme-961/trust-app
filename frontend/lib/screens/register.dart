@@ -135,7 +135,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                 });
               },
               child: Image.asset(
-                'Vector.png',
+                'assets/images/Vector.png',
                 width: 23,
                 height: 23,
                 color: Colors.white,
@@ -201,7 +201,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
             bottom: 0,
             right: 0,
             child: Image.asset(
-              "Rectangle2.png",
+              "assets/images/Rectangle2.png",
               width: 180,
               fit: BoxFit.contain,
             ),
@@ -215,7 +215,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
               width: 153,
               height: 200,
               child: Image.asset(
-                'Unlocked animstion.png',
+                'assets/images/Unlocked animstion.png',
                 fit: BoxFit.cover,
               ),
             ),
@@ -541,7 +541,7 @@ class _RegisterPageTabletState extends State<RegisterPageTablet> {
           width: 153,
           height: 200,
           child: Image.asset(
-            'Unlocked animstion.png',
+            'assets/images/Unlocked animstion.png',
             fit: BoxFit.cover,
           ),
         ),
@@ -613,7 +613,7 @@ class _RegisterPageTabletState extends State<RegisterPageTablet> {
                 });
               },
               child: Image.asset(
-                'Vector.png',
+                'assets/images/Vector.png',
                 width: 28,
                 height: 28,
                 color: Colors.white,
@@ -629,7 +629,7 @@ class _RegisterPageTabletState extends State<RegisterPageTablet> {
             bottom: 0,
             right: 0,
             child: Image.asset(
-              "Rectangle2.png",
+              "assets/images/Rectangle2.png",
               width: 150,
               fit: BoxFit.contain,
             ),

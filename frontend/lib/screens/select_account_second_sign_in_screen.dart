@@ -30,7 +30,7 @@ class _SelectAccountSecondSignInScreenState
                 // Image
                 Center(
                   child: Image.asset(
-                    'egetyPerfectStar.png',
+                    'assets/images/egetyPerfectStar.png',
                     width: 111,
                     height: 126,
                     fit: BoxFit.contain,
@@ -134,7 +134,7 @@ class _SelectAccountSecondSignInScreenState
                   shape: BoxShape.circle,
                   color: Colors.white12,
                   image: const DecorationImage(
-                    image: AssetImage('image1.png'),
+                    image: AssetImage('assets/images/image1.png'),
                     fit: BoxFit.cover,
                   ),
                 ),

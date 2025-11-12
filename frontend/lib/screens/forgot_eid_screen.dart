@@ -298,7 +298,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
               children: [
                 Center(
                   child: Image.asset(
-                    'egetyPerfectStar.png',
+                    'assets/images/egetyPerfectStar.png',
                     width: 111,
                     height: 126,
                     fit: BoxFit.contain,
@@ -397,7 +397,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                         child: GestureDetector(
                           onTap: widget.onCloseOverlay,
                           child: Image.asset(
-                            'closeWindow.png',
+                            'assets/images/closeWindow.png',
                             width: 110,
                             height: 50,
                             fit: BoxFit.contain,
@@ -594,7 +594,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
               children: [
                 const SizedBox(width: 5),
                 Image.asset(
-                  'SVGRepo_iconCarrier.png',
+                  'assets/images/SVGRepo_iconCarrier.png',
                   width: 20,
                   height: 20,
                   fit: BoxFit.contain,
@@ -871,7 +871,7 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
                   const SizedBox(height: 40),
                   Center(
                     child: Image.asset(
-                      'egetyPerfectStar.png',
+                      'assets/images/egetyPerfectStar.png',
                       width: 111,
                       height: 126,
                       fit: BoxFit.contain,
@@ -990,7 +990,7 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
                         child: GestureDetector(
                           onTap: widget.onCloseOverlay,
                           child: Image.asset(
-                            'closeWindow.png',
+                            'assets/images/closeWindow.png',
                             width: 120,
                             height: 55,
                             fit: BoxFit.contain,
@@ -1182,7 +1182,7 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
               children: [
                 const SizedBox(width: 10),
                 Image.asset(
-                  'SVGRepo_iconCarrier.png',
+                  'assets/images/SVGRepo_iconCarrier.png',
                   width: 14,
                   height: 12,
                   fit: BoxFit.contain,

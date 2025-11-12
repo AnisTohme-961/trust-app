@@ -656,7 +656,7 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
             bottom: 0,
             right: -10,
             child: Image.asset(
-              'Rectangle2.png',
+              'assets/images/Rectangle2.png',
               width: screenWidth > 600 ? 120 : 450,
               height: screenWidth > 600 ? 120 : 450,
               fit: BoxFit.contain,

@@ -306,7 +306,7 @@ class MobileSignInPage extends StatelessWidget {
             children: [
               const SizedBox(height: 75),
               Image.asset(
-                'egetyPerfectStar.png',
+                'assets/images/egetyPerfectStar.png',
                 width: 111,
                 height: 126,
                 fit: BoxFit.contain,
@@ -390,7 +390,7 @@ class MobileSignInPage extends StatelessWidget {
               children: [
                 const SizedBox(width: 5),
                 Image.asset(
-                  'SVGRepo_iconCarrier.png',
+                  'assets/images/SVGRepo_iconCarrier.png',
                   width: 20,
                   height: 20,
                   fit: BoxFit.contain,
@@ -485,7 +485,7 @@ class MobileSignInPage extends StatelessWidget {
               children: [
                 const SizedBox(width: 5),
                 Image.asset(
-                  'Icon.png',
+                  'assets/images/Icon.png',
                   width: 20,
                   height: 20,
                   fit: BoxFit.contain,
@@ -1076,7 +1076,7 @@ class TabletSignInPage extends StatelessWidget {
                                 children: [
                                   SizedBox(height: screenHeight * 0.02),
                                   Image.asset(
-                                    'egetyPerfectStar.png',
+                                    'assets/images/egetyPerfectStar.png',
                                     width: 111,
                                     height: 126,
                                     fit: BoxFit.contain,
@@ -1146,7 +1146,7 @@ class TabletSignInPage extends StatelessWidget {
                       bottom: 0,
                       right: -10,
                       child: Image.asset(
-                        'Rectangle2.png',
+                        'assets/images/Rectangle2.png',
                         width: screenWidth > 600
                             ? 120
                             : 450, // Larger on tablets
@@ -1187,7 +1187,7 @@ class TabletSignInPage extends StatelessWidget {
               children: [
                 const SizedBox(width: 10),
                 Image.asset(
-                  'SVGRepo_iconCarrier.png',
+                  'assets/images/SVGRepo_iconCarrier.png',
                   width: 16,
                   height: 14,
                   fit: BoxFit.contain,
@@ -1291,7 +1291,7 @@ class TabletSignInPage extends StatelessWidget {
               children: [
                 const SizedBox(width: 10),
                 Image.asset(
-                  'Icon.png',
+                  'assets/images/Icon.png',
                   width: 14,
                   height: 18,
                   fit: BoxFit.contain,

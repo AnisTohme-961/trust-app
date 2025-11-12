@@ -50,10 +50,10 @@ class _MobileRegisterPatternScreenState
   int currentLockingFrame = 0;
   bool showLockingAnimation = false;
   List<String> lockingFrames = [
-    'locking1.png',
-    'locking2.png',
-    'locking3.png',
-    'locking5.png',
+    'assets/images/locking1.png',
+    'assets/images/locking2.png',
+    'assets/images/locking3.png',
+    'assets/images/locking5.png',
   ];
 
   Future<void> _logout() async {
@@ -300,8 +300,8 @@ class _MobileRegisterPatternScreenState
                           },
                           child: Image.asset(
                             isEyeVisible
-                                ? 'whiteEye.png'
-                                : 'whiteEyeSlash.png',
+                                ? 'assets/images/whiteEye.png'
+                                : 'assets/images/whiteEyeSlash.png',
                             width: 24,
                             height: 24,
                           ),
@@ -397,7 +397,7 @@ class _MobileRegisterPatternScreenState
                                     if (patternsMatched && isConfirmMode)
                                       Center(
                                         child: Image.asset(
-                                          'lockBackground.png',
+                                          'assets/images/lockBackground.png',
                                           width: 100,
                                           height: 100,
                                           fit: BoxFit.contain,
@@ -522,10 +522,10 @@ class _TabletRegisterPatternScreenState
   int currentLockingFrame = 0;
   bool showLockingAnimation = false;
   List<String> lockingFrames = [
-    'locking1.png',
-    'locking2.png',
-    'locking3.png',
-    'locking5.png',
+    'assets/images/locking1.png',
+    'assets/images/locking2.png',
+    'assets/images/locking3.png',
+    'assets/images/locking5.png',
   ];
 
   Future<void> _logout() async {
@@ -803,8 +803,8 @@ class _TabletRegisterPatternScreenState
                                         },
                                         child: Image.asset(
                                           isEyeVisible
-                                              ? 'whiteEye.png'
-                                              : 'whiteEyeSlash.png',
+                                              ? 'assets/images/whiteEye.png'
+                                              : 'assets/images/whiteEyeSlash.png',
                                           width: 16,
                                           height: 15,
                                         ),
@@ -912,7 +912,7 @@ class _TabletRegisterPatternScreenState
                                                     isConfirmMode)
                                                   Center(
                                                     child: Image.asset(
-                                                      'lockBackground.png',
+                                                      'assets/images/lockBackground.png',
                                                       width: 120,
                                                       height: 120,
                                                       fit: BoxFit.contain,
@@ -1025,7 +1025,7 @@ class _TabletRegisterPatternScreenState
                       bottom: 0,
                       right: -10,
                       child: Image.asset(
-                        'Rectangle2.png',
+                        'assets/images/Rectangle2.png',
                         width: screenWidth > 600
                             ? 120
                             : 450, // Larger on tablets

@@ -141,7 +141,7 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                                 width: 18,
                                 height: 18,
                                 child: Image.asset(
-                                  'DoubleSquare.png',
+                                  'assets/images/DoubleSquare.png',
                                   width: 18,
                                   height: 18,
                                 ),
@@ -185,7 +185,7 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Image.asset(
-                      'Unlocked animstion.png',
+                      'assets/images/Unlocked animstion.png',
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -372,7 +372,7 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
                               ),
                               const SizedBox(width: 8),
                               Image.asset(
-                                'DoubleSquare.png',
+                                'assets/images/DoubleSquare.png',
                                 width: 16,
                                 height: 16,
                               ),
@@ -412,7 +412,7 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Image.asset(
-                        'Unlocked animstion.png',
+                        'assets/images/Unlocked animstion.png',
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -497,7 +497,7 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
               bottom: 0, // Distance from bottom
               right: -10, // Distance from right
               child: Image.asset(
-                'Rectangle2.png',
+                'assets/images/Rectangle2.png',
                 width: isLandscape
                     ? 150
                     : 120, // Adjust size based on orientation

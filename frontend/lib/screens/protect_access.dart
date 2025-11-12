@@ -747,7 +747,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       width: 18,
                                       height: 18,
                                       child: SvgPicture.asset(
-                                        'iconFlag.svg',
+                                        'assets/images/iconFlag.svg',
                                         fit: BoxFit.contain,
                                       ),
                                     ),
@@ -787,7 +787,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                 width: 18,
                                 height: 18,
                                 child: Image.asset(
-                                  'Blacksun-icon-chevron-down.png',
+                                  'assets/images/Blacksun-icon-chevron-down.png',
                                   width: 18,
                                   height: 18,
                                   fit: BoxFit.contain,
@@ -844,7 +844,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           child: Row(
                             children: [
                               Image.asset(
-                                'DOB.png',
+                                'assets/images/DOB.png',
                                 width: 16,
                                 height: 18,
                                 color: Colors.white,
@@ -915,7 +915,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Image.asset(
-                                    'SVGRepo_iconCarrier.png',
+                                    'assets/images/SVGRepo_iconCarrier.png',
                                     width: 16,
                                     height: 18,
                                     color: Colors.white,
@@ -2672,7 +2672,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                                             width: 18,
                                                             height: 18,
                                                             child: SvgPicture.asset(
-                                                              'iconFlag.svg',
+                                                              'assets/images/iconFlag.svg',
                                                               fit: BoxFit
                                                                   .contain,
                                                             ),
@@ -2729,7 +2729,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                                       width: 18,
                                                       height: 18,
                                                       child: Image.asset(
-                                                        'Blacksun-icon-chevron-down.png',
+                                                        'assets/images/Blacksun-icon-chevron-down.png',
                                                         width: 18,
                                                         height: 18,
                                                         fit: BoxFit.contain,
@@ -2791,7 +2791,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                                 child: Row(
                                                   children: [
                                                     Image.asset(
-                                                      'DOB.png',
+                                                      'assets/images/DOB.png',
                                                       width: 16,
                                                       height: 18,
                                                       color: Colors.white,
@@ -2872,7 +2872,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                                               top: 4.0,
                                                             ),
                                                         child: Image.asset(
-                                                          'SVGRepo_iconCarrier.png',
+                                                          'assets/images/SVGRepo_iconCarrier.png',
                                                           width: 16,
                                                           height: 18,
                                                           color: Colors.white,
@@ -3556,7 +3556,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
             bottom: 0, // Distance from bottom
             right: -10, // Distance from right
             child: Image.asset(
-              'Rectangle2.png',
+              'assets/images/Rectangle2.png',
               width: isLandscape
                   ? 150
                   : 120, // Adjust size based on orientation

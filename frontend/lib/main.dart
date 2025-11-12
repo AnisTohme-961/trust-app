@@ -136,7 +136,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
               top: 60,
               left: 370,
               child: Image.asset(
-                'Vector.png',
+                'assets/images/Vector.png',
                 width: 23,
                 height: 23,
                 color: Colors.white,
@@ -206,7 +206,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
               bottom: 0,
               right: 0,
               child: Image.asset(
-                "Rectangle.png",
+                "assets/images/Rectangle.png",
                 width: 180,
                 fit: BoxFit.contain,
               ),
@@ -220,7 +220,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                 width: 153,
                 height: 200,
                 child: Image.asset(
-                  'Unlocked animstion.png',
+                  'assets/images/Unlocked animstion.png',
                   fit: BoxFit.cover,
                 ),
               ),
@@ -250,14 +250,14 @@ class _MobileHomePageState extends State<MobileHomePage> {
               top: 600,
               left: 180,
               child: GlowingVerticalOvalArrow(
-                arrowAsset: "ArrowUp.svg",
+                arrowAsset: "assets/images/ArrowUp.svg",
                 swipeUp: _swipeUp,
               ),
             ),
 
             // Animated SVG Pointer
             MobileSwipeUpDownAnimatedSvg(
-              assetPath: "Pointer.svg",
+              assetPath: "assets/images/Pointer.svg",
               startX: 254,
               startY: 761.84,
               endY: 661.84,
@@ -343,7 +343,7 @@ class _TabletHomePageState extends State<TabletHomePage> {
               top: screenHeight * 0.05,
               right: screenWidth * 0.05,
               child: Image.asset(
-                'Vector.png',
+                'assets/images/Vector.png',
                 width: 32,
                 height: 32,
                 color: Colors.white,
@@ -355,7 +355,7 @@ class _TabletHomePageState extends State<TabletHomePage> {
               bottom: 0,
               right: 0,
               child: Image.asset(
-                "Rectangle.png",
+                "assets/images/Rectangle.png",
                 width: 150,
                 fit: BoxFit.contain,
               ),
@@ -416,7 +416,7 @@ class _TabletHomePageState extends State<TabletHomePage> {
                         width: 144,
                         height: 193,
                         child: Image.asset(
-                          'Unlocked animstion.png',
+                          'assets/images/Unlocked animstion.png',
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -442,14 +442,14 @@ class _TabletHomePageState extends State<TabletHomePage> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             GlowingVerticalOvalArrow(
-                              arrowAsset: "ArrowUp.svg",
+                              arrowAsset: "assets/images/ArrowUp.svg",
                               swipeUp: _swipeUp,
                             ),
                             const SizedBox(width: 20),
                             SizedBox(
                               height: 80,
                               child: TabletSwipeUpDownAnimatedSvg(
-                                assetPath: "Pointer.svg",
+                                assetPath: "assets/images/Pointer.svg",
                                 width: 42,
                                 height: 60,
                                 durationMilliseconds: 1500,
