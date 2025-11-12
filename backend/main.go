@@ -81,8 +81,8 @@ func main() {
 	routes.TOTPRoutes(r, totpController)
 	routes.UserRoutes(r, userCollection, codeController)
 
-	r.Static("/flags", "./assets/images/flags")
-	r.Static("/flags2", "./assets/images/flags2")
+	r.Static("/flags", "./flags")
+	r.Static("/flags2", "./flags2")
 
 	port := os.Getenv("PORT")
 	if port == "" {
