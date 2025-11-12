@@ -11,9 +11,17 @@ import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
 import 'screens/sign_in_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-void main() {
+void main() async {
   runApp(const MyApp());
+  //  WidgetsFlutterBinding.ensureInitialized();
+
+  // final userProvider = UserProvider();
+  // final storage = FlutterSecureStorage();
+
+  // // Load saved user info
+  // await userProvider.loadFromStorage(storage);
 }
 
 class MyApp extends StatelessWidget {
@@ -36,7 +44,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        home: const SignInPage(),
+        home: const ResponsiveHomePage(),
         routes: appRoutes(),
       ),
     );

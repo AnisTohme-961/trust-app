@@ -2217,7 +2217,27 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                 setState(
                                                   () => isLoading = false,
                                                 );
+                                                // final storage =
+                                                //     FlutterSecureStorage();
 
+                                                // if (eid != null) {
+                                                //   await userProvider
+                                                //       .registerUser(
+                                                //         firstName: userProvider
+                                                //             .firstName,
+                                                //         lastName: userProvider
+                                                //             .lastName,
+                                                //         eid: eid,
+                                                //         storage: storage,
+                                                //       );
+
+                                                //   Navigator.of(context).push(
+                                                //     MaterialPageRoute(
+                                                //       builder: (_) =>
+                                                //           ResponsiveRegisterLivePage(),
+                                                //     ),
+                                                //   );
+                                                // }
                                                 if (eid != null) {
                                                   userProvider.setEID(eid);
                                                   userProvider
