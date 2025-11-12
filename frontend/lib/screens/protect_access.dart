@@ -1479,14 +1479,11 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   ),
                 ),
 
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      right: 20,
-                    ), // space from footer
-                    child: ErrorStack(key: errorStackKey),
-                  ),
+                Positioned(
+                  bottom: 20, // Adjust as needed
+                  left: 0,
+                  right: 20,
+                  child: ErrorStack(key: errorStackKey),
                 ),
 
                 // Dropdowns (Country and DOB) - same as original
@@ -3569,7 +3566,13 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
           ),
 
           // Error Stack
-          ErrorStack(key: errorStackKey),
+          // Error Stack
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: ErrorStack(key: errorStackKey),
+          ),
 
           // Dropdowns (same as mobile)
           AnimatedPositioned(
