@@ -21,15 +21,15 @@ func SeedLanguages(languageCollection *mongo.Collection) error {
 	}
 
 	languages := []interface{}{
-		models.Language{ID: "1", Name: "France", NativeName: "(Français)", Flag: "/assets/images/flags/france.png"},
-		models.Language{ID: "2", Name: "Germany", NativeName: "(Deutsch)", Flag: "/assets/images/flags/germany.png"},
-		models.Language{ID: "3", Name: "Arabic", NativeName: "(العربية)", Flag: "/assets/images/flags/saudi.png"},
-		models.Language{ID: "4", Name: "Italian", NativeName: "(Italiano)", Flag: "/assets/images/flags/italy.png"},
-		models.Language{ID: "5", Name: "Spanish", NativeName: "(Espanol)", Flag: "/assets/images/flags/spain.png"},
-		models.Language{ID: "6", Name: "Portuguese", NativeName: "(Português)", Flag: "/assets/images/flags/portugal.png"},
-		models.Language{ID: "7", Name: "Japanese", NativeName: "(日本語)", Flag: "/assets/images/flags/japan.png"},
-		models.Language{ID: "8", Name: "Russian", NativeName: "(Русский)", Flag: "/assets/images/flags/russia.png"},
-		models.Language{ID: "9", Name: "Finnish", NativeName: "(Suomi)", Flag: "/assets/images/flags/finland.png"},
+		models.Language{ID: "1", Name: "France", NativeName: "(Français)", Flag: "/flags/france.png"},
+		models.Language{ID: "2", Name: "Germany", NativeName: "(Deutsch)", Flag: "/flags/germany.png"},
+		models.Language{ID: "3", Name: "Arabic", NativeName: "(العربية)", Flag: "/flags/saudi.png"},
+		models.Language{ID: "4", Name: "Italian", NativeName: "(Italiano)", Flag: "/flags/italy.png"},
+		models.Language{ID: "5", Name: "Spanish", NativeName: "(Espanol)", Flag: "/flags/spain.png"},
+		models.Language{ID: "6", Name: "Portuguese", NativeName: "(Português)", Flag: "/flags/portugal.png"},
+		models.Language{ID: "7", Name: "Japanese", NativeName: "(日本語)", Flag: "/flags/japan.png"},
+		models.Language{ID: "8", Name: "Russian", NativeName: "(Русский)", Flag: "/flags/russia.png"},
+		models.Language{ID: "9", Name: "Finnish", NativeName: "(Suomi)", Flag: "/flags/finland.png"},
 	}
 
 	_, err := languageCollection.InsertMany(ctx, languages)
