@@ -41,7 +41,7 @@ class ErrorBanner extends StatelessWidget {
                 SizedBox(
                   width: 24,
                   height: 24,
-                  child: Image.asset('assets/images/attention.png'),
+                  child: Image.asset('attention.png'),
                 ),
                 const SizedBox(width: 12), // spacing between image and text
                 Flexible(

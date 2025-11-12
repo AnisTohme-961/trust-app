@@ -19,7 +19,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
         children: [
           // 🔹 Fullscreen background GIF
           Image.asset(
-            'assets/images/comingSoonBackgroundGif.gif',
+            'comingSoonBackgroundGif.gif',
             fit: BoxFit.cover,
           ),
 
@@ -34,7 +34,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
                     width: 182,
                     height: 182,
                     child: Image.asset(
-                      'assets/images/comingSoonGif.gif',
+                      'comingSoonGif.gif',
                       fit: BoxFit.contain,
                     ),
                   ),

@@ -369,7 +369,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Image.asset(
-                    'assets/images/blueCircleCheck.png',
+                    'blueCircleCheck.png',
                     width: 120,
                     height: 120,
                   ),
@@ -414,7 +414,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             child: Row(
               children: [
-                Image.asset('assets/images/Icon.png', width: 18, height: 18),
+                Image.asset('Icon.png', width: 18, height: 18),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextField(
@@ -454,8 +454,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     padding: const EdgeInsets.all(4.0),
                     child: Image.asset(
                       obscureText
-                          ? 'assets/images/eyeSlash.png'
-                          : 'assets/images/eye1.png',
+                          ? 'eyeSlash.png'
+                          : 'eye1.png',
                       width: 22,
                       height: 22,
                     ),
@@ -555,7 +555,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: Row(
                     children: [
                       Image.asset(
-                        'assets/images/Icon.png',
+                        'Icon.png',
                         width: 18,
                         height: 18,
                       ),
@@ -603,8 +603,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           padding: const EdgeInsets.all(4.0),
                           child: Image.asset(
                             _obscureConfirmPassword
-                                ? 'assets/images/eyeSlash.png'
-                                : 'assets/images/eye1.png',
+                                ? 'eyeSlash.png'
+                                : 'eye1.png',
                             width: 22,
                             height: 22,
                           ),
@@ -668,7 +668,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'assets/images/stars.png',
+                      'stars.png',
                       width: 32,
                       height: 32,
                     ),
@@ -808,7 +808,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Image.asset(
-                    'assets/images/SVGRepo_iconCarrier.png',
+                    'SVGRepo_iconCarrier.png',
                     width: 20,
                     height: 20,
                     fit: BoxFit.contain,

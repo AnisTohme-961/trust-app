@@ -244,7 +244,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
               children: [
                 const SizedBox(height: 75),
                 Image.asset(
-                  'assets/images/egetyPerfectStar.png',
+                  'egetyPerfectStar.png',
                   width: 111,
                   height: 126,
                   fit: BoxFit.contain,
@@ -377,7 +377,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Image.asset(
-                    'assets/images/SVGRepo_iconCarrier.png',
+                    'SVGRepo_iconCarrier.png',
                     width: 20,
                     height: 20,
                     fit: BoxFit.contain,
@@ -474,7 +474,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
               children: [
                 const SizedBox(width: 5),
                 Image.asset(
-                  'assets/images/Icon.png',
+                  'Icon.png',
                   width: 20,
                   height: 20,
                   fit: BoxFit.contain,

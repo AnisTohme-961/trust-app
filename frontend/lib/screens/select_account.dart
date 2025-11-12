@@ -108,7 +108,7 @@ class MobileSelectAccountContent extends StatelessWidget {
                             eid: account['eid'] ?? 'N/A',
                             imagePath:
                                 account['image'] ??
-                                'assets/images/placeholder.png',
+                                'placeholder.png',
                             onTap: () {
                               Navigator.pushNamed(context, '/sign-in');
                             },
@@ -234,7 +234,7 @@ class TabletSelectAccountContent extends StatelessWidget {
                               eid: account['eid'] ?? 'N/A',
                               imagePath:
                                   account['image'] ??
-                                  'assets/images/placeholder.png',
+                                  'placeholder.png',
                               onTap: () {
                                 Navigator.pushNamed(context, '/sign-in');
                               },
@@ -274,7 +274,7 @@ List<Map<String, String?>> _getAccounts(UserProvider userProvider) {
       'firstName': userProvider.firstName,
       'lastName': userProvider.lastName,
       'eid': userProvider.eid,
-      'image': 'assets/images/image1.png',
+      'image': 'image1.png',
     },
   ];
 }

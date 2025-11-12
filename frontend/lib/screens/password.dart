@@ -460,7 +460,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 right: 8,
                               ),
                               child: Image.asset(
-                                'assets/images/Icon.png',
+                                'Icon.png',
                                 width: 20,
                                 height: 20,
                                 fit: BoxFit.contain,
@@ -481,8 +481,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                     padding: const EdgeInsets.only(right: 8),
                                     child: Image.asset(
                                       _obscurePassword
-                                          ? 'assets/images/eyeSlash.png'
-                                          : 'assets/images/eye1.png',
+                                          ? 'eyeSlash.png'
+                                          : 'eye1.png',
                                       width: 22,
                                       height: 22,
                                       fit: BoxFit.contain,
@@ -552,7 +552,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 right: 8,
                               ),
                               child: Image.asset(
-                                'assets/images/Icon.png',
+                                'Icon.png',
                                 width: 20,
                                 height: 20,
                                 fit: BoxFit.contain,
@@ -574,8 +574,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                     padding: const EdgeInsets.only(right: 8),
                                     child: Image.asset(
                                       _obscureConfirmPassword
-                                          ? 'assets/images/eyeSlash.png'
-                                          : 'assets/images/eye1.png',
+                                          ? 'eyeSlash.png'
+                                          : 'eye1.png',
                                       width: 22,
                                       height: 22,
                                       fit: BoxFit.contain,
@@ -651,7 +651,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 child: Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Image.asset(
-                                    'assets/images/stars.png',
+                                    'stars.png',
                                     width: 38,
                                     height: 38,
                                     fit: BoxFit.contain,
@@ -1648,7 +1648,7 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                               width: 14,
                                               height: 18,
                                               child: Image.asset(
-                                                'assets/images/Icon.png',
+                                                'Icon.png',
                                                 fit: BoxFit.contain,
                                               ),
                                             ),
@@ -1690,8 +1690,8 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                 height: 16,
                                                 child: Image.asset(
                                                   _obscurePassword
-                                                      ? 'assets/images/eyeSlash.png'
-                                                      : 'assets/images/eye1.png',
+                                                      ? 'eyeSlash.png'
+                                                      : 'eye1.png',
                                                   fit: BoxFit.contain,
                                                 ),
                                               ),
@@ -1793,7 +1793,7 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                       width: 14,
                                                       height: 18,
                                                       child: Image.asset(
-                                                        'assets/images/Icon.png',
+                                                        'Icon.png',
                                                         fit: BoxFit.contain,
                                                       ),
                                                     ),
@@ -1847,8 +1847,8 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                         height: 16,
                                                         child: Image.asset(
                                                           _obscureConfirmPassword
-                                                              ? 'assets/images/eyeSlash.png'
-                                                              : 'assets/images/eye1.png',
+                                                              ? 'eyeSlash.png'
+                                                              : 'eye1.png',
                                                           fit: BoxFit.contain,
                                                         ),
                                                       ),
@@ -1907,7 +1907,7 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                         width: 28.5,
                                                         height: 24,
                                                         child: Image.asset(
-                                                          'assets/images/stars.png',
+                                                          'stars.png',
                                                           fit: BoxFit.contain,
                                                         ),
                                                       ),
@@ -2352,7 +2352,7 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
             bottom: 0, // Distance from bottom
             right: -10, // Distance from right
             child: Image.asset(
-              'assets/images/Rectangle2.png',
+              'Rectangle2.png',
               width: isLandscape
                   ? 150
                   : 120, // Adjust size based on orientation

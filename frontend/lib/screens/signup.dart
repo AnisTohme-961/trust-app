@@ -543,7 +543,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                     children: [
                       _buildGenderButton(
                         "Male",
-                        'assets/images/gender/Male.png',
+                        'gender/Male.png',
                         _isMaleHovered,
                         _selectedGender == 'Male',
                         () {
@@ -557,7 +557,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                       const SizedBox(width: 18),
                       _buildGenderButton(
                         "Female",
-                        'assets/images/gender/Female.png',
+                        'gender/Female.png',
                         _isFemaleHovered,
                         _selectedGender == 'Female',
                         () {
@@ -1459,7 +1459,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                           children: [
                                             _buildGenderButton(
                                               "Male",
-                                              'assets/images/gender/Male.png',
+                                              'gender/Male.png',
                                               _isMaleHovered,
                                               _selectedGender == 'Male',
                                               () {
@@ -1480,7 +1480,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                             const SizedBox(width: 25),
                                             _buildGenderButton(
                                               "Female",
-                                              'assets/images/gender/Female.png',
+                                              'gender/Female.png',
                                               _isFemaleHovered,
                                               _selectedGender == 'Female',
                                               () {
@@ -1619,7 +1619,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                       bottom: 0,
                       right: -10,
                       child: Image.asset(
-                        'assets/images/Rectangle2.png',
+                        'Rectangle2.png',
                         width: screenWidth > 600
                             ? 120
                             : 450, // Larger on tablets
