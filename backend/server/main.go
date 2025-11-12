@@ -60,7 +60,7 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:50279"},
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
@@ -84,8 +84,8 @@ func main() {
 	r.Static("/flags", "../assets/images/flags")
 	r.Static("/flags2", "../assets/images/flags2")
 
-	log.Println("Server running on port 8080")
-	if err := r.Run(":8080"); err != nil {
+	log.Println("Server running on 0.0.0.0:8080")
+	if err := r.Run("0.0.0.0:8080"); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
