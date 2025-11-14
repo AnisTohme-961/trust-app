@@ -121,85 +121,77 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _hideInputFields = false;
   bool? _isCodeValid;
 
-  Future<void> fetchCodeFromGo() async {
-    final email = _emailController.text.trim();
+ Future<void> fetchCodeFromGo() async {
+  final email = _emailController.text.trim();
 
-    if (email.isEmpty) {
-      errorStackKey.currentState?.showError("Please enter your email first.");
-      return;
-    }
-
-    final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
-    if (!RegExp(emailPattern).hasMatch(email)) {
-      errorStackKey.currentState?.showError(
-        "Please enter a valid email address.",
-      );
-      return;
-    }
-
-    final code = generate6DigitCode().join();
-    serverCode = code;
-
-    if (_attempts >= 3) {
-      setState(() => _tooManyAttempts = true);
-      errorStackKey.currentState?.showError(
-        "Too many failed attempts. Please try again later.",
-      );
-      return;
-    }
-
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/get-code"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email}),
-    );
-
-    print("⬅ Response: ${response.statusCode} ${response.body}");
-
-    if (response.statusCode == 400) {
-      final data = jsonDecode(response.body);
-      errorStackKey.currentState?.showError(data['error']);
-      return;
-    }
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      serverCode = data['code'];
-
-      setState(() {
-        _attempts++;
-        _tooManyAttempts = false;
-        _secondsLeft = 119;
-        _showCodeSent = true;
-        _hideInputFields = true;
-      });
-
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) setState(() => _hideInputFields = false);
-      });
-
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      _timer?.cancel();
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_secondsLeft > 0) {
-          setState(() => _secondsLeft--);
-          userProvider.setEmailCodeTimer(_secondsLeft);
-        } else {
-          timer.cancel();
-          userProvider.setEmailCodeTimer(0);
-          errorStackKey.currentState?.showError(
-            "Code expired. Please request a new one.",
-          );
-        }
-      });
-
-      print("✅ Code sent successfully: $serverCode");
-    } else {
-      errorStackKey.currentState?.showError(
-        "Failed to send code. Please try again.",
-      );
-    }
+  if (email.isEmpty) {
+    errorStackKey.currentState?.showError("Please enter your email first.");
+    return;
   }
+
+  final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
+  if (!RegExp(emailPattern).hasMatch(email)) {
+    errorStackKey.currentState?.showError("Please enter a valid email address.");
+    return;
+  }
+
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/get-code"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"email": email}),
+  );
+
+  final data = jsonDecode(response.body);
+  _timer?.cancel(); // stop previous timer
+
+  if (response.statusCode == 400 && data['error'] == 'cooldown active') {
+    setState(() {
+      _attempts = data['attempts'] ?? _attempts;
+      _secondsLeft = data['secondsLeft'] ?? 0;
+      _hideInputFields = true;
+      _showCodeSent = true;
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+      } else {
+        timer.cancel();
+        setState(() => _hideInputFields = false);
+        errorStackKey.currentState?.showError(
+          "Cooldown finished. You can request a new code.",
+        );
+      }
+    });
+  } else if (response.statusCode == 200) {
+    serverCode = data['code'];
+    _attempts = data['attempts'] ?? 0;
+    _secondsLeft = 119; // default for new code
+
+    setState(() {
+      _hideInputFields = true;
+      _showCodeSent = true;
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+      } else {
+        timer.cancel();
+        setState(() => _hideInputFields = false);
+        errorStackKey.currentState?.showError(
+          "Code expired. Please request a new one.",
+        );
+      }
+    });
+  } else {
+    errorStackKey.currentState?.showError(
+      data['error'] ?? "Failed to send code. Please try again.",
+    );
+  }
+}
+
+
 
   Future<bool> verifyCode(String email, String code) async {
     final body = {"email": email.trim(), "code": code.trim()};
