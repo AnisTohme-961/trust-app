@@ -54,6 +54,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   int secondsRemaining = 119;
   double _dropdownAge = 400;
   bool _isTyping = false;
+  bool _codeDisabled = false;
 
   String verifiedCode = "";
 
@@ -121,77 +122,72 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _hideInputFields = false;
   bool? _isCodeValid;
 
- Future<void> fetchCodeFromGo() async {
-  final email = _emailController.text.trim();
+  Future<void> fetchCodeFromGo() async {
+    final email = _emailController.text.trim();
 
-  if (email.isEmpty) {
-    errorStackKey.currentState?.showError("Please enter your email first.");
-    return;
-  }
+    if (email.isEmpty) {
+      errorStackKey.currentState?.showError("Please enter your email first.");
+      return;
+    }
 
-  final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
-  if (!RegExp(emailPattern).hasMatch(email)) {
-    errorStackKey.currentState?.showError("Please enter a valid email address.");
-    return;
-  }
+    final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
+    if (!RegExp(emailPattern).hasMatch(email)) {
+      errorStackKey.currentState?.showError(
+        "Please enter a valid email address.",
+      );
+      return;
+    }
 
-  final response = await http.post(
-    Uri.parse("${ApiConstants.baseUrl}/get-code"),
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({"email": email}),
-  );
-
-  final data = jsonDecode(response.body);
-  _timer?.cancel(); // stop previous timer
-
-  if (response.statusCode == 400 && data['error'] == 'cooldown active') {
-    setState(() {
-      _attempts = data['attempts'] ?? _attempts;
-      _secondsLeft = data['secondsLeft'] ?? 0;
-      _hideInputFields = true;
-      _showCodeSent = true;
-    });
-
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_secondsLeft > 0) {
-        setState(() => _secondsLeft--);
-      } else {
-        timer.cancel();
-        setState(() => _hideInputFields = false);
-        errorStackKey.currentState?.showError(
-          "Cooldown finished. You can request a new code.",
-        );
-      }
-    });
-  } else if (response.statusCode == 200) {
-    serverCode = data['code'];
-    _attempts = data['attempts'] ?? 0;
-    _secondsLeft = 119; // default for new code
-
-    setState(() {
-      _hideInputFields = true;
-      _showCodeSent = true;
-    });
-
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_secondsLeft > 0) {
-        setState(() => _secondsLeft--);
-      } else {
-        timer.cancel();
-        setState(() => _hideInputFields = false);
-        errorStackKey.currentState?.showError(
-          "Code expired. Please request a new one.",
-        );
-      }
-    });
-  } else {
-    errorStackKey.currentState?.showError(
-      data['error'] ?? "Failed to send code. Please try again.",
+    final response = await http.post(
+      Uri.parse("${ApiConstants.baseUrl}/get-code"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
     );
+
+    final data = jsonDecode(response.body);
+    _timer?.cancel(); // stop any previous timer
+
+   if (response.statusCode == 200) {
+  serverCode = data['code'];
+  _attempts = data['attempts'] ?? 0;
+  _secondsLeft = data['cooldown'] ?? 0;
+
+  // 1️⃣ Show "Code Sent" immediately
+  setState(() {
+    _showCodeSent = true;       // shows "Code Sent" box
+    _hideInputFields = false;   // keep input boxes visible
+    _codeDisabled = _secondsLeft > 0; // disables input if cooldown
+  });
+
+  // 2️⃣ Start cooldown timer
+  if (_secondsLeft > 0) {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+      } else {
+        timer.cancel();
+        setState(() {
+          _codeDisabled = false; // re-enable typing
+        });
+      }
+    });
   }
+
+  // 3️⃣ Hide "Code Sent" after 2 seconds
+  Future.delayed(Duration(seconds: 2), () {
+    if (mounted) {
+      setState(() {
+        _showCodeSent = false;
+      });
+    }
+  });
 }
-
-
+ else {
+      errorStackKey.currentState?.showError(
+        data['error'] ?? "Failed to send code. Please try again.",
+      );
+    }
+  }
 
   Future<bool> verifyCode(String email, String code) async {
     final body = {"email": email.trim(), "code": code.trim()};
@@ -1077,7 +1073,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           ),
                         ),
 
-                        if (_hideInputFields)
+                        if (_showCodeSent)
                           Positioned(
                             top: 25,
                             left: 50,
@@ -1197,59 +1193,69 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                     width: 30,
                                                     height: 20,
                                                     child: TextField(
+                                                      enabled: !_codeDisabled,
+                                                      readOnly: _codeDisabled,
+                                                      showCursor:
+                                                          !_codeDisabled,
+
                                                       controller:
                                                           _codecontrollers[index],
                                                       focusNode:
                                                           _focusNodes[index],
-                                                      showCursor: !(code.every(
-                                                        (c) => c.isNotEmpty,
-                                                      )),
+
                                                       textAlign:
                                                           TextAlign.center,
                                                       maxLength: 1,
                                                       keyboardType:
                                                           TextInputType.number,
+
                                                       style: TextStyle(
-                                                        color: isCodeCorrect
-                                                            ? const Color(
-                                                                0xFF00F0FF,
-                                                              )
-                                                            : (_isCodeValid ==
-                                                                      false
-                                                                  ? Colors.red
-                                                                  : Colors
-                                                                        .white),
+                                                        color: _codeDisabled
+                                                            ? Colors
+                                                                  .grey // disabled text
+                                                            : (isCodeCorrect
+                                                                  ? Color(
+                                                                      0xFF00F0FF,
+                                                                    )
+                                                                  : (_isCodeValid ==
+                                                                            false
+                                                                        ? Colors
+                                                                              .red
+                                                                        : Colors
+                                                                              .white)),
                                                         fontSize: 20,
                                                         fontWeight:
                                                             FontWeight.bold,
                                                       ),
-                                                      cursorColor: isCodeCorrect
-                                                          ? const Color(
-                                                              0xFF00F0FF,
-                                                            )
-                                                          : (_isCodeValid ==
-                                                                    false
-                                                                ? Colors.red
-                                                                : Colors.white),
+
+                                                      cursorColor: Colors.white,
                                                       decoration:
                                                           const InputDecoration(
                                                             counterText: "",
                                                             border: InputBorder
                                                                 .none,
                                                           ),
-                                                      onChanged: (value) =>
-                                                          _onChanged(
-                                                            value,
-                                                            index,
-                                                          ),
+
+                                                      onChanged: _codeDisabled
+                                                          ? null
+                                                          : (value) =>
+                                                                _onChanged(
+                                                                  value,
+                                                                  index,
+                                                                ),
                                                     ),
                                                   ),
+
+                                                  // Dash under input
                                                   Container(
                                                     width: 30,
                                                     height: 2,
-                                                    color: code[index].isEmpty
-                                                        ? Colors.white
-                                                        : Colors.transparent,
+                                                    color: _codeDisabled
+                                                        ? Colors.grey
+                                                        : (code[index].isEmpty
+                                                              ? Colors.white
+                                                              : Colors
+                                                                    .transparent),
                                                   ),
                                                 ],
                                               ),

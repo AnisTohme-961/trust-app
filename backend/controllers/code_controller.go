@@ -53,19 +53,19 @@ type CodeController struct {
 func getCooldown(attempt int) time.Duration {
 	switch attempt {
 	case 0:
-		return 0
+		return 5 * time.Second // 1st click → 5 sec
 	case 1:
-		return 2 * time.Minute
+		return 1*time.Minute + 59*time.Second // 2nd click → 1 min 59 sec
 	case 2:
-		return 3 * time.Minute
+		return 2*time.Minute + 59*time.Second // 3rd click → 2 min 59 sec
 	case 3:
-		return 5 * time.Minute
+		return 4*time.Minute + 59*time.Second // 4th click → 4 min 59 sec
 	case 4:
-		return 15 * time.Minute
+		return 14*time.Minute + 59*time.Second // 5th click → 14 min 59 sec
 	case 5:
-		return time.Hour
+		return 59*time.Minute + 59*time.Second // 6th click → 59 min 59 sec
 	default:
-		return 24 * time.Hour
+		return 24 * time.Hour // 7th click and beyond → 1 day
 	}
 }
 
@@ -75,7 +75,6 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 	}
 
 	if err := c.BindJSON(&req); err != nil || req.Email == "" {
-		fmt.Println("❌ INVALID REQUEST")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
@@ -83,127 +82,87 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	now := time.Now()
 	var existing models.EmailCode
-	var newCode string
-	var attempts int
+	attempts := 0
 
-	fmt.Println("📩 Incoming request for email:", req.Email)
-
+	// Fetch existing record
 	findErr := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existing)
-
 	if findErr == nil {
-		// -----------------------------------------
-		// EMAIL EXISTS
-		// -----------------------------------------
-		fmt.Println("🔍 Email found in DB:", existing.Email)
-		fmt.Println("📊 Previous attempts:", existing.SendCodeAttempts)
-		fmt.Println("⏱ Last sent at:", existing.SentAt)
-
 		attempts = existing.SendCodeAttempts
-		cooldown := getCooldown(attempts)
-		elapsed := now.Sub(existing.SentAt)
 
-		fmt.Println("⏳ Cooldown required:", cooldown)
-		fmt.Println("⏱ Time elapsed:", elapsed)
+		if existing.SentAt.Add(15 * time.Minute).After(time.Now()) {
+			// Still valid → same code, do NOT generate new one
+			currentCooldown := getCooldown(attempts)
 
-		if elapsed < cooldown {
-			remaining := int((cooldown - elapsed).Seconds())
-			fmt.Println("🚫 Still in cooldown. Remaining:", remaining)
+			// still increment attempts in DB
+			_, _ = cc.EmailCodeCollection.UpdateOne(
+				ctx,
+				bson.M{"email": req.Email},
+				bson.M{"$inc": bson.M{"sendCodeAttempts": 1}},
+			)
 
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":       "cooldown active",
-				"secondsLeft": remaining,
-				"attempts":    attempts,
+			// Send same email code
+			if err := services.SendEmail(
+				req.Email,
+				"Your Verification Code",
+				fmt.Sprintf("<h1>Your code is: %s</h1>", existing.Code),
+			); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+				return
+			}
+
+			// Return SAME code
+			c.JSON(http.StatusOK, gin.H{
+				"code":     existing.Code,
+				"attempts": attempts + 1,
+				"cooldown": int(currentCooldown.Seconds()),
 			})
 			return
 		}
-
-		// Cooldown passed → send new code
-		newCode = utils.GenerateCode(6)
-		attempts++
-
-		fmt.Println("✅ Cooldown passed → Sending NEW CODE:", newCode)
-		fmt.Println("📈 Incrementing attempts to:", attempts)
-
-		opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-		updateErr := cc.EmailCodeCollection.FindOneAndUpdate(
-			ctx,
-			bson.M{"email": req.Email},
-			bson.M{
-				"$set": bson.M{
-					"code":     newCode,
-					"sentAt":   now,
-					"isActive": true,
-				},
-				"$inc": bson.M{"sendCodeAttempts": 1},
-			},
-			opts,
-		).Decode(&existing)
-
-		if updateErr != nil {
-			fmt.Println("❌ FAILED updating existing code:", updateErr)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update code"})
-			return
-		}
-
 	} else if errors.Is(findErr, mongo.ErrNoDocuments) {
-		// -----------------------------------------
-		// FIRST TIME EMAIL
-		// -----------------------------------------
-		fmt.Println("✨ Email not found → creating new record")
-		newCode = utils.GenerateCode(6)
-		attempts = 1
-
-		doc := models.EmailCode{
-			Email:            req.Email,
-			Code:             newCode,
-			SentAt:           now,
-			IsActive:         true,
-			SendCodeAttempts: 1,
-		}
-
-		_, err := cc.EmailCodeCollection.InsertOne(ctx, doc)
-		if err != nil {
-			fmt.Println("❌ Insert failed:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to insert code"})
-			return
-		}
-
-		fmt.Println("✅ Inserted NEW email with code:", newCode)
-		existing = doc
-
+		attempts = 0
 	} else {
-		// -----------------------------------------
-		// DB ERROR
-		// -----------------------------------------
-		fmt.Println("❌ DATABASE ERROR:", findErr)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	// -----------------------------------------
-	// SEND EMAIL
-	// -----------------------------------------
-	fmt.Println("📧 Sending email to:", req.Email)
+	currentCooldown := getCooldown(attempts)
+
+	attempts++
+
+	newCode := utils.GenerateCode(6)
+
+	_, err := cc.EmailCodeCollection.UpdateOne(
+		ctx,
+		bson.M{"email": req.Email},
+		bson.M{
+			"$set": bson.M{
+				"code":     newCode,
+				"sentAt":   time.Now(),
+				"isActive": true,
+			},
+			"$inc": bson.M{"sendCodeAttempts": 1},
+		},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
 
 	if err := services.SendEmail(
 		req.Email,
 		"Your Verification Code",
 		fmt.Sprintf("<h1>Your code is: %s</h1>", newCode),
 	); err != nil {
-		fmt.Println("❌ FAILED SENDING EMAIL:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
 		return
 	}
 
-	fmt.Println("🎉 EMAIL SENT SUCCESSFULLY")
-	fmt.Println("📈 Final attempts saved:", attempts)
-
 	c.JSON(http.StatusOK, gin.H{
-		"code":        newCode,
-		"attempts":    attempts,
-		"secondsLeft": 0,
+		"code":     newCode,
+		"attempts": attempts,
+		"cooldown": int(currentCooldown.Seconds()),
 	})
 }
 

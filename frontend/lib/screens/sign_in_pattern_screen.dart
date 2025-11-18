@@ -14,7 +14,7 @@ class SignInPatternScreen extends StatefulWidget {
 }
 
 class _SignInPatternScreenState extends State<SignInPatternScreen> {
-  bool isEyeVisible = true; // Controls pattern visibility
+  bool isEyeVisible = true; 
   static const int gridCount = 3;
   static const double dotSize = 18.0;
   final GlobalKey _gridKey = GlobalKey();
@@ -362,7 +362,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
             borderColor: const Color(0xFF00F0FF),
             backgroundColor: const Color(0xFF0B1320),
             onTap: () async {
-              _logout(); // ✅ Use your existing logout logic
+              _logout(); 
             },
           ),
 
