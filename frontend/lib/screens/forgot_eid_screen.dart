@@ -287,6 +287,14 @@ class MobileForgotEidPage extends StatefulWidget {
 
 class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
   @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
@@ -377,51 +385,58 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
             position: widget.slideAnimation,
             child: Align(
               alignment: Alignment.bottomCenter,
-              child: Container(
-                width: double.infinity,
-                height: 220,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0B1320),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 0),
-                        child: GestureDetector(
-                          onTap: widget.onCloseOverlay,
-                          child: Image.asset(
-                            'assets/images/closeWindow.png',
-                            width: 110,
-                            height: 50,
-                            fit: BoxFit.contain,
+                child: Container(
+                  width: double.infinity,
+                  height: 220,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0B1320),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
+                    ),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 0),
+                          child: GestureDetector(
+                            onTap: widget.onCloseOverlay,
+                            child: Image.asset(
+                              'assets/images/closeWindow.png',
+                              width: 110,
+                              height: 50,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 25),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        'If an email is linked to your credentials and \nregistered in EGETY, your EID is sent to it.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Inter',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 25),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          'If an email is linked to your credentials and \nregistered in EGETY, your EID is sent to it.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Inter',
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildOkButton(),
-                  ],
+                      const SizedBox(height: 12),
+                      _buildOkButton(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -623,7 +638,8 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 ),
                 const SizedBox(width: 10),
                 CustomButton(
-                  text: widget.isEmailNotEmpty ? 'Clear' : 'Paste',
+                  text: widget.controller.text.isNotEmpty ? 'Clear' : 'Paste',
+
                   width: 65,
                   height: 32,
                   fontSize: 15,
@@ -633,16 +649,20 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   onTap: () async {
-                    if (widget.isEmailNotEmpty) {
+                    if (widget.controller.text.isNotEmpty) {
+                      // CLEAR
                       widget.controller.clear();
                     } else {
+                      // PASTE
                       final clipboardData = await Clipboard.getData(
                         'text/plain',
                       );
+
                       if (clipboardData?.text != null) {
                         widget.controller.text = clipboardData!.text!;
                       }
                     }
+
                     setState(() {});
                   },
                 ),
@@ -850,6 +870,14 @@ class TabletForgotEidPage extends StatefulWidget {
 }
 
 class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      setState(() {}); // rebuild when email changes
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1226,9 +1254,11 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   onTap: () async {
-                    if (widget.isEmailNotEmpty) {
+                    if (widget.controller.text.isNotEmpty) {
+                      // CLEAR
                       widget.controller.clear();
                     } else {
+                      // PASTE
                       final clipboardData = await Clipboard.getData(
                         'text/plain',
                       );
