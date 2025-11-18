@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
 import '../constants/api_constants.dart';
 import '../widgets/custom_button.dart';
 import '../services/country_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ResponsiveProtectAccess extends StatelessWidget {
   const ResponsiveProtectAccess({super.key});
@@ -152,42 +153,48 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     final data = jsonDecode(response.body);
     _timer?.cancel(); // stop any previous timer
 
-   if (response.statusCode == 200) {
-  serverCode = data['code'];
-  _attempts = data['attempts'] ?? 0;
-  _secondsLeft = data['cooldown'] ?? 0;
+    if (response.statusCode == 200) {
+      serverCode = data['code'];
+      _attempts = data['attempts'] ?? 0;
+      _secondsLeft = data['cooldown'] ?? 0;
 
-  // 1️⃣ Show "Code Sent" immediately
-  setState(() {
-    _showCodeSent = true;       // shows "Code Sent" box
-    _hideInputFields = false;   // keep input boxes visible
-    _codeDisabled = _secondsLeft > 0; // disables input if cooldown
-  });
+       final storage = FlutterSecureStorage();
+       final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+        await storage.write(
+          key: "emailCooldownEnd",
+          value: cooldownEnd.toIso8601String(),
+        );
 
-  // 2️⃣ Start cooldown timer
-  if (_secondsLeft > 0) {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      // 1️⃣ Show "Code Sent" immediately
+      setState(() {
+        _showCodeSent = true; // shows "Code Sent" box
+        _hideInputFields = false; // keep input boxes visible
+        _codeDisabled = _secondsLeft > 0; // disables input if cooldown
+      });
+
+      // 2️⃣ Start cooldown timer
       if (_secondsLeft > 0) {
-        setState(() => _secondsLeft--);
-      } else {
-        timer.cancel();
-        setState(() {
-          _codeDisabled = false; // re-enable typing
+        _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+          if (_secondsLeft > 0) {
+            setState(() => _secondsLeft--);
+          } else {
+            timer.cancel();
+            setState(() {
+              _codeDisabled = false; // re-enable typing
+            });
+          }
         });
       }
-    });
-  }
 
-  // 3️⃣ Hide "Code Sent" after 2 seconds
-  Future.delayed(Duration(seconds: 2), () {
-    if (mounted) {
-      setState(() {
-        _showCodeSent = false;
+      // 3️⃣ Hide "Code Sent" after 2 seconds
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _showCodeSent = false;
+          });
+        }
       });
-    }
-  });
-}
- else {
+    } else {
       errorStackKey.currentState?.showError(
         data['error'] ?? "Failed to send code. Please try again.",
       );
@@ -251,6 +258,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   @override
   void initState() {
     super.initState();
+    restoreCooldown();
     _monthController = ScrollController(initialScrollOffset: 0.0);
     _dayController = ScrollController(initialScrollOffset: 0.0);
     _yearController = ScrollController(initialScrollOffset: 0.0);
@@ -439,6 +447,33 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     final year = _years[_selectedYear].toString();
     return "$month $day $year";
   }
+
+  void restoreCooldown() async {
+  final storage = FlutterSecureStorage();
+  final saved = await storage.read(key: "emailCooldownEnd");
+  if (saved == null) return;
+
+  final end = DateTime.parse(saved);
+  final now = DateTime.now();
+  int remaining = end.difference(now).inSeconds;
+
+  if (remaining > 0) {
+    setState(() {
+      _secondsLeft = remaining;
+      _codeDisabled = true;
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+      } else {
+        timer.cancel();
+        setState(() => _codeDisabled = false);
+      }
+    });
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
