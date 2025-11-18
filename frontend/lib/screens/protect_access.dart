@@ -145,7 +145,6 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/get-code"),
-      Uri.parse("${ApiConstants.baseUrl}/get-code"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email}),
     );
