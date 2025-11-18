@@ -11,6 +11,8 @@ import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
 import 'screens/sign_in_screen.dart';
+import 'screens/register_pattern_screen.dart';
+import 'screens/protect_access.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        home: const SignInPage(),
+        home: ResponsiveHomePage(),
         routes: appRoutes(),
       ),
     );
@@ -137,7 +139,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
             // "Welcome to" text
             const Positioned(
-              top: 108,
+              top: 60,
               left: 120,
               child: SizedBox(
                 child: Text(
@@ -156,7 +158,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
             // "Egety Trust:" text
             const Positioned(
-              top: 144,
+              top: 124,
               left: 70,
               child: SizedBox(
                 child: Text(
@@ -175,7 +177,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
             // Description
             const Positioned(
-              top: 225,
+              top: 205,
               left: 15,
               child: SizedBox(
                 child: Text(
@@ -206,7 +208,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
             // Central image
             Positioned(
-              top: 318,
+              top: 298,
               left: 138,
               child: SizedBox(
                 width: 153,
@@ -220,7 +222,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
             // Swipe Up text
             const Positioned(
-              top: 530,
+              top: 510,
               left: 120,
               child: SizedBox(
                 child: Text(
@@ -239,7 +241,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
             // Glowing vertical arrow
             Positioned(
-              top: 600,
+              top: 580,
               left: 180,
               child: GlowingVerticalOvalArrow(
                 arrowAsset: "assets/images/ArrowUp.svg",

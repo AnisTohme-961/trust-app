@@ -16,6 +16,7 @@ import 'package:flutter_project/widgets/error_widgets.dart';
 import 'package:provider/provider.dart';
 import '../constants/api_constants.dart';
 import '../widgets/custom_button.dart';
+import '../services/country_service.dart';
 
 class ResponsiveProtectAccess extends StatelessWidget {
   const ResponsiveProtectAccess({super.key});
@@ -64,7 +65,6 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   String _selectedCountry = '';
   String _selectedCountryId = '';
 
-  List<Map<String, String>> countries = [];
   List<Map<String, String>> _filteredCountries = [];
   final TextEditingController _countryFieldController = TextEditingController();
   final TextEditingController _countrySearchController =
@@ -91,6 +91,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   );
   bool _datePicked = false;
 
+  bool get _isAnyDropdownOpen => _countryDropdownOpen || _dobDropdownOpen;
+
   final List<String> _months = [
     'January',
     'February',
@@ -105,6 +107,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     'November',
     'December',
   ];
+
+  // Hardcoded list of countries with flags in country_service.dart
+  List<Map<String, String>> get countries => CountriesService.getCountries();
 
   List<String> generate6DigitCode() {
     final rnd = Random.secure();
@@ -309,40 +314,21 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     _countrySearchController.addListener(
       () => _filterCountries(_countrySearchController.text),
     );
-    fetchCountries();
+
+    // Initialize countries list instead of fetching from API
+    _initializeCountries();
   }
 
-  Future<void> fetchCountries() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/countries'),
-      );
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        setState(() {
-          countries = data.map<Map<String, String>>((item) {
-            return {
-              'id': item['ID'],
-              'name': item['Name'],
-              'flag': item['Flag'],
-            };
-          }).toList();
-          _filteredCountries = List.from(countries);
-        });
-      } else {
-        throw Exception('Failed to load countries');
-      }
-    } catch (e) {
-      print("Error fetching countries: $e");
-    }
+  void _initializeCountries() {
+    setState(() {
+      _filteredCountries = List.from(countries);
+    });
   }
 
   void _filterCountries(String value) {
     setState(() {
       _filteredCountries = countries
-          .where(
-            (c) => c['name']!.toLowerCase().startsWith(value.toLowerCase()),
-          )
+          .where((c) => c['name']!.toLowerCase().contains(value.toLowerCase()))
           .toList();
     });
   }
@@ -350,7 +336,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   void _selectCountry(Map<String, String> country) {
     setState(() {
       _selectedCountry = country['name']!;
-      _selectedCountryId = country['id']!;
+      _selectedCountryId = country['name']!;
       _countryFieldController.text = country['name']!;
       _countryDropdownOpen = false;
     });
@@ -533,6 +519,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
             height: 932,
             child: Stack(
               children: [
+                // ErrorStack at the top of the screen
+                ErrorStack(key: errorStackKey),
                 // Your existing mobile layout code here...
                 // This is the original Stack with all the Positioned widgets
                 // I'm keeping it the same as your original code for mobile
@@ -620,8 +608,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                 // Progress Steps
                 Positioned(
                   top: 200,
-                  left: 0,
-                  right: 5,
+                  left: 25,
+                  right: 45,
                   child: SizedBox(
                     width: double.infinity,
                     child: Stack(
@@ -629,8 +617,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                       children: [
                         Positioned(
                           top: 9.5,
-                          left: 32,
-                          right: 40,
+                          left: 26,
+                          right: 26,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               const totalSteps = 5;
@@ -681,17 +669,19 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                         ),
 
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildStep("Profile\nStart", filled: true),
-                            _buildStep(
-                              "Contact\nand Verify",
-                              filled: true,
-                              filledColor: const Color(0xFF0EA0BB),
-                            ),
-                            _buildStep("Security\nBase"),
-                            _buildStep("Register\nLive"),
-                            _buildStep("Register\nPattern"),
+                            for (var i = 0; i < 5; i++)
+                              Expanded(
+                                child: _buildStep(
+                                  i == 1 ? "Contact\nand Verify" : "",
+                                  filled: i <= 1,
+                                  filledColor: i == 1
+                                      ? const Color(0xFF0EA0BB)
+                                      : null,
+                                ),
+                              ),
                           ],
                         ),
                       ],
@@ -701,7 +691,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                 // Country Input
                 Positioned(
-                  top: 285,
+                  top: 290,
                   left: 18,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -804,7 +794,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                 // Date of Birth Input
                 Positioned(
-                  top: 388,
+                  top: 393,
                   left: 18,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -875,7 +865,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                 // Email Input
                 Positioned(
-                  top: 490,
+                  top: 495,
                   left: 18,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -1060,7 +1050,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                 // Email Verification
                 Positioned(
-                  top: 604,
+                  top: 609,
                   left: 19,
                   child: Container(
                     width: 393,
@@ -1361,7 +1351,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                 // Navigation Buttons
                 Positioned(
-                  top: 703,
+                  top: 708,
                   left: 15.5,
                   child: SizedBox(
                     width: 399,
@@ -1458,7 +1448,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                 ),
 
                 Positioned(
-                  top: 811,
+                  top: 816,
                   left: 17,
                   child: SizedBox(
                     child: const Center(
@@ -1479,15 +1469,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   ),
                 ),
 
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      right: 20,
-                    ), // space from footer
-                    child: ErrorStack(key: errorStackKey),
+                if (_isAnyDropdownOpen)
+                  Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.black.withOpacity(0.6),
                   ),
-                ),
 
                 // Dropdowns (Country and DOB) - same as original
                 AnimatedPositioned(
@@ -1497,104 +1484,116 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   left: 0,
                   right: 0,
                   height: _dropdownHeight,
-                  child: ClipRect(
-                    child: Container(
-                      color: const Color(0xFF0B1320),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () {
-                              setState(() => _countryDropdownOpen = false);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 20),
-                              child: CustomPaint(
-                                size: const Size(120, 20),
-                                painter: VLinePainter(),
-                              ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xFF0B1320),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20),
+                          ),
+                          border: Border(
+                            top: BorderSide(
+                              color: Color(0xFF00F0FF), // top border color
+                              width: 2.0,
                             ),
                           ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 50),
-                            child: TextField(
-                              controller: _countrySearchController,
-                              onChanged: _filterCountries,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Search Country',
-                                hintStyle: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(height: 12),
+
+                            // CLOSE HANDLE
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => _countryDropdownOpen = false);
+                              },
+                              child: Padding(
+                                padding: EdgeInsets.only(left: 20),
+                                child: CustomPaint(
+                                  size: Size(120, 20),
+                                  painter: VLinePainter(),
                                 ),
-                                border: InputBorder.none,
                               ),
                             ),
-                          ),
-                          const Divider(color: Colors.white24, thickness: 0.5),
-                          Expanded(
-                            child: _filteredCountries.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      "No countries found",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 50,
-                                      vertical: 16,
-                                    ),
-                                    itemCount: _filteredCountries.length,
-                                    itemBuilder: (context, index) {
-                                      final country = _filteredCountries[index];
-                                      return GestureDetector(
-                                        onTap: () => _selectCountry(country),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 8.0,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Image.network(
-                                                '${ApiConstants.baseUrl}${country['flag']}',
-                                                width: 30,
-                                                height: 30,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) => Container(
-                                                      width: 30,
-                                                      height: 30,
-                                                      color: Colors.grey,
-                                                      child: const Icon(
-                                                        Icons.flag,
-                                                        size: 20,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Text(
-                                                country['name']!,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
+
+                            // SEARCH FIELD
+                            Container(
+                              margin: EdgeInsets.symmetric(horizontal: 50),
+                              child: TextField(
+                                controller: _countrySearchController,
+                                onChanged: _filterCountries,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Search Country',
+                                  hintStyle: TextStyle(color: Colors.white54),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+
+                            Divider(color: Colors.white24, thickness: 0.5),
+
+                            // LIST - Updated to use emoji flags
+                            Expanded(
+                              child: _filteredCountries.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        "No countries found",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 50,
+                                        vertical: 16,
+                                      ),
+                                      itemCount: _filteredCountries.length,
+                                      itemBuilder: (context, index) {
+                                        final country =
+                                            _filteredCountries[index];
+
+                                        return GestureDetector(
+                                          onTap: () => _selectCountry(country),
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 8.0,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                // Using emoji flags instead of network images
+                                                // In your ListView.builder, update the flag display to:
+                                                SvgPicture.asset(
+                                                  country['flag']!,
+                                                  width: 30,
+                                                  height: 30,
+                                                  fit: BoxFit.contain,
                                                 ),
-                                              ),
-                                            ],
+                                                SizedBox(width: 10),
+                                                Text(
+                                                  country['name'] ?? '',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ],
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1607,199 +1606,227 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   left: 0,
                   right: 0,
                   height: _dropdownAge,
-                  child: Container(
-                    width: 394,
-                    height: 286,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0B1320),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () => setState(() => _dobDropdownOpen = false),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            child: CustomPaint(
-                              size: const Size(120, 20),
-                              painter: VLinePainter(),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 20.0),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(
+                          20,
+                        ), // top-left and top-right rounded
+                      ),
+                      child: Container(
+                        width: 394,
+                        height: 286,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0B1320),
+                          border: const Border(
+                            top: BorderSide(
+                              color: Color(0xFF00F0FF), // top border color
+                              width: 2.0,
                             ),
                           ),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(20),
+                          ),
                         ),
-                        SizedBox(
-                          height: 286,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: Container(
-                                  width: 430,
-                                  height: 286,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF0B1320),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(20),
-                                      topRight: Radius.circular(20),
-                                    ),
-                                  ),
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _dobDropdownOpen = false),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                child: CustomPaint(
+                                  size: const Size(120, 20),
+                                  painter: VLinePainter(),
                                 ),
                               ),
-                              Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: 432,
-                                  height: 49,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF00BEBF),
-                                    border: Border.all(
-                                      color: const Color(0xFF007BFF),
-                                      width: 1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 10,
-                                width: 144,
-                                height: 286,
-                                child:
-                                    NotificationListener<ScrollEndNotification>(
-                                      onNotification: (notification) {
-                                        _snapToItem(
-                                          _monthController,
-                                          _selectedMonth,
-                                        );
-                                        return true;
-                                      },
-                                      child: ListView.builder(
-                                        itemCount: _months.length,
-                                        controller: _monthController,
-                                        physics: const BouncingScrollPhysics(),
-                                        itemExtent: 40,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: (286 - 40) / 2,
+                            ),
+                            SizedBox(
+                              height: 286,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: Container(
+                                      width: 430,
+                                      height: 286,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF0B1320),
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(20),
+                                          topRight: Radius.circular(20),
                                         ),
-                                        itemBuilder: (context, index) {
-                                          final isSelected =
-                                              index == _selectedMonth;
-                                          return GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _selectedMonth = index;
-                                                _datePicked = true;
-                                              });
-                                              onDobPicked();
-                                              _snapToItem(
-                                                _monthController,
-                                                _selectedMonth,
+                                      ),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: 432,
+                                      height: 49,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF00BEBF),
+                                        border: Border.all(
+                                          color: const Color(0xFF007BFF),
+                                          width: 1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                  // Month List
+                                  Positioned(
+                                    top: 0,
+                                    left: 10,
+                                    width: 144,
+                                    height: 286,
+                                    child:
+                                        NotificationListener<
+                                          ScrollEndNotification
+                                        >(
+                                          onNotification: (notification) {
+                                            _snapToItem(
+                                              _monthController,
+                                              _selectedMonth,
+                                            );
+                                            return true;
+                                          },
+                                          child: ListView.builder(
+                                            itemCount: _months.length,
+                                            controller: _monthController,
+                                            physics:
+                                                const BouncingScrollPhysics(),
+                                            itemExtent: 40,
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: (286 - 40) / 2,
+                                            ),
+                                            itemBuilder: (context, index) {
+                                              final isSelected =
+                                                  index == _selectedMonth;
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedMonth = index;
+                                                    _datePicked = true;
+                                                  });
+                                                  onDobPicked();
+                                                  _snapToItem(
+                                                    _monthController,
+                                                    _selectedMonth,
+                                                  );
+                                                },
+                                                child: Container(
+                                                  alignment: Alignment.center,
+                                                  child: Text(
+                                                    _months[index],
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: isSelected
+                                                          ? Colors.black
+                                                          : Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
                                               );
                                             },
-                                            child: Container(
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                _months[index],
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: isSelected
-                                                      ? Colors.black
-                                                      : Colors.white,
-                                                ),
+                                          ),
+                                        ),
+                                  ),
+                                  // Day List
+                                  Positioned(
+                                    top: 0,
+                                    left: 154,
+                                    width: 144,
+                                    height: 286,
+                                    child: ListView.builder(
+                                      itemCount: _days.length,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: (286 - 40) / 2,
+                                      ),
+                                      itemExtent: 40,
+                                      physics: const BouncingScrollPhysics(),
+                                      controller: _dayController,
+                                      itemBuilder: (context, index) {
+                                        final isSelected =
+                                            index == _selectedDay;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedDay = index;
+                                              _datePicked = true;
+                                            });
+                                            onDobPicked();
+                                          },
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              _days[index].toString(),
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w500,
+                                                color: isSelected
+                                                    ? Colors.black
+                                                    : Colors.white,
                                               ),
                                             ),
-                                          );
-                                        },
-                                      ),
+                                          ),
+                                        );
+                                      },
                                     ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 154,
-                                width: 144,
-                                height: 286,
-                                child: ListView.builder(
-                                  itemCount: _days.length,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: (286 - 40) / 2,
                                   ),
-                                  itemExtent: 40,
-                                  physics: const BouncingScrollPhysics(),
-                                  controller: _dayController,
-                                  itemBuilder: (context, index) {
-                                    final isSelected = index == _selectedDay;
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedDay = index;
-                                          _datePicked = true;
-                                        });
-                                        onDobPicked();
-                                      },
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          _days[index].toString(),
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
-                                            color: isSelected
-                                                ? Colors.black
-                                                : Colors.white,
-                                          ),
-                                        ),
+                                  // Year List
+                                  Positioned(
+                                    top: 0,
+                                    left: 298,
+                                    width: 144,
+                                    height: 286,
+                                    child: ListView.builder(
+                                      itemCount: _years.length,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: (286 - 40) / 2,
                                       ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 298,
-                                width: 144,
-                                height: 286,
-                                child: ListView.builder(
-                                  itemCount: _years.length,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: (286 - 40) / 2,
+                                      itemExtent: 40,
+                                      physics: const BouncingScrollPhysics(),
+                                      controller: _yearController,
+                                      itemBuilder: (context, index) {
+                                        final isSelected =
+                                            index == _selectedYear;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedYear = index;
+                                              _datePicked = true;
+                                            });
+                                            onDobPicked();
+                                          },
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              _years[index].toString(),
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w500,
+                                                color: isSelected
+                                                    ? Colors.black
+                                                    : Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
-                                  itemExtent: 40,
-                                  physics: const BouncingScrollPhysics(),
-                                  controller: _yearController,
-                                  itemBuilder: (context, index) {
-                                    final isSelected = index == _selectedYear;
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedYear = index;
-                                          _datePicked = true;
-                                        });
-                                        onDobPicked();
-                                      },
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          _years[index].toString(),
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
-                                            color: isSelected
-                                                ? Colors.black
-                                                : Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -1886,32 +1913,36 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     );
   }
 
-  Column _buildStep(String label, {bool filled = false, Color? filledColor}) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: filled
-              ? (filledColor ?? const Color(0xFF00F0FF))
-              : Colors.white,
-          child: filled
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
-              : null,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-            height: 1.0,
-            letterSpacing: 0,
-            color: Colors.white,
+  Widget _buildStep(String label, {bool filled = false, Color? filledColor}) {
+    return SizedBox(
+      height: 77,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: filled
+                ? (filledColor ?? const Color(0xFF00F0FF))
+                : Colors.white,
+            child: filled
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.0,
+              letterSpacing: 0,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1924,7 +1955,6 @@ class TabletProtectAccess extends StatefulWidget {
 }
 
 class _TabletProtectAccessState extends State<TabletProtectAccess> {
-  // All the same state variables and methods as _MobileProtectAccessState
   final GlobalKey<ErrorStackState> errorStackKey = GlobalKey<ErrorStackState>();
 
   bool _signUpGlow = false;
@@ -1947,14 +1977,17 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   String _selectedCountry = '';
   String _selectedCountryId = '';
 
-  List<Map<String, String>> countries = [];
+  // Hardcoded list of countries with flags in country_service.dart
+  List<Map<String, String>> get countries => CountriesService.getCountries();
+
   List<Map<String, String>> _filteredCountries = [];
   final TextEditingController _countryFieldController = TextEditingController();
   final TextEditingController _countrySearchController =
       TextEditingController();
 
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _selectController = TextEditingController();
+  final FocusNode _emailFocusNode = FocusNode();
+  bool _isEmailFocused = false;
 
   bool _dobDropdownOpen = false;
   bool isCodeValid = false;
@@ -1970,6 +2003,8 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     (_) => TextEditingController(),
   );
   bool _datePicked = false;
+
+  bool get _isAnyDropdownOpen => _countryDropdownOpen || _dobDropdownOpen;
 
   final List<String> _months = [
     'January',
@@ -2004,7 +2039,102 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   final List<int> _days = List.generate(31, (i) => i + 1);
   final List<int> _years = List.generate(56, (i) => 1970 + i);
 
-  // All the same methods as mobile version...
+  String get _dobText =>
+      "${_days[_selectedDay].toString().padLeft(2, '0')} ${_months[_selectedMonth]} ${_years[_selectedYear]}";
+
+  void _snapToItem(ScrollController controller, int selectedIndex) {
+    final targetOffset = selectedIndex * 40.0 - (286 / 2 - 20);
+    controller.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _monthController = ScrollController(initialScrollOffset: 0.0);
+    _dayController = ScrollController(initialScrollOffset: 0.0);
+    _yearController = ScrollController(initialScrollOffset: 0.0);
+
+    void _updateDobController() {
+      _dobController.text = _dobDisplayText;
+      onDobPicked();
+    }
+
+    _monthController.addListener(() {
+      final newIndex = (_monthController.offset / 40).round();
+      if (newIndex != _selectedMonth &&
+          newIndex >= 0 &&
+          newIndex < _months.length) {
+        setState(() {
+          _selectedMonth = newIndex;
+          _datePicked = true;
+          _updateDobController();
+        });
+      }
+    });
+
+    _dayController.addListener(() {
+      final newIndex = (_dayController.offset / 40).round();
+      if (newIndex != _selectedDay &&
+          newIndex >= 0 &&
+          newIndex < _days.length) {
+        setState(() {
+          _selectedDay = newIndex;
+          _datePicked = true;
+          _updateDobController();
+        });
+      }
+    });
+
+    _yearController.addListener(() {
+      final newIndex = (_yearController.offset / 40).round();
+      if (newIndex != _selectedYear &&
+          newIndex >= 0 &&
+          newIndex < _years.length) {
+        setState(() {
+          _selectedYear = newIndex;
+          _datePicked = true;
+          _updateDobController();
+        });
+      }
+    });
+
+    _countrySearchController.addListener(
+      () => _filterCountries(_countrySearchController.text),
+    );
+
+    // Initialize countries like mobile version
+    _initializeCountries();
+  }
+
+  void _initializeCountries() {
+    setState(() {
+      _filteredCountries = List.from(countries);
+    });
+  }
+
+  void _filterCountries(String value) {
+    setState(() {
+      _filteredCountries = countries
+          .where((c) => c['name']!.toLowerCase().contains(value.toLowerCase()))
+          .toList();
+    });
+  }
+
+  void _selectCountry(Map<String, String> country) {
+    setState(() {
+      _selectedCountry = country['name']!;
+      _selectedCountryId = country['name']!;
+      _countryFieldController.text = country['name']!;
+      _countryDropdownOpen = false;
+    });
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    userProvider.setCountry(_selectedCountry, _selectedCountryId);
+  }
+
   Future<void> fetchCodeFromGo() async {
     final email = _emailController.text.trim();
 
@@ -2111,124 +2241,16 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     }
   }
 
-  void _snapToItem(ScrollController controller, int selectedIndex) {
-    final targetOffset = selectedIndex * 40.0 - (286 / 2 - 20);
-    controller.animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOut,
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _monthController = ScrollController(initialScrollOffset: 0.0);
-    _dayController = ScrollController(initialScrollOffset: 0.0);
-    _yearController = ScrollController(initialScrollOffset: 0.0);
-
-    void _updateDobController() {
-      _dobController.text = _dobDisplayText;
-      onDobPicked();
-    }
-
-    _monthController.addListener(() {
-      final newIndex = (_monthController.offset / 40).round();
-      if (newIndex != _selectedMonth &&
-          newIndex >= 0 &&
-          newIndex < _months.length) {
-        setState(() {
-          _selectedMonth = newIndex;
-          _datePicked = true;
-          _updateDobController();
-        });
-      }
-    });
-
-    _dayController.addListener(() {
-      final newIndex = (_dayController.offset / 40).round();
-      if (newIndex != _selectedDay &&
-          newIndex >= 0 &&
-          newIndex < _days.length) {
-        setState(() {
-          _selectedDay = newIndex;
-          _datePicked = true;
-          _updateDobController();
-        });
-      }
-    });
-
-    _yearController.addListener(() {
-      final newIndex = (_yearController.offset / 40).round();
-      if (newIndex != _selectedYear &&
-          newIndex >= 0 &&
-          newIndex < _years.length) {
-        setState(() {
-          _selectedYear = newIndex;
-          _datePicked = true;
-          _updateDobController();
-        });
-      }
-    });
-
-    _countrySearchController.addListener(
-      () => _filterCountries(_countrySearchController.text),
-    );
-    fetchCountries();
-  }
-
-  Future<void> fetchCountries() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/countries'),
-      );
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        setState(() {
-          countries = data.map<Map<String, String>>((item) {
-            return {
-              'id': item['ID'],
-              'name': item['Name'],
-              'flag': item['Flag'],
-            };
-          }).toList();
-          _filteredCountries = List.from(countries);
-        });
-      } else {
-        throw Exception('Failed to load countries');
-      }
-    } catch (e) {
-      print("Error fetching countries: $e");
-    }
-  }
-
-  void _filterCountries(String value) {
-    setState(() {
-      _filteredCountries = countries
-          .where(
-            (c) => c['name']!.toLowerCase().startsWith(value.toLowerCase()),
-          )
-          .toList();
-    });
-  }
-
-  void _selectCountry(Map<String, String> country) {
-    setState(() {
-      _selectedCountry = country['name']!;
-      _selectedCountryId = country['id']!;
-      _countryFieldController.text = country['name']!;
-      _countryDropdownOpen = false;
-    });
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    userProvider.setCountry(_selectedCountry, _selectedCountryId);
-  }
-
   @override
   void dispose() {
     _monthController.dispose();
+    _dayController.dispose();
+    _yearController.dispose();
     _timer?.cancel();
     _focusNodes.forEach((f) => f.dispose());
     _codecontrollers.forEach((c) => c.dispose());
+    _emailController.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -2313,13 +2335,11 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
 
   @override
   Widget build(BuildContext context) {
-    final signUpData = Provider.of<UserProvider>(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
 
     final userProvider = Provider.of<UserProvider>(context);
-    final orientation = MediaQuery.of(context).orientation;
 
     // Prefill logic (same as mobile)
     if (userProvider.country.isNotEmpty && _selectedCountry.isEmpty) {
@@ -2376,1202 +2396,320 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
         children: [
-          // Main content with image at bottom right
+          ErrorStack(key: errorStackKey),
+          // Main content
           Column(
             children: [
+              // Error Stack at the top
               Expanded(
-                child: Stack(
-                  children: [
-                    // Scrollable content
-                    SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.1,
-                          vertical: screenHeight * 0.05,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                      vertical: screenHeight * 0.03,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: isLandscape ? 600 : 500,
                         ),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: isLandscape ? 450 : 420,
+                        child: Container(
+                          padding: const EdgeInsets.all(30),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0B1320),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00F0FF),
+                                blurRadius: 7,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF00F0FF),
+                              width: 1,
                             ),
-                            child: Container(
-                              padding: const EdgeInsets.only(
-                                top: 50,
-                                bottom: 20,
-                                left: 10,
-                                right: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0B1320),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF00F0FF),
-                                    blurRadius: 7,
-                                    spreadRadius: 0,
-                                  ),
-                                ],
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Sign Up / Sign In buttons
-                                  SizedBox(
-                                    width: 230,
-                                    height: 40,
-                                    child: Stack(
-                                      children: [
-                                        Positioned(
-                                          left: 126,
-                                          child: CustomButton(
-                                            text: 'Sign Up',
-                                            width: 104,
-                                            height: 40,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w600,
-                                            onTap: () {},
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                Color(0xFF00F0FF),
-                                                Color(0xFF0177B3),
-                                              ],
-                                              begin: Alignment.centerLeft,
-                                              end: Alignment.centerRight,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(
-                                                  0xFF00F0FF,
-                                                ).withOpacity(0.5),
-                                                blurRadius: 10,
-                                                spreadRadius: 2,
-                                              ),
-                                            ],
-                                          ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Sign Up / Sign In buttons
+                              SizedBox(
+                                width: 230,
+                                height: 40,
+                                child: Stack(
+                                  children: [
+                                    Positioned(
+                                      left: 126,
+                                      child: CustomButton(
+                                        text: 'Sign Up',
+                                        width: 104,
+                                        height: 40,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
+                                        onTap: () {},
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF00F0FF),
+                                            Color(0xFF0177B3),
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
                                         ),
-                                        Positioned(
-                                          left: 0,
-                                          child: GestureDetector(
-                                            child: Container(
-                                              width: 106,
-                                              height: 40,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                border: Border.all(
-                                                  width: 1,
-                                                  color: const Color(
-                                                    0xFF00F0FF,
-                                                  ),
-                                                ),
-                                              ),
-                                              child: CustomButton(
-                                                text: 'Sign In',
-                                                width: 106,
-                                                height: 40,
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w600,
-                                                onTap: () {},
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 20),
-
-                                  // Title
-                                  const Text(
-                                    "Your Digital Pass Into Egety",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 30,
-                                      height: 1.0,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 30),
-
-                                  // Progress Steps
-                                  Center(
-                                    child: SizedBox(
-                                      width: 394,
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Positioned(
-                                            top: 9.5,
-                                            left: 32,
-                                            right: 40,
-                                            child: LayoutBuilder(
-                                              builder: (context, constraints) {
-                                                const totalSteps = 5;
-                                                const completedSteps = 2;
-                                                final segmentCount =
-                                                    totalSteps - 1;
-                                                final filledSegments =
-                                                    completedSteps - 1;
-
-                                                final totalWidth =
-                                                    constraints.maxWidth;
-                                                final filledWidth =
-                                                    totalWidth *
-                                                    (filledSegments /
-                                                        segmentCount);
-                                                final remainingWidth =
-                                                    totalWidth - filledWidth;
-
-                                                return Row(
-                                                  children: [
-                                                    Container(
-                                                      width: filledWidth,
-                                                      height: 5,
-                                                      decoration: const BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius.only(
-                                                              topLeft:
-                                                                  Radius.circular(
-                                                                    100,
-                                                                  ),
-                                                              bottomLeft:
-                                                                  Radius.circular(
-                                                                    100,
-                                                                  ),
-                                                            ),
-                                                        gradient:
-                                                            LinearGradient(
-                                                              colors: [
-                                                                Color(
-                                                                  0xFF00F0FF,
-                                                                ),
-                                                                Color(
-                                                                  0xFF0EA0BB,
-                                                                ),
-                                                              ],
-                                                              begin: Alignment
-                                                                  .centerLeft,
-                                                              end: Alignment
-                                                                  .centerRight,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      width: remainingWidth,
-                                                      height: 5,
-                                                      decoration: const BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius:
-                                                            BorderRadius.only(
-                                                              topRight:
-                                                                  Radius.circular(
-                                                                    100,
-                                                                  ),
-                                                              bottomRight:
-                                                                  Radius.circular(
-                                                                    100,
-                                                                  ),
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            ),
-                                          ),
-
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              _buildStep(
-                                                "Profile\nStart",
-                                                filled: true,
-                                              ),
-                                              _buildStep(
-                                                "Contact\nand Verify",
-                                                filled: true,
-                                                filledColor: const Color(
-                                                  0xFF0EA0BB,
-                                                ),
-                                              ),
-                                              _buildStep("Security\nBase"),
-                                              _buildStep("Register\nLive"),
-                                              _buildStep("Register\nPattern"),
-                                            ],
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.5),
+                                            blurRadius: 10,
+                                            spreadRadius: 2,
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ),
-
-                                  const SizedBox(height: 40),
-
-                                  // Form Fields
-                                  SizedBox(
-                                    width: 500, // Fixed width for tablet form
-                                    child: Column(
-                                      children: [
-                                        // Country Input
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            const Text(
-                                              "What Is Your Country Of Residence?",
-                                              style: TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 20,
-                                                height: 1.0,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _countryDropdownOpen =
-                                                      !_countryDropdownOpen;
-                                                });
-                                              },
-                                              child: Stack(
-                                                children: [
-                                                  Container(
-                                                    width: 400,
-                                                    height: 50,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 16,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(
-                                                        0xFF0B1320,
-                                                      ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: const Color(
-                                                          0xFF00F0FF,
-                                                        ),
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: Row(
-                                                      children: [
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                top: 4.0,
-                                                              ),
-                                                          child: SizedBox(
-                                                            width: 18,
-                                                            height: 18,
-                                                            child: SvgPicture.asset(
-                                                              'assets/images/iconFlag.svg',
-                                                              fit: BoxFit
-                                                                  .contain,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 18,
-                                                        ),
-                                                        Expanded(
-                                                          child: TextField(
-                                                            controller:
-                                                                _countryFieldController,
-                                                            readOnly: true,
-                                                            style:
-                                                                const TextStyle(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontSize: 20,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  fontFamily:
-                                                                      'Inter',
-                                                                ),
-                                                            decoration: const InputDecoration(
-                                                              hintText:
-                                                                  "Country",
-                                                              hintStyle: TextStyle(
-                                                                color: Color(
-                                                                  0xFFA5A6A8,
-                                                                ),
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
-                                                                fontFamily:
-                                                                    'Inter',
-                                                                height: 1.0,
-                                                              ),
-                                                              border:
-                                                                  InputBorder
-                                                                      .none,
-                                                              isDense: true,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Positioned(
-                                                    top: 16,
-                                                    right: 16,
-                                                    child: SizedBox(
-                                                      width: 18,
-                                                      height: 18,
-                                                      child: Image.asset(
-                                                        'assets/images/Blacksun-icon-chevron-down.png',
-                                                        width: 18,
-                                                        height: 18,
-                                                        fit: BoxFit.contain,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-
-                                        const SizedBox(height: 25),
-
-                                        // Date of Birth Input
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              "When Were You Born?",
-                                              style: const TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 20,
-                                                height: 1.0,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _dobDropdownOpen =
-                                                      !_dobDropdownOpen;
-                                                });
-                                              },
-                                              child: Container(
-                                                width: 400,
-                                                height: 50,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(
-                                                    0xFF0B1320,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: const Color(
-                                                      0xFF00F0FF,
-                                                    ),
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      'assets/images/DOB.png',
-                                                      width: 16,
-                                                      height: 18,
-                                                      color: Colors.white,
-                                                    ),
-                                                    const SizedBox(width: 16),
-                                                    Expanded(
-                                                      child: Text(
-                                                        _datePicked
-                                                            ? _dobDisplayText
-                                                            : "Date Of Birth",
-                                                        style: TextStyle(
-                                                          color: _datePicked
-                                                              ? Colors.white
-                                                              : const Color(
-                                                                  0xFFA5A6A8,
-                                                                ),
-                                                          fontSize: 15,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          fontFamily: 'Inter',
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-
-                                        const SizedBox(height: 25),
-
-                                        // Email Input
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              "Where Can We Reach You?",
-                                              style: const TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 20,
-                                                height: 1.0,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Stack(
-                                              children: [
-                                                Container(
-                                                  width: 400,
-                                                  height: 50,
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 12,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFF0B1320,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                        0xFF00F0FF,
-                                                      ),
-                                                      width: 1,
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets.only(
-                                                              top: 4.0,
-                                                            ),
-                                                        child: Image.asset(
-                                                          'assets/images/SVGRepo_iconCarrier.png',
-                                                          width: 16,
-                                                          height: 18,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 16),
-                                                      Expanded(
-                                                        child: TextField(
-                                                          controller:
-                                                              _emailController,
-                                                          decoration:
-                                                              const InputDecoration(
-                                                                hintText:
-                                                                    "Email",
-                                                                hintStyle: TextStyle(
-                                                                  color: Color(
-                                                                    0xFFA5A6A8,
-                                                                  ),
-                                                                  fontSize: 15,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  fontFamily:
-                                                                      'Inter',
-                                                                  height: 1.0,
-                                                                ),
-                                                                border:
-                                                                    InputBorder
-                                                                        .none,
-                                                                isCollapsed:
-                                                                    true,
-                                                              ),
-                                                          onChanged: (value) {
-                                                            final userProvider =
-                                                                Provider.of<
-                                                                  UserProvider
-                                                                >(
-                                                                  context,
-                                                                  listen: false,
-                                                                );
-                                                            userProvider
-                                                                .setEmail(
-                                                                  value.trim(),
-                                                                );
-                                                          },
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 20,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
-                                                                fontFamily:
-                                                                    'Inter',
-                                                                color: Color(
-                                                                  0xFF00F0FF,
-                                                                ),
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  top: 10,
-                                                  right: 10,
-                                                  child: MouseRegion(
-                                                    cursor: SystemMouseCursors
-                                                        .click,
-                                                    child: GestureDetector(
-                                                      onTap: () async {
-                                                        final userProvider =
-                                                            Provider.of<
-                                                              UserProvider
-                                                            >(
-                                                              context,
-                                                              listen: false,
-                                                            );
-                                                        if (_emailController
-                                                            .text
-                                                            .isEmpty) {
-                                                          ClipboardData?
-                                                          clipboardData =
-                                                              await Clipboard.getData(
-                                                                Clipboard
-                                                                    .kTextPlain,
-                                                              );
-                                                          if (clipboardData
-                                                                  ?.text !=
-                                                              null) {
-                                                            setState(() {
-                                                              _emailController
-                                                                      .text =
-                                                                  clipboardData!
-                                                                      .text!;
-                                                              userProvider.setEmail(
-                                                                _emailController
-                                                                    .text,
-                                                              );
-                                                            });
-                                                          }
-                                                        } else {
-                                                          setState(() {
-                                                            _emailController
-                                                                .clear();
-                                                            userProvider
-                                                                .setEmail("");
-                                                          });
-                                                        }
-                                                      },
-                                                      child: Container(
-                                                        width: 55,
-                                                        height: 30,
-                                                        decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                7,
-                                                              ),
-                                                          border: Border.all(
-                                                            color: const Color(
-                                                              0xFF00F0FF,
-                                                            ),
-                                                          ),
-                                                          color: Colors
-                                                              .transparent,
-                                                        ),
-                                                        child: Center(
-                                                          child: Text(
-                                                            _emailController
-                                                                    .text
-                                                                    .isEmpty
-                                                                ? "Paste"
-                                                                : "Clear",
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontFamily:
-                                                                      'Inter',
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  fontSize: 15,
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-
-                                        const SizedBox(height: 25),
-
-                                        // Email Verification
-                                        SizedBox(
-                                          width: 400,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const Text(
-                                                "Email Verification",
-                                                style: TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 20,
-                                                  height: 1.0,
-                                                  color: Colors.white,
-                                                  letterSpacing: -0.08,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 0),
-
-                                              if (_hideInputFields)
-                                                Opacity(
-                                                  opacity: 1,
-                                                  child: Transform.rotate(
-                                                    angle: 0,
-                                                    child: Container(
-                                                      width: 88,
-                                                      height: 24,
-                                                      alignment:
-                                                          Alignment.center,
-                                                      decoration: BoxDecoration(
-                                                        color: Color(
-                                                          0xFF00F0FF,
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        "Code Sent",
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: TextStyle(
-                                                          fontFamily: 'Inter',
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          fontSize: 20,
-                                                          height: 1.0,
-                                                          letterSpacing:
-                                                              -0.08 * 20,
-                                                          color: Colors.black,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                              else if (_tooManyAttempts)
-                                                SizedBox(
-                                                  width: 270,
-                                                  height: 26,
-                                                  child: Stack(
-                                                    children: [
-                                                      Container(
-                                                        decoration: BoxDecoration(
-                                                          color: Color(
-                                                            0xFF0B1320,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                6,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                      Container(
-                                                        decoration: BoxDecoration(
-                                                          gradient: LinearGradient(
-                                                            begin: Alignment
-                                                                .centerLeft,
-                                                            end: Alignment
-                                                                .centerRight,
-                                                            colors: [
-                                                              Color.fromRGBO(
-                                                                175,
-                                                                34,
-                                                                34,
-                                                                0.0,
-                                                              ),
-                                                              Color.fromRGBO(
-                                                                175,
-                                                                34,
-                                                                34,
-                                                                0.61,
-                                                              ),
-                                                              Color.fromRGBO(
-                                                                175,
-                                                                34,
-                                                                34,
-                                                                0.61,
-                                                              ),
-                                                              Color.fromRGBO(
-                                                                175,
-                                                                34,
-                                                                34,
-                                                                0.0,
-                                                              ),
-                                                            ],
-                                                            stops: [
-                                                              0.0,
-                                                              0.101,
-                                                              0.9038,
-                                                              1.0,
-                                                            ],
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                6,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                      Center(
-                                                        child: Text(
-                                                          "Too many attempts. Try again later.",
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                              else
-                                                Row(
-                                                  children: [
-                                                    // Code input fields
-                                                    ...List.generate(6, (
-                                                      index,
-                                                    ) {
-                                                      return GestureDetector(
-                                                        onTap: () =>
-                                                            _focusNodes[index]
-                                                                .requestFocus(),
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 5,
-                                                              ),
-                                                          child: Column(
-                                                            children: [
-                                                              SizedBox(
-                                                                width: 40,
-                                                                height: 20,
-                                                                child: TextField(
-                                                                  controller:
-                                                                      _codecontrollers[index],
-                                                                  focusNode:
-                                                                      _focusNodes[index],
-                                                                  showCursor:
-                                                                      !(code.every(
-                                                                        (c) => c
-                                                                            .isNotEmpty,
-                                                                      )),
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                  maxLength: 1,
-                                                                  keyboardType:
-                                                                      TextInputType
-                                                                          .number,
-                                                                  style: TextStyle(
-                                                                    color:
-                                                                        isCodeCorrect
-                                                                        ? const Color(
-                                                                            0xFF00F0FF,
-                                                                          )
-                                                                        : (_isCodeValid ==
-                                                                                  false
-                                                                              ? Colors.red
-                                                                              : Colors.white),
-                                                                    fontSize:
-                                                                        20,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                  ),
-                                                                  cursorColor:
-                                                                      isCodeCorrect
-                                                                      ? const Color(
-                                                                          0xFF00F0FF,
-                                                                        )
-                                                                      : (_isCodeValid ==
-                                                                                false
-                                                                            ? Colors.red
-                                                                            : Colors.white),
-                                                                  decoration: const InputDecoration(
-                                                                    counterText:
-                                                                        "",
-                                                                    border:
-                                                                        InputBorder
-                                                                            .none,
-                                                                  ),
-                                                                  onChanged:
-                                                                      (
-                                                                        value,
-                                                                      ) => _onChanged(
-                                                                        value,
-                                                                        index,
-                                                                      ),
-                                                                ),
-                                                              ),
-                                                              Container(
-                                                                width: 40,
-                                                                height: 2,
-                                                                color:
-                                                                    code[index]
-                                                                        .isEmpty
-                                                                    ? Colors
-                                                                          .white
-                                                                    : Colors
-                                                                          .transparent,
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }),
-
-                                                    const SizedBox(width: 15),
-
-                                                    // Success/Error icon
-                                                    if (isCodeCorrect ||
-                                                        _isCodeValid ==
-                                                            false) ...[
-                                                      AnimatedContainer(
-                                                        duration:
-                                                            const Duration(
-                                                              milliseconds: 300,
-                                                            ),
-                                                        width: 24,
-                                                        height: 24,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                              color:
-                                                                  isCodeCorrect
-                                                                  ? const Color(
-                                                                      0xFF00F0FF,
-                                                                    )
-                                                                  : Colors.red,
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                            ),
-                                                        child: Icon(
-                                                          isCodeCorrect
-                                                              ? Icons.check
-                                                              : Icons.close,
-                                                          color: isCodeCorrect
-                                                              ? Colors.black
-                                                              : Colors.white,
-                                                          size: 16,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                    ],
-
-                                                    // Get Code button
-                                                    GestureDetector(
-                                                      onTap:
-                                                          (_secondsLeft == 0 &&
-                                                              !_tooManyAttempts &&
-                                                              !_isTyping)
-                                                          ? fetchCodeFromGo
-                                                          : null,
-                                                      child: Container(
-                                                        width: 85,
-                                                        height: 23,
-                                                        decoration: BoxDecoration(
-                                                          gradient:
-                                                              const LinearGradient(
-                                                                colors: [
-                                                                  Color(
-                                                                    0xFF00F0FF,
-                                                                  ),
-                                                                  Color(
-                                                                    0xFF0177B3,
-                                                                  ),
-                                                                ],
-                                                                begin: Alignment
-                                                                    .centerLeft,
-                                                                end: Alignment
-                                                                    .centerRight,
-                                                              ),
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color:
-                                                                  const Color(
-                                                                    0xFF00F0FF,
-                                                                  ).withOpacity(
-                                                                    0.8,
-                                                                  ),
-                                                              blurRadius: 15,
-                                                              spreadRadius: 2,
-                                                              offset:
-                                                                  const Offset(
-                                                                    0,
-                                                                    0,
-                                                                  ),
-                                                            ),
-                                                          ],
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                6,
-                                                              ),
-                                                        ),
-                                                        child: Center(
-                                                          child:
-                                                              _secondsLeft > 0
-                                                              ? Text(
-                                                                  "${_secondsLeft ~/ 60}m ${_secondsLeft % 60}s",
-                                                                  style: const TextStyle(
-                                                                    fontFamily:
-                                                                        'Inter',
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                    fontSize:
-                                                                        20,
-                                                                    color: Colors
-                                                                        .black,
-                                                                  ),
-                                                                )
-                                                              : const Text(
-                                                                  "Get Code",
-                                                                  style: TextStyle(
-                                                                    fontFamily:
-                                                                        'Inter',
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                    fontSize:
-                                                                        18,
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
-                                                                ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        const SizedBox(height: 40),
-
-                                        // Navigation Buttons
-                                        SizedBox(
-                                          width: 400,
+                                    Positioned(
+                                      left: 0,
+                                      child: GestureDetector(
+                                        child: Container(
+                                          width: 106,
                                           height: 40,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              width: 1,
+                                              color: const Color(0xFF00F0FF),
+                                            ),
+                                          ),
+                                          child: CustomButton(
+                                            text: 'Sign In',
+                                            width: 106,
+                                            height: 40,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
+                                            onTap: () {},
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 25),
+
+                              // Title
+                              const Text(
+                                "Your Digital Pass Into Egety",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 32,
+                                  height: 1.0,
+                                  color: Colors.white,
+                                ),
+                              ),
+
+                              const SizedBox(height: 30),
+
+                              // Progress Steps - Updated to match mobile layout
+                              SizedBox(
+                                width: double.infinity,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Positioned(
+                                      top: 9.5,
+                                      left: 32,
+                                      right: 32,
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          const totalSteps = 5;
+                                          const completedSteps = 2;
+                                          final segmentCount = totalSteps - 1;
+                                          final filledSegments =
+                                              completedSteps - 1;
+
+                                          final totalWidth =
+                                              constraints.maxWidth;
+                                          final filledWidth =
+                                              totalWidth *
+                                              (filledSegments / segmentCount);
+                                          final remainingWidth =
+                                              totalWidth - filledWidth;
+
+                                          return Row(
                                             children: [
                                               Container(
-                                                width: 64,
-                                                height: 4,
-                                                decoration: BoxDecoration(
+                                                width: filledWidth,
+                                                height: 5,
+                                                decoration: const BoxDecoration(
                                                   borderRadius:
-                                                      BorderRadius.circular(11),
-                                                  gradient:
-                                                      const LinearGradient(
-                                                        begin: Alignment
-                                                            .centerRight,
-                                                        end: Alignment
-                                                            .centerLeft,
-                                                        colors: [
-                                                          Color(0xFF00F0FF),
-                                                          Color(0xFF0B1320),
-                                                        ],
+                                                      BorderRadius.only(
+                                                        topLeft:
+                                                            Radius.circular(
+                                                              100,
+                                                            ),
+                                                        bottomLeft:
+                                                            Radius.circular(
+                                                              100,
+                                                            ),
                                                       ),
-                                                ),
-                                              ),
-
-                                              MouseRegion(
-                                                cursor:
-                                                    SystemMouseCursors.click,
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                  child: Container(
-                                                    width: 106,
-                                                    height: 40,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.transparent,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: const Color(
-                                                          0xFF00F0FF,
-                                                        ),
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: const Center(
-                                                      child: Text(
-                                                        "Back",
-                                                        style: TextStyle(
-                                                          fontFamily: 'Inter',
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          fontSize: 20,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                    ),
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Color(0xFF00F0FF),
+                                                      Color(0xFF0EA0BB),
+                                                    ],
+                                                    begin: Alignment.centerLeft,
+                                                    end: Alignment.centerRight,
                                                   ),
                                                 ),
                                               ),
-
-                                              MouseRegion(
-                                                cursor:
-                                                    SystemMouseCursors.click,
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    _validateAndNavigate(
-                                                      context,
-                                                    );
-                                                  },
-                                                  child: Container(
-                                                    width: 105,
-                                                    height: 40,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: const Color(
-                                                          0xFF00F0FF,
-                                                        ),
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: const Center(
-                                                      child: Text(
-                                                        "Next",
-                                                        style: TextStyle(
-                                                          fontFamily: 'Inter',
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          fontSize: 20,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-
                                               Container(
-                                                width: 64,
-                                                height: 4,
-                                                decoration: BoxDecoration(
+                                                width: remainingWidth,
+                                                height: 5,
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.white,
                                                   borderRadius:
-                                                      BorderRadius.circular(11),
-                                                  gradient:
-                                                      const LinearGradient(
-                                                        begin: Alignment
-                                                            .centerRight,
-                                                        end: Alignment
-                                                            .centerLeft,
-                                                        colors: [
-                                                          Color(0xFF0B1320),
-                                                          Color(0xFF00F0FF),
-                                                        ],
+                                                      BorderRadius.only(
+                                                        topRight:
+                                                            Radius.circular(
+                                                              100,
+                                                            ),
+                                                        bottomRight:
+                                                            Radius.circular(
+                                                              100,
+                                                            ),
                                                       ),
                                                 ),
                                               ),
                                             ],
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        for (var i = 0; i < 5; i++)
+                                          Expanded(
+                                            child: _buildStep(
+                                              i == 1
+                                                  ? "Contact\nand Verify"
+                                                  : "",
+                                              filled: i <= 1,
+                                              filledColor: i == 1
+                                                  ? const Color(0xFF0EA0BB)
+                                                  : null,
+                                            ),
                                           ),
-                                        ),
-
-                                        const SizedBox(height: 30),
-
-                                        // Verification Message
-                                        const Text(
-                                          "Your ID is now verified\nYour vault is a step closer to being yours",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w600,
-                                            fontStyle: FontStyle.normal,
-                                            fontSize: 20,
-                                            height: 1.0,
-                                            letterSpacing: 0,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-
-                                        const SizedBox(height: 40),
-
-                                        // Footer
-                                        FooterWidget(),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
+
+                              const SizedBox(height: 40),
+
+                              // Form Fields - Centered and properly spaced for tablet
+                              SizedBox(
+                                width: 450,
+                                child: Column(
+                                  children: [
+                                    // Country Input
+                                    _buildTabletInputSection(
+                                      title:
+                                          "What Is Your Country Of Residence?",
+                                      child: _buildCountryField(),
+                                    ),
+
+                                    const SizedBox(height: 25),
+
+                                    // Date of Birth Input
+                                    _buildTabletInputSection(
+                                      title: "When Were You Born?",
+                                      child: _buildDobField(),
+                                    ),
+
+                                    const SizedBox(height: 25),
+
+                                    // Email Input
+                                    _buildTabletInputSection(
+                                      title: "Where Can We Reach You?",
+                                      child: _buildEmailField(),
+                                    ),
+
+                                    const SizedBox(height: 25),
+
+                                    // Email Verification
+                                    _buildEmailVerificationSection(),
+
+                                    const SizedBox(height: 40),
+
+                                    // Navigation Buttons
+                                    _buildNavigationButtons(),
+
+                                    const SizedBox(height: 25),
+
+                                    // Verification Message
+                                    const Text(
+                                      "Your ID is now verified\nYour vault is a step closer to being yours",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18,
+                                        height: 1.3,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 30),
+
+                                    // Footer
+                                    const FooterWidget(),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
 
+          // Bottom right image
           Positioned(
-            bottom: 0, // Distance from bottom
-            right: -10, // Distance from right
+            bottom: 20,
+            right: 20,
             child: Image.asset(
               'assets/images/Rectangle2.png',
-              width: isLandscape
-                  ? 150
-                  : 120, // Adjust size based on orientation
-              height: isLandscape ? 150 : 120,
+              width: isLandscape ? 120 : 100,
+              height: isLandscape ? 120 : 100,
               fit: BoxFit.contain,
             ),
           ),
 
-          // Error Stack
-          ErrorStack(key: errorStackKey),
+          // Dropdown Overlays
+          if (_isAnyDropdownOpen)
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.black.withOpacity(0.6),
+            ),
 
-          // Dropdowns (same as mobile)
+          // Country Dropdown
           AnimatedPositioned(
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeOut,
@@ -3579,106 +2717,111 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
             left: 0,
             right: 0,
             height: _dropdownHeight,
-            child: ClipRect(
-              child: Container(
-                color: const Color(0xFF0B1320),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() => _countryDropdownOpen = false);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 20),
-                        child: CustomPaint(
-                          size: const Size(120, 20),
-                          painter: VLinePainter(),
-                        ),
-                      ),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 20),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0B1320),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 50),
-                      child: TextField(
-                        controller: _countrySearchController,
-                        onChanged: _filterCountries,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search Country',
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      // Close handle
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _countryDropdownOpen = false),
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 20),
+                          child: CustomPaint(
+                            size: Size(120, 20),
+                            painter: VLinePainter(), // not const
                           ),
-                          border: InputBorder.none,
                         ),
                       ),
-                    ),
-                    const Divider(color: Colors.white24, thickness: 0.5),
-                    Expanded(
-                      child: _filteredCountries.isEmpty
-                          ? const Center(
-                              child: Text(
-                                "No countries found",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 50,
-                                vertical: 16,
-                              ),
-                              itemCount: _filteredCountries.length,
-                              itemBuilder: (context, index) {
-                                final country = _filteredCountries[index];
-                                return GestureDetector(
-                                  onTap: () => _selectCountry(country),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8.0,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Image.network(
-                                          '${ApiConstants.baseUrl}${country['flag']}',
-                                          width: 30,
-                                          height: 30,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Container(
-                                                    width: 30,
-                                                    height: 30,
-                                                    color: Colors.grey,
-                                                    child: const Icon(
-                                                      Icons.flag,
-                                                      size: 20,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          country['name']!,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
+
+                      // Search field
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 50),
+                        child: TextField(
+                          controller: _countrySearchController,
+                          onChanged: _filterCountries,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Search Country',
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const Divider(color: Colors.white24, thickness: 0.5),
+                      // Country list
+                      Expanded(
+                        child: _filteredCountries.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  "No countries found",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 50,
+                                  vertical: 16,
+                                ),
+                                itemCount: _filteredCountries.length,
+                                itemBuilder: (context, index) {
+                                  final country = _filteredCountries[index];
+                                  return GestureDetector(
+                                    onTap: () => _selectCountry(country),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            country['flag']!,
+                                            width: 30,
+                                            height: 30,
+                                            fit: BoxFit.contain,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            country['name']!,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
 
+          // DOB Dropdown
           AnimatedPositioned(
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeOut,
@@ -3686,94 +2829,155 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
             left: 0,
             right: 0,
             height: _dropdownAge,
-            child: Container(
-              width: double.infinity,
-              height: 286,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B1320),
-                borderRadius: BorderRadius.circular(8),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
               ),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _dobDropdownOpen = false),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      child: CustomPaint(
-                        size: const Size(120, 20),
-                        painter: VLinePainter(),
+              child: Container(
+                width: double.infinity,
+                height: 286,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0B1320),
+                  border: Border(
+                    top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
+                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => _dobDropdownOpen = false),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: CustomPaint(
+                            size: const Size(120, 20),
+                            painter: VLinePainter(),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    height: 286,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF0B1320),
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(20),
-                                topRight: Radius.circular(20),
+
+                    SizedBox(
+                      height: 286,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0B1320),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(20),
+                                  topRight: Radius.circular(20),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        Align(
-                          alignment: Alignment.center,
-                          child: Container(
-                            width: double.infinity,
-                            height: 49,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00BEBF),
-                              border: Border.all(
-                                color: const Color(0xFF007BFF),
-                                width: 1,
+
+                          /// ----- CENTER HIGHLIGHT BOX -----
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: double.infinity,
+                              height: 49,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 20,
                               ),
-                              borderRadius: BorderRadius.circular(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00BEBF),
+                                border: Border.all(
+                                  color: const Color(0xFF007BFF),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          left: MediaQuery.of(context).size.width * 0.2,
-                          width: 144,
-                          height: 286,
-                          child: NotificationListener<ScrollEndNotification>(
-                            onNotification: (notification) {
-                              _snapToItem(_monthController, _selectedMonth);
-                              return true;
-                            },
+
+                          /// ----- MONTH PICKER -----
+                          Positioned(
+                            top: 0,
+                            left: 90,
+                            width: 144,
+                            height: 286,
+                            child: NotificationListener<ScrollEndNotification>(
+                              onNotification: (notification) {
+                                _snapToItem(_monthController, _selectedMonth);
+                                return true;
+                              },
+                              child: ListView.builder(
+                                itemCount: _months.length,
+                                controller: _monthController,
+                                physics: const BouncingScrollPhysics(),
+                                itemExtent: 40,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: (286 - 40) / 2,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final isSelected = index == _selectedMonth;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedMonth = index;
+                                        _datePicked = true;
+                                      });
+                                      onDobPicked();
+                                      _snapToItem(
+                                        _monthController,
+                                        _selectedMonth,
+                                      );
+                                    },
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        _months[index],
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+
+                          /// ----- DAY PICKER -----
+                          Positioned(
+                            top: 0,
+                            left: 224,
+                            width: 144,
+                            height: 286,
                             child: ListView.builder(
-                              itemCount: _months.length,
-                              controller: _monthController,
-                              physics: const BouncingScrollPhysics(),
-                              itemExtent: 40,
+                              itemCount: _days.length,
                               padding: EdgeInsets.symmetric(
                                 vertical: (286 - 40) / 2,
                               ),
+                              itemExtent: 40,
+                              physics: const BouncingScrollPhysics(),
+                              controller: _dayController,
                               itemBuilder: (context, index) {
-                                final isSelected = index == _selectedMonth;
+                                final isSelected = index == _selectedDay;
                                 return GestureDetector(
                                   onTap: () {
                                     setState(() {
-                                      _selectedMonth = index;
+                                      _selectedDay = index;
                                       _datePicked = true;
                                     });
                                     onDobPicked();
-                                    _snapToItem(
-                                      _monthController,
-                                      _selectedMonth,
-                                    );
                                   },
                                   child: Container(
                                     alignment: Alignment.center,
                                     child: Text(
-                                      _months[index],
+                                      _days[index].toString(),
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w500,
@@ -3787,91 +2991,640 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                               },
                             ),
                           ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          left: MediaQuery.of(context).size.width * 0.2 + 154,
-                          width: 144,
-                          height: 286,
-                          child: ListView.builder(
-                            itemCount: _days.length,
-                            padding: EdgeInsets.symmetric(
-                              vertical: (286 - 40) / 2,
-                            ),
-                            itemExtent: 40,
-                            physics: const BouncingScrollPhysics(),
-                            controller: _dayController,
-                            itemBuilder: (context, index) {
-                              final isSelected = index == _selectedDay;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedDay = index;
-                                    _datePicked = true;
-                                  });
-                                  onDobPicked();
-                                },
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    _days[index].toString(),
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected
-                                          ? Colors.black
-                                          : Colors.white,
+
+                          /// ----- YEAR PICKER -----
+                          Positioned(
+                            top: 0,
+                            left: 368,
+                            width: 144,
+                            height: 286,
+                            child: ListView.builder(
+                              itemCount: _years.length,
+                              padding: EdgeInsets.symmetric(
+                                vertical: (286 - 40) / 2,
+                              ),
+                              itemExtent: 40,
+                              physics: const BouncingScrollPhysics(),
+                              controller: _yearController,
+                              itemBuilder: (context, index) {
+                                final isSelected = index == _selectedYear;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedYear = index;
+                                      _datePicked = true;
+                                    });
+                                    onDobPicked();
+                                  },
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      _years[index].toString(),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w500,
+                                        color: isSelected
+                                            ? Colors.black
+                                            : Colors.white,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          left: MediaQuery.of(context).size.width * 0.2 + 308,
-                          width: 144,
-                          height: 286,
-                          child: ListView.builder(
-                            itemCount: _years.length,
-                            padding: EdgeInsets.symmetric(
-                              vertical: (286 - 40) / 2,
+                                );
+                              },
                             ),
-                            itemExtent: 40,
-                            physics: const BouncingScrollPhysics(),
-                            controller: _yearController,
-                            itemBuilder: (context, index) {
-                              final isSelected = index == _selectedYear;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedYear = index;
-                                    _datePicked = true;
-                                  });
-                                  onDobPicked();
-                                },
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    _years[index].toString(),
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected
-                                          ? Colors.black
-                                          : Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabletInputSection({
+    required String title,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            height: 1.0,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 12),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildCountryField() {
+    return GestureDetector(
+      onTap: () => setState(() => _countryDropdownOpen = !_countryDropdownOpen),
+      child: Stack(
+        children: [
+          Container(
+            width: 400,
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1320),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF00F0FF), width: 1),
+            ),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: SvgPicture.asset(
+                      'assets/images/iconFlag.svg',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: TextField(
+                    controller: _countryFieldController,
+                    readOnly: true,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Inter',
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: "Country",
+                      hintStyle: TextStyle(
+                        color: Color(0xFFA5A6A8),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'Inter',
+                        height: 1.0,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: Image.asset(
+                'assets/images/Blacksun-icon-chevron-down.png',
+                width: 18,
+                height: 18,
+                fit: BoxFit.contain,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDobField() {
+    return GestureDetector(
+      onTap: () => setState(() => _dobDropdownOpen = !_dobDropdownOpen),
+      child: Container(
+        width: 400,
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0B1320),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF00F0FF), width: 1),
+        ),
+        child: Row(
+          children: [
+            Image.asset(
+              'assets/images/DOB.png',
+              width: 16,
+              height: 18,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                _datePicked ? _dobDisplayText : "Date Of Birth",
+                style: TextStyle(
+                  color: _datePicked ? Colors.white : const Color(0xFFA5A6A8),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 400,
+          height: 50,
+          padding: const EdgeInsets.only(left: 12, right: 70),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1320),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF00F0FF), width: 1.2),
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Image.asset(
+                  'assets/images/SVGRepo_iconCarrier.png',
+                  width: 16,
+                  height: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Focus(
+                  onFocusChange: (hasFocus) =>
+                      setState(() => _isEmailFocused = hasFocus),
+                  child: TextField(
+                    controller: _emailController,
+                    focusNode: _emailFocusNode,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      isCollapsed: true,
+                      contentPadding: EdgeInsets.only(top: 0),
+                    ),
+                    onChanged: (value) {
+                      final userProvider = Provider.of<UserProvider>(
+                        context,
+                        listen: false,
+                      );
+                      userProvider.setEmail(value.trim());
+                    },
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Inter',
+                      color: Color(0xFF00F0FF),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Floating Label
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 200),
+          left: 40,
+          top: (_emailController.text.isNotEmpty || _isEmailFocused) ? -10 : 15,
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            style: TextStyle(
+              color: const Color(0xFFA5A6A8),
+              fontSize: (_emailController.text.isNotEmpty || _isEmailFocused)
+                  ? 13
+                  : 15,
+              fontWeight: FontWeight.w500,
+              fontFamily: 'Inter',
+              backgroundColor:
+                  (_emailController.text.isNotEmpty || _isEmailFocused)
+                  ? const Color(0xFF0B1320)
+                  : Colors.transparent,
+            ),
+            child: const Text("Email"),
+          ),
+        ),
+        // Paste/Clear Button
+        Positioned(
+          top: 10,
+          right: 10,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () async {
+                final userProvider = Provider.of<UserProvider>(
+                  context,
+                  listen: false,
+                );
+                if (_emailController.text.isEmpty) {
+                  ClipboardData? clipboardData = await Clipboard.getData(
+                    Clipboard.kTextPlain,
+                  );
+                  if (clipboardData?.text != null) {
+                    setState(() {
+                      _emailController.text = clipboardData!.text!;
+                      userProvider.setEmail(_emailController.text);
+                    });
+                  }
+                } else {
+                  setState(() {
+                    _emailController.clear();
+                    userProvider.setEmail("");
+                  });
+                }
+              },
+              child: Container(
+                width: 55,
+                height: 30,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: const Color(0xFF00F0FF)),
+                  color: Colors.transparent,
+                ),
+                child: Center(
+                  child: Text(
+                    _emailController.text.isEmpty ? "Paste" : "Clear",
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailVerificationSection() {
+    return SizedBox(
+      width: 400,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Email Verification",
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              height: 1.0,
+              color: Colors.white,
+              letterSpacing: -0.08,
+            ),
+          ),
+          const SizedBox(height: 15),
+
+          if (_hideInputFields)
+            Center(
+              child: Opacity(
+                opacity: 1,
+                child: Transform.rotate(
+                  angle: 0,
+                  child: Container(
+                    width: 88,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00F0FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      "Code Sent",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 20,
+                        height: 1.0,
+                        letterSpacing: -0.08 * 20,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else if (_tooManyAttempts)
+            SizedBox(
+              width: 270,
+              height: 26,
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0B1320),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Color.fromRGBO(175, 34, 34, 0.0),
+                          Color.fromRGBO(175, 34, 34, 0.61),
+                          Color.fromRGBO(175, 34, 34, 0.61),
+                          Color.fromRGBO(175, 34, 34, 0.0),
+                        ],
+                        stops: [0.0, 0.101, 0.9038, 1.0],
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const Center(
+                    child: Text(
+                      "Too many attempts. Try again later.",
+                      style: TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ),
                 ],
+              ),
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Code input fields
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(6, (index) {
+                      return GestureDetector(
+                        onTap: () => _focusNodes[index].requestFocus(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                width: 35,
+                                height: 25,
+                                child: TextField(
+                                  controller: _codecontrollers[index],
+                                  focusNode: _focusNodes[index],
+                                  showCursor: !(code.every(
+                                    (c) => c.isNotEmpty,
+                                  )),
+                                  textAlign: TextAlign.center,
+                                  maxLength: 1,
+                                  keyboardType: TextInputType.number,
+                                  style: TextStyle(
+                                    color: isCodeCorrect
+                                        ? const Color(0xFF00F0FF)
+                                        : (_isCodeValid == false
+                                              ? Colors.red
+                                              : Colors.white),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  cursorColor: isCodeCorrect
+                                      ? const Color(0xFF00F0FF)
+                                      : (_isCodeValid == false
+                                            ? Colors.red
+                                            : Colors.white),
+                                  decoration: const InputDecoration(
+                                    counterText: "",
+                                    border: InputBorder.none,
+                                  ),
+                                  onChanged: (value) =>
+                                      _onChanged(value, index),
+                                ),
+                              ),
+                              Container(
+                                width: 35,
+                                height: 2,
+                                color: code[index].isEmpty
+                                    ? Colors.white
+                                    : Colors.transparent,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // Success/Error icon
+                if (isCodeCorrect || _isCodeValid == false)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isCodeCorrect
+                          ? const Color(0xFF00F0FF)
+                          : Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isCodeCorrect ? Icons.check : Icons.close,
+                      color: isCodeCorrect ? Colors.black : Colors.white,
+                      size: 16,
+                    ),
+                  ),
+
+                const SizedBox(width: 15),
+
+                // Get Code button
+                GestureDetector(
+                  onTap: (_secondsLeft == 0 && !_tooManyAttempts && !_isTyping)
+                      ? fetchCodeFromGo
+                      : null,
+                  child: Container(
+                    width: 100,
+                    height: 27,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF00F0FF).withOpacity(0.8),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Center(
+                      child: _secondsLeft > 0
+                          ? Text(
+                              "${_secondsLeft ~/ 60}m ${_secondsLeft % 60}s",
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Text(
+                              "Get Code",
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavigationButtons() {
+    return SizedBox(
+      width: 400,
+      height: 40,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: 64,
+            height: 4,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              gradient: const LinearGradient(
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+                colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+              ),
+            ),
+          ),
+
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 106,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF00F0FF), width: 1),
+                ),
+                child: const Center(
+                  child: Text(
+                    "Back",
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => _validateAndNavigate(context),
+              child: Container(
+                width: 105,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF00F0FF), width: 1),
+                ),
+                child: const Center(
+                  child: Text(
+                    "Next",
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          Container(
+            width: 64,
+            height: 4,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              gradient: const LinearGradient(
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
               ),
             ),
           ),
@@ -3955,32 +3708,36 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     );
   }
 
-  Column _buildStep(String label, {bool filled = false, Color? filledColor}) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: filled
-              ? (filledColor ?? const Color(0xFF00F0FF))
-              : Colors.white,
-          child: filled
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
-              : null,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-            height: 1.0,
-            letterSpacing: 0,
-            color: Colors.white,
+  Widget _buildStep(String label, {bool filled = false, Color? filledColor}) {
+    return SizedBox(
+      height: 77,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: filled
+                ? (filledColor ?? const Color(0xFF00F0FF))
+                : Colors.white,
+            child: filled
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.0,
+              letterSpacing: 0,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

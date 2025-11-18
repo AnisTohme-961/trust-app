@@ -55,82 +55,89 @@ class MobileSelectAccountContent extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final accounts = _getAccounts(userProvider);
 
-    return Column(
-      children: [
-        const SizedBox(height: 14),
-        // V-line handle (clickable)
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: onClose,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: CustomPaint(
-                size: const Size(120, 20),
-                painter: VLinePainter(),
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 50),
-
-        // Title
-        const Text(
-          'Select an Account',
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-          ),
-        ),
-
-        const SizedBox(height: 40),
-
-        // Account list with scrollbar for mobile
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Container(
-                height: 530,
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    children: [
-                      for (final account in accounts)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: AccountFrame(
-                            firstName: account['firstName'] ?? 'First Name',
-                            lastName: account['lastName'] ?? 'Last Name',
-                            eid: account['eid'] ?? 'N/A',
-                            imagePath:
-                                account['image'] ??
-                                'assets/images/placeholder.png',
-                            onTap: () {
-                              Navigator.pushNamed(context, '/sign-in');
-                            },
-                            isTablet: false,
-                          ),
-                        ),
-                    ],
-                  ),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1320),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border.all(color: const Color(0xFF00F0FF), width: 2.0),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 14),
+          // V-line handle (clickable)
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: onClose,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: CustomPaint(
+                  size: const Size(120, 20),
+                  painter: VLinePainter(),
                 ),
               ),
             ),
+          ),
 
-            const SizedBox(width: 10),
-            VerticalScrollbar(controller: scrollController),
-          ],
-        ),
+          const SizedBox(height: 50),
 
-        const SizedBox(height: 0),
+          // Title
+          const Text(
+            'Select an Account',
+            style: TextStyle(
+              color: Colors.white,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
+          ),
 
-        // Add New Profile Button
-        _buildAddNewProfileButton(context, false),
-      ],
+          const SizedBox(height: 40),
+
+          // Account list with scrollbar for mobile
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 530,
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: Column(
+                      children: [
+                        for (final account in accounts)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: AccountFrame(
+                              firstName: account['firstName'] ?? 'First Name',
+                              lastName: account['lastName'] ?? 'Last Name',
+                              eid: account['eid'] ?? 'N/A',
+                              imagePath:
+                                  account['image'] ??
+                                  'assets/images/placeholder.png',
+                              onTap: () {
+                                Navigator.pushNamed(context, '/sign-in');
+                              },
+                              isTablet: false,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+              VerticalScrollbar(controller: scrollController),
+            ],
+          ),
+
+          const SizedBox(height: 0),
+
+          // Add New Profile Button
+          _buildAddNewProfileButton(context, false),
+        ],
+      ),
     );
   }
 }
@@ -295,15 +302,40 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   double _scrollThumbPosition = 0;
   double _scrollThumbHeight = 50;
   bool _isDragging = false;
+  bool _controllerReady = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController = widget.controller ?? ScrollController();
-    _scrollController.addListener(_updateScrollThumb);
+    _initializeController();
+  }
 
+  void _initializeController() {
+    // Wait for the next frame to ensure the controller has clients
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateScrollThumb();
+      if (mounted) {
+        setState(() {
+          _controllerReady = _scrollController.hasClients;
+        });
+        if (_controllerReady) {
+          _scrollController.addListener(_updateScrollThumb);
+          _updateScrollThumb();
+        } else {
+          // If still no clients, try again after a short delay
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) {
+              setState(() {
+                _controllerReady = _scrollController.hasClients;
+              });
+              if (_scrollController.hasClients) {
+                _scrollController.addListener(_updateScrollThumb);
+                _updateScrollThumb();
+              }
+            }
+          });
+        }
+      }
     });
   }
 
@@ -314,28 +346,30 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
         oldWidget.height != widget.height) {
       _scrollController.removeListener(_updateScrollThumb);
       _scrollController = widget.controller ?? ScrollController();
-      _scrollController.addListener(_updateScrollThumb);
-      _updateScrollThumb();
+      _controllerReady = false;
+      _initializeController();
     }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_updateScrollThumb);
-    if (widget.controller == null) {
-      _scrollController.dispose();
-    }
-    super.dispose();
   }
 
   void _updateScrollThumb() {
-    if (!_isDragging && _scrollController.hasClients) {
+    if (!_isDragging && mounted && _scrollController.hasClients) {
       try {
-        final maxScrollExtent = _scrollController.position.maxScrollExtent;
-        final viewportDimension = _scrollController.position.viewportDimension;
+        final position = _scrollController.position;
+        final maxScrollExtent = position.maxScrollExtent;
+        final viewportDimension = position.viewportDimension;
+
+        // Check if scrolling is needed
+        if (maxScrollExtent <= 0) {
+          setState(() {
+            _scrollThumbHeight = widget.height;
+            _scrollThumbPosition = 0;
+          });
+          return;
+        }
+
         final totalContentHeight = maxScrollExtent + viewportDimension;
 
-        if (totalContentHeight > 0 && maxScrollExtent > 0) {
+        if (totalContentHeight > 0) {
           final visibleRatio = viewportDimension / totalContentHeight;
           _scrollThumbHeight = (widget.height * visibleRatio).clamp(
             30.0,
@@ -361,20 +395,25 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   }
 
   void _onVerticalDragStart(DragStartDetails details) {
+    if (!_controllerReady || !_scrollController.hasClients) return;
     _isDragging = true;
     _scrollToPosition(details.localPosition.dy);
   }
 
   void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (!_controllerReady || !_scrollController.hasClients) return;
     _scrollToPosition(details.localPosition.dy);
   }
 
   void _onVerticalDragEnd(DragEndDetails details) {
     _isDragging = false;
+    if (_controllerReady && _scrollController.hasClients) {
+      _updateScrollThumb();
+    }
   }
 
   void _scrollToPosition(double localPosition) {
-    if (!_scrollController.hasClients) return;
+    if (!_controllerReady || !_scrollController.hasClients) return;
 
     try {
       final trackHeight = widget.height;
@@ -384,7 +423,6 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
       if (availableTrack <= 0) return;
 
       final scrollRatio = (thumbCenter / availableTrack).clamp(0.0, 1.0);
-
       final maxScrollExtent = _scrollController.position.maxScrollExtent;
       final newOffset = maxScrollExtent * scrollRatio;
 
@@ -395,14 +433,29 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   }
 
   @override
+  void dispose() {
+    if (_controllerReady) {
+      _scrollController.removeListener(_updateScrollThumb);
+    }
+    if (widget.controller == null) {
+      _scrollController.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final showThumb =
+        _controllerReady &&
+        _scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0;
+
     return Container(
       width: 2,
       height: widget.height,
       child: Stack(
         children: [
-          if (_scrollController.hasClients &&
-              _scrollController.position.maxScrollExtent > 0)
+          if (showThumb)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 100),
               top: _scrollThumbPosition,

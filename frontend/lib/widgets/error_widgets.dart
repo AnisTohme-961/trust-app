@@ -1,66 +1,123 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-class ErrorBanner extends StatelessWidget {
+class ErrorBanner extends StatefulWidget {
   final String message;
-  const ErrorBanner({Key? key, required this.message}) : super(key: key);
+  final Duration duration;
+
+  const ErrorBanner({
+    Key? key,
+    required this.message,
+    this.duration = const Duration(seconds: 3),
+  }) : super(key: key);
+
+  @override
+  State<ErrorBanner> createState() => _ErrorBannerState();
+}
+
+class _ErrorBannerState extends State<ErrorBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _progressController;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressController = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _progressController.forward();
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        width: 430,
-        height: 200,
-        padding: const EdgeInsets.fromLTRB(23, 14, 23, 40),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0B1320),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          border: Border.all(color: const Color(0xFFF42222), width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0xFFAF2222),
-              offset: Offset(0, -3),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Red line above everything
-            Container(width: 80, height: 2, color: const Color(0xFFF42222)),
-            const SizedBox(height: 12),
-            // Row with image on the left and text on the right
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Image.asset('assets/images/attention.png'),
+      child: AnimatedBuilder(
+        animation: _progressController,
+        builder: (context, child) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0B1320),
+                border: Border(
+                  top: const BorderSide(color: Color(0xFFF42222), width: 2),
+                  left: const BorderSide(color: Color(0xFFF42222), width: 2),
+                  right: const BorderSide(color: Color(0xFFF42222), width: 2),
                 ),
-                const SizedBox(width: 12), // spacing between image and text
-                Flexible(
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 20,
-                      height: 1.2,
-                      letterSpacing: 0,
-                      color: Colors.white,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0xFFAF2222),
+                    offset: Offset(0, 3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Content
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(23, 20, 23, 20),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF42222),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.priority_high,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              widget.message,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                                height: 1.3,
+                                letterSpacing: 0,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  // Progress bar as bottom border
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: 1 - _progressController.value,
+                      child: Container(
+                        height: 2,
+                        color: const Color(0xFFF42222),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -75,18 +132,71 @@ class ErrorStack extends StatefulWidget {
 
 class ErrorStackState extends State<ErrorStack> {
   final List<_ErrorItem> _errors = [];
+  OverlayEntry? _overlayEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _createOverlay();
+    });
+  }
+
+  void _createOverlay() {
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        child: IgnorePointer(
+          ignoring: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (int i = 0; i < _errors.length; i++) ...[
+                if (i != 0) const SizedBox(height: 16),
+                AnimatedSlide(
+                  key: ValueKey(_errors[i]),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  offset: const Offset(0, 0),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOut,
+                    opacity: 1.0,
+                    child: ErrorBanner(
+                      message: _errors[i].message,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (mounted) {
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+  }
 
   void showError(
     String message, {
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(seconds: 3),
   }) {
     final item = _ErrorItem(message: message);
     setState(() => _errors.add(item));
+
+    // Update the overlay
+    _overlayEntry?.markNeedsBuild();
 
     // Auto-remove after duration
     item.timer = Timer(duration, () {
       if (mounted) {
         setState(() => _errors.remove(item));
+        _overlayEntry?.markNeedsBuild();
       }
     });
   }
@@ -96,40 +206,14 @@ class ErrorStackState extends State<ErrorStack> {
     for (var e in _errors) {
       e.timer?.cancel();
     }
+    _overlayEntry?.remove();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: IgnorePointer(
-        ignoring: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          verticalDirection: VerticalDirection.up, // bottom → top order
-          children: [
-            for (int i = 0; i < _errors.length; i++) ...[
-              AnimatedSlide(
-                key: ValueKey(_errors[i]),
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeOut,
-                offset: Offset(0, 0), // start at position
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 350),
-                  curve: Curves.easeInOut,
-                  opacity: 1.0,
-                  child: ErrorBanner(message: _errors[i].message),
-                ),
-              ),
-              if (i != _errors.length - 1) const SizedBox(height: 30),
-            ],
-          ],
-        ),
-      ),
-    );
+    // Return an empty container since we're using Overlay
+    return const SizedBox.shrink();
   }
 }
 

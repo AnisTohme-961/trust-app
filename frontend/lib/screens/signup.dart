@@ -87,7 +87,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
         children: [
           // Your existing mobile layout code here...
           // [Include all the Positioned widgets from your original mobile code]
-          Positioned(
+          SizedBox(
             width: 430,
             height: 932,
             child: Stack(
@@ -164,8 +164,8 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                 // Progress Steps
                 Positioned(
                   top: 200,
-                  left: 0,
-                  right: 10,
+                  left: 10,
+                  right: 30,
                   child: SizedBox(
                     width: double.infinity,
                     child: Stack(
@@ -189,10 +189,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _buildStep("Profile\nStart", filled: true),
-                              _buildStep("Contact\nand Verify"),
-                              _buildStep("Security\nBase"),
-                              _buildStep("Register\nLive"),
-                              _buildStep("Register\nPattern"),
+                              _buildStep(" "),
+                              _buildStep(" "),
+                              _buildStep(" "),
+                              _buildStep(" "),
                             ],
                           ),
                         ),
@@ -236,8 +236,24 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                 controller: _firstNameController,
                                 focusNode: _firstFocusNode,
                                 onChanged: (value) {
+                                  // Capitalize the first letter
+                                  String capitalized = value.isNotEmpty
+                                      ? value[0].toUpperCase() +
+                                            value.substring(1)
+                                      : '';
+
+                                  if (capitalized != value) {
+                                    _firstNameController.value =
+                                        TextEditingValue(
+                                          text: capitalized,
+                                          selection: TextSelection.collapsed(
+                                            offset: capitalized.length,
+                                          ),
+                                        );
+                                  }
+
                                   context.read<UserProvider>().setFirstName(
-                                    value,
+                                    capitalized,
                                   );
                                 },
                                 style: const TextStyle(
@@ -281,15 +297,33 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                 ),
                               ),
                             ),
+
                             const SizedBox(width: 14),
+
                             SizedBox(
                               width: 180,
                               child: TextField(
                                 controller: _lastNameController,
                                 focusNode: _lastFocusNode,
                                 onChanged: (value) {
+                                  // Capitalize the first letter
+                                  String capitalized = value.isNotEmpty
+                                      ? value[0].toUpperCase() +
+                                            value.substring(1)
+                                      : '';
+
+                                  if (capitalized != value) {
+                                    _lastNameController.value =
+                                        TextEditingValue(
+                                          text: capitalized,
+                                          selection: TextSelection.collapsed(
+                                            offset: capitalized.length,
+                                          ),
+                                        );
+                                  }
+
                                   context.read<UserProvider>().setLastName(
-                                    value,
+                                    capitalized,
                                   );
                                 },
                                 style: const TextStyle(
@@ -810,30 +844,33 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     );
   }
 
-  Column _buildStep(String label, {bool filled = false}) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: filled ? const Color(0xFF00F0FF) : Colors.white,
-          child: filled
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
-              : null,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-            height: 1.0,
-            letterSpacing: 0,
-            color: Colors.white,
+  Widget _buildStep(String label, {bool filled = false}) {
+    return SizedBox(
+      height: 62,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: filled ? const Color(0xFF00F0FF) : Colors.white,
+            child: filled
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.0,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

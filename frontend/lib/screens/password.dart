@@ -189,10 +189,10 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
           children: [
             // Buttons container
             Positioned(
-              top: 100,
+              top: 80,
               left: 99,
               child: SizedBox(
-                width: 230,
+                width: 240,
                 height: 40,
                 child: Stack(
                   children: [
@@ -292,7 +292,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
             ),
             // Add this inside the Stack children, below the buttons Positioned
             Positioned(
-              top: 152,
+              top: 132,
               left: 66,
               child: Container(
                 width: 299,
@@ -312,9 +312,9 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
               ),
             ),
             Positioned(
-              top: 200,
-              left: 0,
-              right: 0,
+              top: 180,
+              left: 30,
+              right: 30,
               child: SizedBox(
                 width: double.infinity,
                 child: Stack(
@@ -323,8 +323,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                     // Progress Line
                     Positioned(
                       top: 9.5,
-                      left: 32,
-                      right: 40,
+                      left: 20,
+                      right: 20,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           const totalSteps = 5;
@@ -377,12 +377,16 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                     ),
 
                     // Progress Steps
+                    // Progress Steps
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // change to:
+                      crossAxisAlignment: CrossAxisAlignment
+                          .start, // <-- makes bullets align horizontally
                       children: [
-                        _buildStep("Profile\nStart", filled: true),
+                        _buildStep("", filled: true),
                         _buildStep(
-                          "Contact\nand Verify",
+                          "",
                           filled: true,
                           filledColor: const Color(0xFF0EA0BB),
                         ),
@@ -391,8 +395,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                           filled: true,
                           filledColor: const Color(0xFF0764AD),
                         ),
-                        _buildStep("Register\nLive"),
-                        _buildStep("Register\nPattern"),
+                        _buildStep(""),
+                        _buildStep(""),
                       ],
                     ),
                   ],
@@ -400,7 +404,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
               ),
             ),
             Positioned(
-              top: 287,
+              top: 267,
               left: 18,
               child: Container(
                 width: 394,
@@ -686,7 +690,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
               ),
             ),
             Positioned(
-              top: 451,
+              top: 431,
               left: 10,
               child: Container(
                 width: 409,
@@ -872,7 +876,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
               ),
             ),
             Positioned(
-              top: 590, // adjust as needed
+              top: 570, // adjust as needed
               left: 18,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,7 +957,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
             ),
 
             Positioned(
-              top: 690,
+              top: 670,
               left: 15.5,
               child: SizedBox(
                 width: 399,
@@ -1121,7 +1125,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
               ),
             ),
             Positioned(
-              top: 785,
+              top: 765,
               left: 70,
               child: SizedBox(
                 width: 291,
@@ -1141,7 +1145,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
               ),
             ),
 
-            Positioned(bottom: 45, left: 0, right: 0, child: FooterWidget()),
+            Positioned(bottom: 65, left: 0, right: 0, child: FooterWidget()),
             ErrorStack(key: _errorStackKey),
           ],
         ),
