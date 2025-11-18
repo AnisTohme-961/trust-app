@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        home: ResponsiveHomePage(),
+        home: ForgotEidPage(),
         routes: appRoutes(),
       ),
     );
