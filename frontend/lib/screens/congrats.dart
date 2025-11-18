@@ -118,26 +118,26 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                         // Add this import at the top
 
                         // EID + Icon
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "EID: ${userProvider.eid}",
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 25,
-                                color: Color(0xFF0B1320),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(
+                              ClipboardData(text: userProvider.eid),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "EID: ${userProvider.eid}",
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 25,
+                                  color: Color(0xFF0B1320),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 5),
-                            GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(
-                                  ClipboardData(text: userProvider.eid),
-                                );
-                              },
-                              child: SizedBox(
+                              const SizedBox(width: 5),
+                              SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: Image.asset(
@@ -146,8 +146,8 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                                   height: 18,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

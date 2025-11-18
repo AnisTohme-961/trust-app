@@ -51,7 +51,6 @@ class MobileRegisterPinScreen extends StatefulWidget {
 
 class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   final List<String> _pin = [];
-  bool _obscurePin = true;
   late final List<String> _numbers;
 
   final GlobalKey<ErrorStackState> _errorStackKey =
@@ -114,15 +113,33 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
         );
       }
     } else {
-      // Enter original PIN
+      // Enter original PIN - UPDATED WITH SLIDE ANIMATION
       if (_pin.length == 4) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => ResponsiveRegisterPinScreen(
-              title: "Confirm PIN",
-              originalPin: enteredPin,
-            ),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                ResponsiveRegisterPinScreen(
+                  title: "Confirm PIN",
+                  originalPin: enteredPin,
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOut;
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  var offsetAnimation = animation.drive(tween);
+
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  );
+                },
+            transitionDuration: const Duration(milliseconds: 300),
           ),
         );
         _pin.clear();
@@ -218,34 +235,19 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                   ),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            widget.title,
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 30,
-                              color: Colors.white,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () =>
-                                setState(() => _obscurePin = !_obscurePin),
-                            icon: Icon(
-                              _obscurePin
-                                  ? Ionicons.eye_off_outline
-                                  : Ionicons.eye_outline,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ],
+                      // Title only - eye icon removed
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 30,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 20),
 
-                      // PIN Boxes
+                      // PIN Boxes - always show actual digits
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(4, (index) {
@@ -263,7 +265,9 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              filled ? (_obscurePin ? '*' : _pin[index]) : '',
+                              filled
+                                  ? _pin[index]
+                                  : '', // Always show actual digit
                               style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w500,
@@ -332,7 +336,6 @@ class TabletRegisterPinScreen extends StatefulWidget {
 
 class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
   final List<String> _pin = [];
-  bool _obscurePin = true;
   late final List<String> _numbers;
 
   @override
@@ -391,13 +394,32 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
       }
     } else {
       if (_pin.length == 4) {
+        // UPDATED WITH SLIDE ANIMATION FOR TABLET
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => ResponsiveRegisterPinScreen(
-              title: "Confirm PIN",
-              originalPin: enteredPin,
-            ),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                ResponsiveRegisterPinScreen(
+                  title: "Confirm PIN",
+                  originalPin: enteredPin,
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOut;
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  var offsetAnimation = animation.drive(tween);
+
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  );
+                },
+            transitionDuration: const Duration(milliseconds: 300),
           ),
         );
         _pin.clear();
@@ -529,37 +551,19 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                   // ===== PIN Input Section =====
                                   Column(
                                     children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            widget.title,
-                                            style: const TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 30,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 20),
-                                          IconButton(
-                                            onPressed: () => setState(
-                                              () => _obscurePin = !_obscurePin,
-                                            ),
-                                            icon: Icon(
-                                              _obscurePin
-                                                  ? Ionicons.eye_off_outline
-                                                  : Ionicons.eye_outline,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ],
+                                      // Title only - eye icon removed
+                                      Text(
+                                        widget.title,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 30,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                       const SizedBox(height: 25),
 
-                                      // PIN Boxes - Larger for tablet
+                                      // PIN Boxes - Larger for tablet, always show actual digits
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
@@ -584,10 +588,8 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                             alignment: Alignment.center,
                                             child: Text(
                                               filled
-                                                  ? (_obscurePin
-                                                        ? '*'
-                                                        : _pin[index])
-                                                  : '',
+                                                  ? _pin[index]
+                                                  : '', // Always show actual digit
                                               style: const TextStyle(
                                                 fontFamily: 'Inter',
                                                 fontWeight: FontWeight.w500,
