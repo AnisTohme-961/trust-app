@@ -46,7 +46,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        home: ResponsiveHomePage(),
         home: const ResponsiveHomePage(),
         routes: appRoutes(),
       ),
