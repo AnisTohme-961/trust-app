@@ -304,7 +304,7 @@ class MobileSignInPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              const SizedBox(height: 75),
+              const SizedBox(height: 20),
               Image.asset(
                 'assets/images/egetyPerfectStar.png',
                 width: 111,
@@ -452,7 +452,7 @@ class MobileSignInPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 color: const Color(0xFF0B1320),
                 child: const Text(
-                  'E-mail',
+                  'Identifier',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,

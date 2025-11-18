@@ -6,16 +6,18 @@ import 'dart:async';
 import '../widgets/error_widgets.dart';
 
 class ResponsiveRegisterPatternScreen extends StatelessWidget {
-  const ResponsiveRegisterPatternScreen({super.key});
+  final List<int>? originalPattern;
+
+  const ResponsiveRegisterPatternScreen({super.key, this.originalPattern});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
-          return const TabletRegisterPatternScreen();
+          return TabletRegisterPatternScreen(originalPattern: originalPattern);
         } else {
-          return const MobileRegisterPatternScreen();
+          return MobileRegisterPatternScreen(originalPattern: originalPattern);
         }
       },
     );
@@ -23,7 +25,9 @@ class ResponsiveRegisterPatternScreen extends StatelessWidget {
 }
 
 class MobileRegisterPatternScreen extends StatefulWidget {
-  const MobileRegisterPatternScreen({super.key});
+  final List<int>? originalPattern;
+
+  const MobileRegisterPatternScreen({super.key, this.originalPattern});
 
   @override
   State<MobileRegisterPatternScreen> createState() =>
@@ -44,8 +48,8 @@ class _MobileRegisterPatternScreenState
   final double dotSize = 17;
   final GlobalKey _gridKey = GlobalKey();
 
-  bool showPatternLines = true;
-  bool isEyeVisible = true;
+  // Remove showPatternLines and isEyeVisible variables
+  // Pattern will always be visible
 
   int currentLockingFrame = 0;
   bool showLockingAnimation = false;
@@ -55,6 +59,15 @@ class _MobileRegisterPatternScreenState
     'assets/images/locking3.png',
     'assets/images/locking5.png',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.originalPattern != null) {
+      registeredPattern = List.from(widget.originalPattern!);
+      isConfirmMode = true;
+    }
+  }
 
   Future<void> _logout() async {
     try {
@@ -151,12 +164,34 @@ class _MobileRegisterPatternScreenState
         return;
       }
 
+      final patternToConfirm = List<int>.from(selectedDots);
       setState(() {
-        registeredPattern = List.from(selectedDots);
-        isConfirmMode = true;
-        patternCompleted = false;
         selectedDots = [];
+        patternCompleted = false;
       });
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              ResponsiveRegisterPatternScreen(
+                originalPattern: patternToConfirm,
+              ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+            var tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+
+            return SlideTransition(position: offsetAnimation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      );
+      return;
     } else {
       if (_patternsMatch(registeredPattern, selectedDots)) {
         setState(() {
@@ -274,215 +309,232 @@ class _MobileRegisterPatternScreenState
                       ),
                     ),
                     const SizedBox(height: 40),
-                    // Pattern Header
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          isConfirmMode
-                              ? 'Confirm Pattern'
-                              : 'Register Pattern',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 30,
-                            color: Colors.white,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final offsetAnimation = Tween<Offset>(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return ClipRect(
+                          child: SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              showPatternLines = !showPatternLines;
-                              isEyeVisible = !isEyeVisible;
-                            });
-                          },
-                          child: Image.asset(
-                            isEyeVisible
-                                ? 'assets/images/whiteEye.png'
-                                : 'assets/images/whiteEyeSlash.png',
-                            width: 24,
-                            height: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      isConfirmMode
-                          ? 'Redraw your pattern to confirm'
-                          : 'Draw a secure pattern (min. 4 dots) \n to protect your account',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 15,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Pattern Grid
-                    Center(
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: Container(
-                          key: _gridKey,
-                          width: 280,
-                          height: 280,
-                          child: GestureDetector(
-                            onPanStart: (_) {
-                              setState(() {
-                                selectedDots = [];
-                                patternCompleted = false;
-                              });
-                            },
-                            onPanUpdate: (details) {
-                              RenderBox box =
-                                  _gridKey.currentContext!.findRenderObject()
-                                      as RenderBox;
-                              Offset localPos = box.globalToLocal(
-                                details.globalPosition,
-                              );
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey<bool>(isConfirmMode),
+                        child: Column(
+                          children: [
+                            // Pattern Header - Remove eye icon
+                            Text(
+                              isConfirmMode
+                                  ? 'Confirm Pattern'
+                                  : 'Register Pattern',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 30,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              isConfirmMode
+                                  ? 'Redraw your pattern to confirm'
+                                  : 'Draw a secure pattern (min. 4 dots) \n to protect your account',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Pattern Grid
+                            Center(
+                              child: AspectRatio(
+                                aspectRatio: 1,
+                                child: Container(
+                                  key: _gridKey,
+                                  width: 280,
+                                  height: 280,
+                                  child: GestureDetector(
+                                    onPanStart: (_) {
+                                      setState(() {
+                                        selectedDots = [];
+                                        patternCompleted = false;
+                                      });
+                                    },
+                                    onPanUpdate: (details) {
+                                      RenderBox box =
+                                          _gridKey.currentContext!
+                                                  .findRenderObject()
+                                              as RenderBox;
+                                      Offset localPos = box.globalToLocal(
+                                        details.globalPosition,
+                                      );
 
-                              double cellSize = box.size.width / gridSize;
-                              int row = (localPos.dy / cellSize).floor();
-                              int col = (localPos.dx / cellSize).floor();
-                              int idx = row * gridSize + col;
+                                      double cellSize =
+                                          box.size.width / gridSize;
+                                      int row = (localPos.dy / cellSize)
+                                          .floor();
+                                      int col = (localPos.dx / cellSize)
+                                          .floor();
+                                      int idx = row * gridSize + col;
 
-                              if (row >= 0 &&
-                                  row < gridSize &&
-                                  col >= 0 &&
-                                  col < gridSize &&
-                                  !selectedDots.contains(idx)) {
-                                setState(() {
-                                  selectedDots.add(idx);
-                                });
-                              }
-                            },
-                            onPanEnd: (_) {
-                              if (selectedDots.length >= 4) {
-                                setState(() {
-                                  patternCompleted = true;
-                                });
-                                Future.delayed(
-                                  const Duration(milliseconds: 500),
-                                  () => _onPatternComplete(),
-                                );
-                              } else {
-                                _errorStackKey.currentState?.showError(
-                                  "Minimum 4 dots",
-                                );
-                                setState(() {
-                                  selectedDots = [];
-                                  patternCompleted = false;
-                                });
-                              }
-                            },
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                double cellSize =
-                                    constraints.maxWidth / gridSize;
-                                List<Offset> dotCenters = [];
-                                for (int row = 0; row < gridSize; row++) {
-                                  for (int col = 0; col < gridSize; col++) {
-                                    double x = (col + 0.5) * cellSize;
-                                    double y = (row + 0.5) * cellSize;
-                                    dotCenters.add(Offset(x, y));
-                                  }
-                                }
-
-                                return Stack(
-                                  children: [
-                                    if (patternsMatched && isConfirmMode)
-                                      Center(
-                                        child: Image.asset(
-                                          'assets/images/lockBackground.png',
-                                          width: 100,
-                                          height: 100,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                    if (patternsMatched && showLockingAnimation)
-                                      Center(
-                                        child: Image.asset(
-                                          lockingFrames[currentLockingFrame],
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                    Opacity(
-                                      opacity: patternCompleted ? 0.7 : 1.0,
-                                      child: Stack(
-                                        children: [
-                                          if (showPatternLines)
-                                            CustomPaint(
-                                              size: Size.infinite,
-                                              painter: _PatternPainter(
-                                                selectedDots: selectedDots,
-                                                dotCenters: dotCenters,
-                                              ),
-                                            ),
+                                      if (row >= 0 &&
+                                          row < gridSize &&
+                                          col >= 0 &&
+                                          col < gridSize &&
+                                          !selectedDots.contains(idx)) {
+                                        setState(() {
+                                          selectedDots.add(idx);
+                                        });
+                                      }
+                                    },
+                                    onPanEnd: (_) {
+                                      if (selectedDots.length >= 4) {
+                                        setState(() {
+                                          patternCompleted = true;
+                                        });
+                                        Future.delayed(
+                                          const Duration(milliseconds: 500),
+                                          () => _onPatternComplete(),
+                                        );
+                                      } else {
+                                        _errorStackKey.currentState?.showError(
+                                          "Minimum 4 dots",
+                                        );
+                                        setState(() {
+                                          selectedDots = [];
+                                          patternCompleted = false;
+                                        });
+                                      }
+                                    },
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        double cellSize =
+                                            constraints.maxWidth / gridSize;
+                                        List<Offset> dotCenters = [];
+                                        for (
+                                          int row = 0;
+                                          row < gridSize;
+                                          row++
+                                        ) {
                                           for (
-                                            int i = 0;
-                                            i < dotCenters.length;
-                                            i++
-                                          )
-                                            Positioned(
-                                              left:
-                                                  dotCenters[i].dx -
-                                                  dotSize / 2,
-                                              top:
-                                                  dotCenters[i].dy -
-                                                  dotSize / 2,
-                                              child: Container(
-                                                width: dotSize,
-                                                height: dotSize,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: showPatternLines
-                                                      ? (selectedDots.contains(
-                                                              i,
-                                                            )
-                                                            ? const Color(
-                                                                0xFF00F0FF,
-                                                              )
-                                                            : Colors.white)
-                                                      : Colors.white,
-                                                  boxShadow:
-                                                      (showPatternLines &&
-                                                          selectedDots.contains(
-                                                            i,
-                                                          ))
-                                                      ? [
-                                                          BoxShadow(
-                                                            color: const Color(
-                                                              0xFF00F0FF,
-                                                            ).withOpacity(0.7),
-                                                            blurRadius: 7,
-                                                          ),
-                                                        ]
-                                                      : [],
+                                            int col = 0;
+                                            col < gridSize;
+                                            col++
+                                          ) {
+                                            double x = (col + 0.5) * cellSize;
+                                            double y = (row + 0.5) * cellSize;
+                                            dotCenters.add(Offset(x, y));
+                                          }
+                                        }
+
+                                        return Stack(
+                                          children: [
+                                            if (patternsMatched &&
+                                                isConfirmMode)
+                                              Center(
+                                                child: Image.asset(
+                                                  'assets/images/lockBackground.png',
+                                                  width: 100,
+                                                  height: 100,
+                                                  fit: BoxFit.contain,
                                                 ),
                                               ),
+                                            if (patternsMatched &&
+                                                showLockingAnimation)
+                                              Center(
+                                                child: Image.asset(
+                                                  lockingFrames[currentLockingFrame],
+                                                  width: 60,
+                                                  height: 60,
+                                                  fit: BoxFit.contain,
+                                                ),
+                                              ),
+                                            Opacity(
+                                              opacity: patternCompleted
+                                                  ? 0.7
+                                                  : 1.0,
+                                              child: Stack(
+                                                children: [
+                                                  // Always show pattern lines
+                                                  CustomPaint(
+                                                    size: Size.infinite,
+                                                    painter: _PatternPainter(
+                                                      selectedDots:
+                                                          selectedDots,
+                                                      dotCenters: dotCenters,
+                                                    ),
+                                                  ),
+                                                  for (
+                                                    int i = 0;
+                                                    i < dotCenters.length;
+                                                    i++
+                                                  )
+                                                    Positioned(
+                                                      left:
+                                                          dotCenters[i].dx -
+                                                          dotSize / 2,
+                                                      top:
+                                                          dotCenters[i].dy -
+                                                          dotSize / 2,
+                                                      child: Container(
+                                                        width: dotSize,
+                                                        height: dotSize,
+                                                        decoration: BoxDecoration(
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          color:
+                                                              selectedDots
+                                                                  .contains(i)
+                                                              ? const Color(
+                                                                  0xFF00F0FF,
+                                                                )
+                                                              : Colors.white,
+                                                          boxShadow:
+                                                              selectedDots
+                                                                  .contains(i)
+                                                              ? [
+                                                                  BoxShadow(
+                                                                    color: const Color(
+                                                                      0xFF00F0FF,
+                                                                    ).withOpacity(0.7),
+                                                                    blurRadius:
+                                                                        7,
+                                                                  ),
+                                                                ]
+                                                              : [],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
                                             ),
-                                        ],
-                                      ),
+                                          ],
+                                        );
+                                      },
                                     ),
-                                  ],
-                                );
-                              },
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 15),
+                            // Back & Logout Buttons
+                            buildBackAndLogoutButtons(context),
+                            const SizedBox(height: 30),
+                            const FooterWidget(),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 15),
-                    // Back & Logout Buttons
-                    buildBackAndLogoutButtons(context),
-                    const SizedBox(height: 30),
-                    const FooterWidget(),
                   ],
                 ),
               ),
@@ -497,7 +549,9 @@ class _MobileRegisterPatternScreenState
 }
 
 class TabletRegisterPatternScreen extends StatefulWidget {
-  const TabletRegisterPatternScreen({super.key});
+  final List<int>? originalPattern;
+
+  const TabletRegisterPatternScreen({super.key, this.originalPattern});
 
   @override
   State<TabletRegisterPatternScreen> createState() =>
@@ -516,8 +570,8 @@ class _TabletRegisterPatternScreenState
   final double dotSize = 16; // Larger dots for tablet
   final GlobalKey _gridKey = GlobalKey();
 
-  bool showPatternLines = true;
-  bool isEyeVisible = true;
+  // Remove showPatternLines and isEyeVisible variables
+  // Pattern will always be visible
 
   int currentLockingFrame = 0;
   bool showLockingAnimation = false;
@@ -527,6 +581,15 @@ class _TabletRegisterPatternScreenState
     'assets/images/locking3.png',
     'assets/images/locking5.png',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.originalPattern != null) {
+      registeredPattern = List.from(widget.originalPattern!);
+      isConfirmMode = true;
+    }
+  }
 
   Future<void> _logout() async {
     try {
@@ -619,12 +682,44 @@ class _TabletRegisterPatternScreenState
 
   void _onPatternComplete() async {
     if (!isConfirmMode) {
+      if (selectedDots.length < 4) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Minimum 4 dots")));
+        setState(() {
+          selectedDots = [];
+          patternCompleted = false;
+        });
+        return;
+      }
+      final patternToConfirm = List<int>.from(selectedDots);
       setState(() {
-        registeredPattern = List.from(selectedDots);
-        isConfirmMode = true;
-        patternCompleted = false;
         selectedDots = [];
+        patternCompleted = false;
       });
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              ResponsiveRegisterPatternScreen(
+                originalPattern: patternToConfirm,
+              ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+            var tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+
+            return SlideTransition(position: offsetAnimation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      );
+      return;
     } else {
       if (_patternsMatch(registeredPattern, selectedDots)) {
         setState(() {
@@ -775,245 +870,268 @@ class _TabletRegisterPatternScreenState
                                     ),
                                   ),
                                   const SizedBox(height: 20),
-
-                                  // Pattern Header
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        isConfirmMode
-                                            ? 'Confirm Pattern'
-                                            : 'Register Pattern',
-                                        style: const TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 30,
-                                          color: Colors.white,
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 400),
+                                    switchInCurve: Curves.easeOutCubic,
+                                    switchOutCurve: Curves.easeInCubic,
+                                    transitionBuilder: (child, animation) {
+                                      final offsetAnimation = Tween<Offset>(
+                                        begin: const Offset(1.0, 0.0),
+                                        end: Offset.zero,
+                                      ).animate(animation);
+                                      return ClipRect(
+                                        child: SlideTransition(
+                                          position: offsetAnimation,
+                                          child: child,
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            showPatternLines =
-                                                !showPatternLines;
-                                            isEyeVisible = !isEyeVisible;
-                                          });
-                                        },
-                                        child: Image.asset(
-                                          isEyeVisible
-                                              ? 'assets/images/whiteEye.png'
-                                              : 'assets/images/whiteEyeSlash.png',
-                                          width: 16,
-                                          height: 15,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                      );
+                                    },
+                                    child: KeyedSubtree(
+                                      key: ValueKey<bool>(isConfirmMode),
+                                      child: Column(
+                                        children: [
+                                          // Pattern Header - Remove eye icon
+                                          Text(
+                                            isConfirmMode
+                                                ? 'Confirm Pattern'
+                                                : 'Register Pattern',
+                                            style: const TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 30,
+                                              color: Colors.white,
+                                            ),
+                                          ),
 
-                                  Text(
-                                    isConfirmMode
-                                        ? 'Redraw your pattern to confirm'
-                                        : 'Draw a secure pattern (minimum 4 dots) \n to protect your account',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 15,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 0),
+                                          Text(
+                                            isConfirmMode
+                                                ? 'Redraw your pattern to confirm'
+                                                : 'Draw a secure pattern (minimum 4 dots) \n to protect your account',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 15,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 0),
 
-                                  // Pattern Grid - Larger for tablet
-                                  Center(
-                                    child: SizedBox(
-                                      key: _gridKey,
-                                      width: 350, // Larger grid for tablet
-                                      height: 300,
-                                      child: GestureDetector(
-                                        onPanStart: (_) {
-                                          setState(() {
-                                            selectedDots = [];
-                                            patternCompleted = false;
-                                          });
-                                        },
-                                        onPanUpdate: (details) {
-                                          RenderBox box =
-                                              _gridKey.currentContext!
-                                                      .findRenderObject()
-                                                  as RenderBox;
-                                          Offset localPos = box.globalToLocal(
-                                            details.globalPosition,
-                                          );
+                                          // Pattern Grid - Larger for tablet
+                                          Center(
+                                            child: SizedBox(
+                                              key: _gridKey,
+                                              width:
+                                                  350, // Larger grid for tablet
+                                              height: 300,
+                                              child: GestureDetector(
+                                                onPanStart: (_) {
+                                                  setState(() {
+                                                    selectedDots = [];
+                                                    patternCompleted = false;
+                                                  });
+                                                },
+                                                onPanUpdate: (details) {
+                                                  RenderBox box =
+                                                      _gridKey.currentContext!
+                                                              .findRenderObject()
+                                                          as RenderBox;
+                                                  Offset localPos = box
+                                                      .globalToLocal(
+                                                        details.globalPosition,
+                                                      );
 
-                                          double cellSize =
-                                              box.size.width / gridSize;
-                                          int row = (localPos.dy / cellSize)
-                                              .floor();
-                                          int col = (localPos.dx / cellSize)
-                                              .floor();
-                                          int idx = row * gridSize + col;
+                                                  double cellSize =
+                                                      box.size.width / gridSize;
+                                                  int row =
+                                                      (localPos.dy / cellSize)
+                                                          .floor();
+                                                  int col =
+                                                      (localPos.dx / cellSize)
+                                                          .floor();
+                                                  int idx =
+                                                      row * gridSize + col;
 
-                                          if (row >= 0 &&
-                                              row < gridSize &&
-                                              col >= 0 &&
-                                              col < gridSize &&
-                                              !selectedDots.contains(idx)) {
-                                            setState(() {
-                                              selectedDots.add(idx);
-                                            });
-                                          }
-                                        },
-                                        onPanEnd: (_) {
-                                          if (selectedDots.length >= 4) {
-                                            setState(() {
-                                              patternCompleted = true;
-                                            });
-                                            Future.delayed(
-                                              const Duration(milliseconds: 500),
-                                              () => _onPatternComplete(),
-                                            );
-                                          } else {
-                                            setState(() {
-                                              selectedDots = [];
-                                              patternCompleted = false;
-                                            });
-                                          }
-                                        },
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            double cellSize =
-                                                constraints.maxWidth / gridSize;
+                                                  if (row >= 0 &&
+                                                      row < gridSize &&
+                                                      col >= 0 &&
+                                                      col < gridSize &&
+                                                      !selectedDots.contains(
+                                                        idx,
+                                                      )) {
+                                                    setState(() {
+                                                      selectedDots.add(idx);
+                                                    });
+                                                  }
+                                                },
+                                                onPanEnd: (_) {
+                                                  if (selectedDots.length >=
+                                                      4) {
+                                                    setState(() {
+                                                      patternCompleted = true;
+                                                    });
+                                                    Future.delayed(
+                                                      const Duration(
+                                                        milliseconds: 500,
+                                                      ),
+                                                      () =>
+                                                          _onPatternComplete(),
+                                                    );
+                                                  } else {
+                                                    setState(() {
+                                                      selectedDots = [];
+                                                      patternCompleted = false;
+                                                    });
+                                                  }
+                                                },
+                                                child: LayoutBuilder(
+                                                  builder: (context, constraints) {
+                                                    double cellSize =
+                                                        constraints.maxWidth /
+                                                        gridSize;
 
-                                            List<Offset> dotCenters = [];
-                                            for (
-                                              int row = 0;
-                                              row < gridSize;
-                                              row++
-                                            ) {
-                                              for (
-                                                int col = 0;
-                                                col < gridSize;
-                                                col++
-                                              ) {
-                                                double x =
-                                                    (col + 0.5) * cellSize;
-                                                double y =
-                                                    (row + 0.5) * cellSize;
-                                                dotCenters.add(Offset(x, y));
-                                              }
-                                            }
-
-                                            return Stack(
-                                              children: [
-                                                if (patternsMatched &&
-                                                    isConfirmMode)
-                                                  Center(
-                                                    child: Image.asset(
-                                                      'assets/images/lockBackground.png',
-                                                      width: 120,
-                                                      height: 120,
-                                                      fit: BoxFit.contain,
-                                                    ),
-                                                  ),
-
-                                                if (patternsMatched &&
-                                                    showLockingAnimation)
-                                                  Center(
-                                                    child: Image.asset(
-                                                      lockingFrames[currentLockingFrame],
-                                                      width: 80,
-                                                      height: 80,
-                                                      fit: BoxFit.contain,
-                                                    ),
-                                                  ),
-
-                                                Opacity(
-                                                  opacity: patternCompleted
-                                                      ? 0.7
-                                                      : 1.0,
-                                                  child: Stack(
-                                                    children: [
-                                                      if (showPatternLines)
-                                                        CustomPaint(
-                                                          size: Size.infinite,
-                                                          painter:
-                                                              _PatternPainter(
-                                                                selectedDots:
-                                                                    selectedDots,
-                                                                dotCenters:
-                                                                    dotCenters,
-                                                              ),
-                                                        ),
+                                                    List<Offset> dotCenters =
+                                                        [];
+                                                    for (
+                                                      int row = 0;
+                                                      row < gridSize;
+                                                      row++
+                                                    ) {
                                                       for (
-                                                        int i = 0;
-                                                        i < dotCenters.length;
-                                                        i++
-                                                      )
-                                                        Positioned(
-                                                          left:
-                                                              dotCenters[i].dx -
-                                                              dotSize / 2,
-                                                          top:
-                                                              dotCenters[i].dy -
-                                                              dotSize / 2,
-                                                          child: Container(
-                                                            width: dotSize,
-                                                            height: dotSize,
-                                                            decoration: BoxDecoration(
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                              color:
-                                                                  showPatternLines
-                                                                  ? (selectedDots
-                                                                            .contains(
-                                                                              i,
-                                                                            )
-                                                                        ? const Color(
-                                                                            0xFF00F0FF,
-                                                                          )
-                                                                        : Colors
-                                                                              .white)
-                                                                  : Colors
-                                                                        .white,
-                                                              boxShadow:
-                                                                  (showPatternLines &&
-                                                                      selectedDots
-                                                                          .contains(
-                                                                            i,
-                                                                          ))
-                                                                  ? [
-                                                                      BoxShadow(
-                                                                        color: const Color(
-                                                                          0xFF00F0FF,
-                                                                        ).withOpacity(0.7),
-                                                                        blurRadius:
-                                                                            8,
-                                                                      ),
-                                                                    ]
-                                                                  : [],
+                                                        int col = 0;
+                                                        col < gridSize;
+                                                        col++
+                                                      ) {
+                                                        double x =
+                                                            (col + 0.5) *
+                                                            cellSize;
+                                                        double y =
+                                                            (row + 0.5) *
+                                                            cellSize;
+                                                        dotCenters.add(
+                                                          Offset(x, y),
+                                                        );
+                                                      }
+                                                    }
+
+                                                    return Stack(
+                                                      children: [
+                                                        if (patternsMatched &&
+                                                            isConfirmMode)
+                                                          Center(
+                                                            child: Image.asset(
+                                                              'assets/images/lockBackground.png',
+                                                              width: 120,
+                                                              height: 120,
+                                                              fit: BoxFit
+                                                                  .contain,
                                                             ),
                                                           ),
+
+                                                        if (patternsMatched &&
+                                                            showLockingAnimation)
+                                                          Center(
+                                                            child: Image.asset(
+                                                              lockingFrames[currentLockingFrame],
+                                                              width: 80,
+                                                              height: 80,
+                                                              fit: BoxFit
+                                                                  .contain,
+                                                            ),
+                                                          ),
+
+                                                        Opacity(
+                                                          opacity:
+                                                              patternCompleted
+                                                              ? 0.7
+                                                              : 1.0,
+                                                          child: Stack(
+                                                            children: [
+                                                              // Always show pattern lines
+                                                              CustomPaint(
+                                                                size: Size
+                                                                    .infinite,
+                                                                painter: _PatternPainter(
+                                                                  selectedDots:
+                                                                      selectedDots,
+                                                                  dotCenters:
+                                                                      dotCenters,
+                                                                ),
+                                                              ),
+                                                              for (
+                                                                int i = 0;
+                                                                i <
+                                                                    dotCenters
+                                                                        .length;
+                                                                i++
+                                                              )
+                                                                Positioned(
+                                                                  left:
+                                                                      dotCenters[i]
+                                                                          .dx -
+                                                                      dotSize /
+                                                                          2,
+                                                                  top:
+                                                                      dotCenters[i]
+                                                                          .dy -
+                                                                      dotSize /
+                                                                          2,
+                                                                  child: Container(
+                                                                    width:
+                                                                        dotSize,
+                                                                    height:
+                                                                        dotSize,
+                                                                    decoration: BoxDecoration(
+                                                                      shape: BoxShape
+                                                                          .circle,
+                                                                      color:
+                                                                          selectedDots.contains(
+                                                                            i,
+                                                                          )
+                                                                          ? const Color(
+                                                                              0xFF00F0FF,
+                                                                            )
+                                                                          : Colors.white,
+                                                                      boxShadow:
+                                                                          selectedDots.contains(
+                                                                            i,
+                                                                          )
+                                                                          ? [
+                                                                              BoxShadow(
+                                                                                color:
+                                                                                    const Color(
+                                                                                      0xFF00F0FF,
+                                                                                    ).withOpacity(
+                                                                                      0.7,
+                                                                                    ),
+                                                                                blurRadius: 8,
+                                                                              ),
+                                                                            ]
+                                                                          : [],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
+                                                          ),
                                                         ),
-                                                    ],
-                                                  ),
+                                                      ],
+                                                    );
+                                                  },
                                                 ),
-                                              ],
-                                            );
-                                          },
-                                        ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 40),
+
+                                          // Back & Logout Buttons
+                                          buildBackAndLogoutButtons(context),
+                                          const SizedBox(height: 110),
+
+                                          const FooterWidget(),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 40),
-
-                                  // Back & Logout Buttons
-                                  buildBackAndLogoutButtons(context),
-                                  const SizedBox(height: 110),
-
-                                  const FooterWidget(),
                                 ],
                               ),
                             ),
