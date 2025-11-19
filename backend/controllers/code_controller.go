@@ -87,21 +87,27 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 
 	// Fetch existing record
 	findErr := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existing)
+	if findErr != nil && !errors.Is(findErr, mongo.ErrNoDocuments) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
 	if findErr == nil {
 		attempts = existing.SendCodeAttempts
 
+		// Check if the current code is still valid (less than 15 min old)
 		if existing.SentAt.Add(15 * time.Minute).After(time.Now()) {
-			// Still valid → same code, do NOT generate new one
+			// Calculate cooldown based on attempts
 			currentCooldown := getCooldown(attempts)
 
-			// still increment attempts in DB
+			// Increment attempts in DB
 			_, _ = cc.EmailCodeCollection.UpdateOne(
 				ctx,
 				bson.M{"email": req.Email},
 				bson.M{"$inc": bson.M{"sendCodeAttempts": 1}},
 			)
 
-			// Send same email code
+			// Send the same code
 			if err := services.SendEmail(
 				req.Email,
 				"Your Verification Code",
@@ -111,7 +117,6 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 				return
 			}
 
-			// Return SAME code
 			c.JSON(http.StatusOK, gin.H{
 				"code":     existing.Code,
 				"attempts": attempts + 1,
@@ -119,18 +124,12 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 			})
 			return
 		}
-	} else if errors.Is(findErr, mongo.ErrNoDocuments) {
-		attempts = 0
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
 	}
 
-	currentCooldown := getCooldown(attempts)
-
-	attempts++
-
+	// Either no existing code or 15+ minutes passed → generate new code
+	attempts++ // count this request
 	newCode := utils.GenerateCode(6)
+	currentCooldown := getCooldown(attempts - 1) // previous attempts determine cooldown
 
 	_, err := cc.EmailCodeCollection.UpdateOne(
 		ctx,
@@ -215,32 +214,32 @@ func (cc *CodeController) VerifyCode(c *gin.Context) {
 	log.Printf("✅ Code for %s verified and deleted from DB", req.Email)
 }
 
-func (cc *CodeController) ConsumeCode(email, code string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+// func (cc *CodeController) ConsumeCode(email, code string) (bool, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
 
-	var existing models.EmailCode
-	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{
-		"email":    email,
-		"code":     code,
-		"isActive": true,
-	}).Decode(&existing)
-	if err != nil {
-		return false, err
-	}
+// 	var existing models.EmailCode
+// 	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{
+// 		"email":    email,
+// 		"code":     code,
+// 		"isActive": true,
+// 	}).Decode(&existing)
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	// Expire after 2 minutes
-	if time.Since(existing.SentAt) > 2*time.Minute {
-		// Delete expired code immediately
-		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
-		return false, errors.New("expired")
-	}
+// 	// Expire after 2 minutes
+// 	if time.Since(existing.SentAt) > 2*time.Minute {
+// 		// Delete expired code immediately
+// 		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+// 		return false, errors.New("expired")
+// 	}
 
-	// Valid code — delete it after use
-	_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+// 	// Valid code — delete it after use
+// 	_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
 
-	return true, nil
-}
+// 	return true, nil
+// }
 
 // ConsumeCode checks and deactivates a verification code
 // func (cc *CodeController) ConsumeCode(email, code string) (bool, error) {
@@ -445,19 +444,19 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 }
 
 // Setup TTL for auto-delete after 2 minutes
-func SetupEmailCodeTTL(collection *mongo.Collection) {
-	indexModel := mongo.IndexModel{
-		Keys:    bson.M{"sentAt": 1},
-		Options: options.Index().SetExpireAfterSeconds(2 * 60),
-	}
+// func SetupEmailCodeTTL(collection *mongo.Collection) {
+// 	indexModel := mongo.IndexModel{
+// 		Keys:    bson.M{"sentAt": 1},
+// 		Options: options.Index().SetExpireAfterSeconds(2 * 60),
+// 	}
 
-	_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
-	if err != nil {
-		fmt.Println("⚠️ Failed to create TTL index for email_codes:", err)
-	} else {
-		fmt.Println("✅ TTL index set: email_codes expire after 2 minutes")
-	}
-}
+// 	_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
+// 	if err != nil {
+// 		fmt.Println("⚠️ Failed to create TTL index for email_codes:", err)
+// 	} else {
+// 		fmt.Println("✅ TTL index set: email_codes expire after 2 minutes")
+// 	}
+// }
 
 func (cc *CodeController) SendResetCode(c *gin.Context) {
 	var req struct {

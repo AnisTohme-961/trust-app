@@ -8,10 +8,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class UserProvider extends ChangeNotifier {
   String selectedLanguage = '';
   String selectedLanguageId = '';
-  String firstName;
-  String lastName;
-  String sponsorCode;
-  String gender;
+  String firstName = '';
+  String lastName = '';
+  String sponsorCode = '';
+  String gender = '';
   String country = '';
   String countryId = '';
   String dob = '';
@@ -20,40 +20,25 @@ class UserProvider extends ChangeNotifier {
   String password = '';
   String confirmPassword = '';
 
+  // Cooldown & verification
   int emailCodeSecondsLeft = 0;
   bool emailCodeVerified = false;
+  bool isCooldownActive = false;
 
+  bool isCodeCorrect = false;
+  bool isCodeValid = false;
+
+  // Registration info
   bool isReturningUser = false;
   bool isRegistered = false;
   bool justRegistered = false;
-
   String eid = '';
 
-  // NEW VARIABLES FOR COOLDOWN
-  String emailCooldownEnd = ""; // stored ISO 8601 timestamp
-  bool isCooldownActive = false;
-
-  UserProvider({
-    this.selectedLanguage = "",
-    this.selectedLanguageId = "",
-    this.firstName = "",
-    this.lastName = "",
-    this.sponsorCode = "",
-    this.gender = "",
-    this.country = "",
-    this.countryId = "",
-    this.dob = "",
-    this.email = "",
-    this.emailCode = "",
-    this.password = "",
-    this.confirmPassword = "",
-    this.eid = "",
-  });
+  UserProvider();
 
   // --------------------------
   // BASIC SETTERS
   // --------------------------
-
   void setLanguage(LanguageModel lang) {
     selectedLanguage = lang.name;
     selectedLanguageId = lang.id;
@@ -111,6 +96,16 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+   void setCodeCorrect(bool val) {
+    isCodeCorrect = val;
+    notifyListeners();
+  }
+
+  void setCodeValid(bool val) {
+    isCodeValid = val;
+    notifyListeners();
+  }
+
   void setPassword(String val) {
     password = val;
     notifyListeners();
@@ -134,17 +129,24 @@ class UserProvider extends ChangeNotifier {
   // --------------------------
   // COOLDOWN SYSTEM
   // --------------------------
-
-  /// Save the cooldown end time in secure storage
-  Future<void> setEmailCooldownEnd(DateTime endTime, FlutterSecureStorage storage) async {
-    emailCooldownEnd = endTime.toIso8601String();
-    await storage.write(key: 'emailCooldownEnd', value: emailCooldownEnd);
+  Future<void> setEmailCooldownEndForEmail(
+    String email,
+    DateTime endTime,
+    FlutterSecureStorage storage,
+  ) async {
+    final key = "cooldown_$email";
+    await storage.write(key: key, value: endTime.toIso8601String());
+    emailCodeSecondsLeft = endTime.difference(DateTime.now()).inSeconds;
+    isCooldownActive = emailCodeSecondsLeft > 0;
     notifyListeners();
   }
 
-  /// Restore cooldown when app opens or provider loads
-  Future<void> restoreEmailCooldown(FlutterSecureStorage storage) async {
-    final saved = await storage.read(key: 'emailCooldownEnd');
+  Future<void> restoreEmailCooldownForEmail(
+    String email,
+    FlutterSecureStorage storage,
+  ) async {
+    final key = "cooldown_$email";
+    final saved = await storage.read(key: key);
 
     if (saved == null) {
       emailCodeSecondsLeft = 0;
@@ -153,44 +155,25 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
-    emailCooldownEnd = saved;
+    final endTime = DateTime.tryParse(saved) ?? DateTime.now();
+    final remaining = endTime.difference(DateTime.now()).inSeconds;
 
-    final end = DateTime.parse(saved);
-    final now = DateTime.now();
+    emailCodeSecondsLeft = remaining > 0 ? remaining : 0;
+    isCooldownActive = remaining > 0;
 
-    int remaining = end.difference(now).inSeconds;
-
-    if (remaining > 0) {
-      emailCodeSecondsLeft = remaining;
-      isCooldownActive = true;
-      notifyListeners();
-    } else {
-      emailCodeSecondsLeft = 0;
-      isCooldownActive = false;
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
   // --------------------------
   // PERSISTENCE
   // --------------------------
-
   Future<void> loadFromStorage(FlutterSecureStorage storage) async {
-    String? storedEID = await storage.read(key: 'eid');
-
-    if (storedEID != null) {
-      eid = storedEID;
-      firstName = await storage.read(key: 'firstName') ?? '';
-      lastName = await storage.read(key: 'lastName') ?? '';
-      isRegistered = true;
-      justRegistered = false;
-
-      // RESTORE COOLDOWN
-      emailCooldownEnd = await storage.read(key: 'emailCooldownEnd') ?? "";
-      await restoreEmailCooldown(storage);
-
-      notifyListeners();
-    }
+    eid = await storage.read(key: 'eid') ?? '';
+    firstName = await storage.read(key: 'firstName') ?? '';
+    lastName = await storage.read(key: 'lastName') ?? '';
+    isRegistered = eid.isNotEmpty;
+    justRegistered = false;
+    notifyListeners();
   }
 
   Future<void> registerUser({
@@ -202,7 +185,6 @@ class UserProvider extends ChangeNotifier {
     this.firstName = firstName;
     this.lastName = lastName;
     this.eid = eid;
-
     isRegistered = true;
     justRegistered = true;
     notifyListeners();
@@ -212,6 +194,7 @@ class UserProvider extends ChangeNotifier {
     await storage.write(key: 'eid', value: eid);
   }
 }
+
 
 
 

@@ -52,7 +52,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _isBtnHovered = false;
   bool _isHovered = false;
   String verificationCode = "";
-  bool isCodeCorrect = false;
+  // bool isCodeCorrect = false;
   int secondsRemaining = 119;
   double _dropdownAge = 400;
   bool _isTyping = false;
@@ -128,78 +128,83 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _hideInputFields = false;
   bool? _isCodeValid;
 
-  Future<void> fetchCodeFromGo() async {
-    final email = _emailController.text.trim();
+ Future<void> fetchCodeFromGo() async {
+  final email = _emailController.text.trim();
 
-    if (email.isEmpty) {
-      errorStackKey.currentState?.showError("Please enter your email first.");
-      return;
-    }
+  if (email.isEmpty) {
+    errorStackKey.currentState?.showError("Please enter your email first.");
+    return;
+  }
 
-    final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
-    if (!RegExp(emailPattern).hasMatch(email)) {
-      errorStackKey.currentState?.showError(
-        "Please enter a valid email address.",
-      );
-      return;
-    }
+  final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
+  if (!RegExp(emailPattern).hasMatch(email)) {
+    errorStackKey.currentState?.showError(
+      "Please enter a valid email address.",
+    );
+    return;
+  }
 
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/get-code"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email}),
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/get-code"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"email": email}),
+  );
+
+  final data = jsonDecode(response.body);
+  _timer?.cancel(); // stop any previous timer
+
+  if (response.statusCode == 200) {
+    serverCode = data['code'];
+    _attempts = data['attempts'] ?? 0;
+    _secondsLeft = data['cooldown'] ?? 0;
+
+    final storage = FlutterSecureStorage();
+    final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+    await storage.write(
+      key: "emailCooldownEnd",
+      value: cooldownEnd.toIso8601String(),
     );
 
-    final data = jsonDecode(response.body);
-    _timer?.cancel(); // stop any previous timer
+    // 1️⃣ Show "Code Sent" immediately
+    setState(() {
+      _showCodeSent = true;
+      _hideInputFields = false; // initially keep input visible
+      _codeDisabled = _secondsLeft > 0;
+    });
 
-    if (response.statusCode == 200) {
-      serverCode = data['code'];
-      _attempts = data['attempts'] ?? 0;
-      _secondsLeft = data['cooldown'] ?? 0;
-
-       final storage = FlutterSecureStorage();
-       final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
-        await storage.write(
-          key: "emailCooldownEnd",
-          value: cooldownEnd.toIso8601String(),
-        );
-
-      // 1️⃣ Show "Code Sent" immediately
-      setState(() {
-        _showCodeSent = true; // shows "Code Sent" box
-        _hideInputFields = false; // keep input boxes visible
-        _codeDisabled = _secondsLeft > 0; // disables input if cooldown
-      });
-
-      // 2️⃣ Start cooldown timer
-      if (_secondsLeft > 0) {
-        _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-          if (_secondsLeft > 0) {
-            setState(() => _secondsLeft--);
-          } else {
-            timer.cancel();
-            setState(() {
-              _codeDisabled = false; // re-enable typing
-            });
-          }
-        });
-      }
-
-      // 3️⃣ Hide "Code Sent" after 2 seconds
-      Future.delayed(Duration(seconds: 2), () {
-        if (mounted) {
+    // 2️⃣ Start cooldown timer
+    if (_secondsLeft > 0) {
+      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+        if (_secondsLeft > 0) {
+          setState(() => _secondsLeft--);
+        } else {
+          timer.cancel();
           setState(() {
-            _showCodeSent = false;
+            _codeDisabled = false;       // re-enable typing
+            _hideInputFields = true;     // enable input fields when cooldown ends
           });
         }
       });
     } else {
-      errorStackKey.currentState?.showError(
-        data['error'] ?? "Failed to send code. Please try again.",
-      );
+      // no cooldown → show input fields immediately
+      setState(() => _hideInputFields = true);
     }
+
+    // 3️⃣ Hide "Code Sent" after 2 seconds
+    Future.delayed(Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showCodeSent = false;
+        });
+      }
+    });
+  } else {
+    errorStackKey.currentState?.showError(
+      data['error'] ?? "Failed to send code. Please try again.",
+    );
   }
+}
+
 
   Future<bool> verifyCode(String email, String code) async {
     final body = {"email": email.trim(), "code": code.trim()};
@@ -225,9 +230,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
         setState(() {
           verifiedCode = code.trim();
-          isCodeCorrect = true;
+          // isCodeCorrect = true;
         });
-
+        userProvider.setCodeCorrect(true);
         print("➡ Stored verifiedCode in provider: ${userProvider.emailCode}");
         return true;
       } else {
@@ -258,6 +263,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   @override
   void initState() {
     super.initState();
+    
     restoreCooldown();
     _monthController = ScrollController(initialScrollOffset: 0.0);
     _dayController = ScrollController(initialScrollOffset: 0.0);
@@ -363,7 +369,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     if (value.length > 1) {
       _codecontrollers[index].text = value[0];
     }
-
+    
     setState(() {
       code[index] = _codecontrollers[index].text;
       _isTyping = code.any((c) => c.isNotEmpty);
@@ -381,19 +387,22 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       }
 
       bool valid = await verifyCode(email, code.join());
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
 
       if (valid) {
+        userProvider.setCodeCorrect(true);
+        userProvider.setCodeValid(true);
         setState(() {
-          isCodeCorrect = true;
-          _isCodeValid = true;
+          // isCodeCorrect = true;
+          // _isCodeValid = true;
           _tooManyAttempts = false;
         });
         _timer?.cancel();
       } else {
         _attempts++;
-
+        userProvider.setCodeCorrect(false);
         setState(() {
-          isCodeCorrect = false;
+          // isCodeCorrect = false;
           _isCodeValid = false;
         });
 
@@ -447,8 +456,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     final year = _years[_selectedYear].toString();
     return "$month $day $year";
   }
-
-  void restoreCooldown() async {
+void restoreCooldown() async {
   final storage = FlutterSecureStorage();
   final saved = await storage.read(key: "emailCooldownEnd");
   if (saved == null) return;
@@ -461,6 +469,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     setState(() {
       _secondsLeft = remaining;
       _codeDisabled = true;
+      _hideInputFields = false; // hide input fields while cooldown
     });
 
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -468,9 +477,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         setState(() => _secondsLeft--);
       } else {
         timer.cancel();
-        setState(() => _codeDisabled = false);
+        setState(() {
+          _codeDisabled = false;
+          _hideInputFields = true; // show input fields when cooldown ends
+        });
       }
     });
+  } else {
+    // cooldown expired → show input fields
+    setState(() => _hideInputFields = true);
   }
 }
 
@@ -510,10 +525,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         _codecontrollers[i].text = emailCode[i];
         code[i] = emailCode[i];
       }
-      isCodeCorrect = userProvider.emailCodeVerified;
+      userProvider.setCodeCorrect(userProvider.emailCodeVerified);
     }
 
-    if (userProvider.emailCodeSecondsLeft > 0 && !isCodeCorrect) {
+    if (userProvider.emailCodeSecondsLeft > 0 && !userProvider.isCodeCorrect) {
       _secondsLeft = userProvider.emailCodeSecondsLeft;
       _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -1238,7 +1253,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                         color: _codeDisabled
                                                             ? Colors
                                                                   .grey // disabled text
-                                                            : (isCodeCorrect
+                                                            : (userProvider.isCodeCorrect
                                                                   ? Color(
                                                                       0xFF00F0FF,
                                                                     )
@@ -1288,7 +1303,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                           );
                                         }),
 
-                                        if (isCodeCorrect ||
+                                        if (userProvider.isCodeCorrect ||
                                             _isCodeValid == false) ...[
                                           const SizedBox(width: 10),
                                           AnimatedContainer(
@@ -1298,16 +1313,16 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                             width: 24,
                                             height: 24,
                                             decoration: BoxDecoration(
-                                              color: isCodeCorrect
+                                              color: userProvider.isCodeCorrect
                                                   ? const Color(0xFF00F0FF)
                                                   : Colors.red,
                                               shape: BoxShape.circle,
                                             ),
                                             child: Icon(
-                                              isCodeCorrect
+                                              userProvider.isCodeCorrect
                                                   ? Icons.check
                                                   : Icons.close,
-                                              color: isCodeCorrect
+                                              color: userProvider.isCodeCorrect
                                                   ? Colors.black
                                                   : Colors.white,
                                               size: 16,
@@ -1996,7 +2011,6 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   bool _isBtnHovered = false;
   bool _isHovered = false;
   String verificationCode = "";
-  bool isCodeCorrect = false;
   int secondsRemaining = 119;
   double _dropdownAge = 400;
   bool _isTyping = false;
@@ -2087,6 +2101,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   @override
   void initState() {
     super.initState();
+    
     _monthController = ScrollController(initialScrollOffset: 0.0);
     _dayController = ScrollController(initialScrollOffset: 0.0);
     _yearController = ScrollController(initialScrollOffset: 0.0);
@@ -2263,8 +2278,10 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
 
         setState(() {
           verifiedCode = code.trim();
-          isCodeCorrect = true;
+          // isCodeCorrect = true;
         });
+        userProvider.setCodeCorrect(true);
+        
         return true;
       } else {
         return false;
@@ -2309,10 +2326,12 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
       }
 
       bool valid = await verifyCode(email, code.join());
-
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
       if (valid) {
+        
+        userProvider.setCodeCorrect(true);
         setState(() {
-          isCodeCorrect = true;
+          // isCodeCorrect = true;
           _isCodeValid = true;
           _tooManyAttempts = false;
         });
@@ -2320,8 +2339,9 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
       } else {
         _attempts++;
 
+        userProvider.setCodeCorrect(false);
         setState(() {
-          isCodeCorrect = false;
+          // isCodeCorrect = false;
           _isCodeValid = false;
         });
 
@@ -2403,10 +2423,11 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
         _codecontrollers[i].text = emailCode[i];
         code[i] = emailCode[i];
       }
-      isCodeCorrect = userProvider.emailCodeVerified;
+      userProvider.setCodeCorrect(userProvider.emailCodeVerified);
+
     }
 
-    if (userProvider.emailCodeSecondsLeft > 0 && !isCodeCorrect) {
+    if (userProvider.emailCodeSecondsLeft > 0 && !userProvider.isCodeCorrect) {
       _secondsLeft = userProvider.emailCodeSecondsLeft;
       _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -3350,6 +3371,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   }
 
   Widget _buildEmailVerificationSection() {
+    final userProvider = Provider.of<UserProvider>(context);
     return SizedBox(
       width: 400,
       child: Column(
@@ -3463,7 +3485,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                   maxLength: 1,
                                   keyboardType: TextInputType.number,
                                   style: TextStyle(
-                                    color: isCodeCorrect
+                                    color: userProvider.isCodeCorrect
                                         ? const Color(0xFF00F0FF)
                                         : (_isCodeValid == false
                                               ? Colors.red
@@ -3471,7 +3493,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
-                                  cursorColor: isCodeCorrect
+                                  cursorColor: userProvider.isCodeCorrect
                                       ? const Color(0xFF00F0FF)
                                       : (_isCodeValid == false
                                             ? Colors.red
@@ -3502,20 +3524,20 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                 const SizedBox(width: 10),
 
                 // Success/Error icon
-                if (isCodeCorrect || _isCodeValid == false)
+                if (userProvider.isCodeCorrect || _isCodeValid == false)
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: isCodeCorrect
+                      color: userProvider.isCodeCorrect
                           ? const Color(0xFF00F0FF)
                           : Colors.red,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      isCodeCorrect ? Icons.check : Icons.close,
-                      color: isCodeCorrect ? Colors.black : Colors.white,
+                      userProvider.isCodeCorrect ? Icons.check : Icons.close,
+                      color: userProvider.isCodeCorrect ? Colors.black : Colors.white,
                       size: 16,
                     ),
                   ),

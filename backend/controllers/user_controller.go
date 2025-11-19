@@ -579,7 +579,7 @@ func (uc *UserController) SignIn(c *gin.Context) {
 	// --- GENERATE JWT ---
 	expirationTime := time.Now().Add(24 * time.Hour)
 	if input.RememberMe {
-		expirationTime = time.Now().Add(30 * 24 * time.Hour)
+		expirationTime = time.Now().Add(15 * 24 * time.Hour)
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
