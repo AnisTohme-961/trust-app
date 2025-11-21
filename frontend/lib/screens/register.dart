@@ -31,6 +31,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final languageProvider = Provider.of<LanguageProvider>(
@@ -38,11 +39,17 @@ class _RegisterPageState extends State<RegisterPage> {
         listen: false,
       );
 
-      await userProvider.loadFromStorage(storage); // restore saved registration
+      // 1️⃣ Load saved users
+      await userProvider.loadFromStorage();
+
+      // 2️⃣ Load languages
       await languageProvider.loadLanguages();
 
+      // 3️⃣ Update filtered languages list
       setState(() {
         _filteredLanguages = languageProvider.languages;
+        _selectAccountOpen =
+            userProvider.isRegistered; // auto open if registered
       });
     });
   }
@@ -95,7 +102,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
         listen: false,
       );
 
-      await userProvider.loadFromStorage(storage);
+      await userProvider.loadFromStorage();
       await languageProvider.loadLanguages();
 
       setState(() {
@@ -231,30 +238,38 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
               width: 153,
               child: Column(
                 children: [
-                  CustomButton(
-                    text: 'Sign In',
-                    width: 150,
-                    height: 40,
-                    fontSize: 20,
-                    onTap: !userProvider.isRegistered
-                        ? null
-                        : () {
-                            setState(() {
-                              _selectAccountOpen = true;
-                            });
-                          },
+                  Consumer<UserProvider>(
+                    builder: (context, userProvider, child) {
+                      return CustomButton(
+                        text: 'Sign In',
+                        width: 150,
+                        height: 40,
+                        fontSize: 20,
+                        onTap: userProvider.isRegistered
+                            ? () {
+                                setState(() {
+                                  _selectAccountOpen = true;
+                                });
+                              }
+                            : null, // disabled if not registered
+                      );
+                    },
                   ),
                   const SizedBox(height: 30),
-                  CustomButton(
-                    text: 'Sign Up',
-                    width: 150,
-                    height: 40,
-                    fontSize: 20,
-                    onTap: userProvider.isRegistered
-                        ? null
-                        : () {
-                            Navigator.pushNamed(context, '/sign-up');
-                          },
+                  Consumer<UserProvider>(
+                    builder: (context, userProvider, child) {
+                      return CustomButton(
+                        text: 'Sign Up',
+                        width: 150,
+                        height: 40,
+                        fontSize: 20,
+                        onTap: !userProvider.isRegistered
+                            ? null
+                            : () {
+                                Navigator.pushNamed(context, '/sign-up');
+                              },
+                      );
+                    },
                   ),
                 ],
               ),
@@ -467,9 +482,14 @@ class _RegisterPageTabletState extends State<RegisterPageTablet>
     super.initState();
     _filteredLanguages = _languages;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      await userProvider.loadFromStorage(storage);
+      if (userProvider.isRegistered) {
+        // Automatically open Sign In
+        setState(() {
+          _selectAccountOpen = true;
+        });
+      }
     });
   }
 

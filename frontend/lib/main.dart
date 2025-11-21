@@ -16,8 +16,9 @@ import 'screens/register_pattern_screen.dart';
 import 'screens/protect_access.dart';
 
 void main() async {
+   WidgetsFlutterBinding.ensureInitialized();
+
   runApp(const MyApp());
-  //  WidgetsFlutterBinding.ensureInitialized();
 
   // final userProvider = UserProvider();
   // final storage = FlutterSecureStorage();
@@ -33,25 +34,33 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => UserProvider()),
-        ChangeNotifierProvider(create: (context) => LanguageProvider()),
-        ChangeNotifierProvider(create: (context) => ProtectAccessProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => ProtectAccessProvider()),
       ],
+      child: Builder(
+        builder: (context) {
+          // Load user data after provider is available
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+          userProvider.loadFromStorage(); 
 
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          textSelectionTheme: const TextSelectionThemeData(
-            cursorColor: Color(0xFF00F0FF),
-          ),
-        ),
-
-        home: ResponsiveHomePage(),
-        routes: appRoutes(),
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              textSelectionTheme: const TextSelectionThemeData(
+                cursorColor: Color(0xFF00F0FF),
+              ),
+            ),
+            home: ResponsiveHomePage(),
+            routes: appRoutes(),
+          );
+        },
       ),
     );
   }
 }
+
 
 class ResponsiveHomePage extends StatelessWidget {
   const ResponsiveHomePage({super.key});

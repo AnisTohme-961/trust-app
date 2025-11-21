@@ -82,6 +82,18 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	var existingUser models.User
+	errUser := cc.UserCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existingUser)
+	if errUser == nil {
+		// Email found → already registered
+		c.JSON(http.StatusConflict, gin.H{"error": "Email Already Registered"})
+		return
+	} else if errUser != nil && !errors.Is(errUser, mongo.ErrNoDocuments) {
+		// DB error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
 	var existing models.EmailCode
 	attempts := 0
 
@@ -269,114 +281,223 @@ func (cc *CodeController) VerifyCode(c *gin.Context) {
 // }
 
 // Send sign-in code (email or EID)
+
 func (cc *CodeController) GetCodeSignIn(c *gin.Context) {
 	var input struct {
 		Identifier string `json:"identifier"`
 	}
 
 	if err := c.BindJSON(&input); err != nil || input.Identifier == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
-	ctx := context.TODO()
-	now := time.Now()
-	code := utils.GenerateCode(6)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	var user models.User
 	var email string
 
+	// Resolve identifier
 	if strings.Contains(input.Identifier, "@") {
 		email = strings.TrimSpace(strings.ToLower(input.Identifier))
-		err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+		if err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "email not registered"})
 			return
 		}
 	} else {
-		err := cc.UserCollection.FindOne(ctx, bson.M{"eid": input.Identifier}).Decode(&user)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+		if err := cc.UserCollection.FindOne(ctx, bson.M{"eid": input.Identifier}).Decode(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid EID"})
 			return
 		}
 		email = user.Email
 	}
 
-	// Check rate limiting: max 4 requests within 30 minutes → lock for 30 minutes
-	// Track requestCount, firstRequestAt, and lockUntil in the same document
 	var existing models.EmailCode
-	_ = cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&existing)
+	attempts := 0
 
-	// If locked and still within lock window
-	if !existing.SentAt.IsZero() {
-		// Read potential lockUntil from a separate field via generic map to avoid model changes
-		var raw bson.M
-		_ = cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&raw)
-		if raw != nil {
-			if lu, ok := raw["lockUntil"].(time.Time); ok {
-				if now.Before(lu) {
-					c.JSON(http.StatusTooManyRequests, gin.H{"error": "Too many failed attempts. Please try again later."})
-					return
-				}
-			}
-		}
-	}
-
-	// Determine requestCount window
-	var meta bson.M
-	_ = cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&meta)
-	reqCount := 0
-	firstReqAt := now
-	if meta != nil {
-		if v, ok := meta["requestCount"].(int32); ok {
-			reqCount = int(v)
-		}
-		if t, ok := meta["firstRequestAt"].(time.Time); ok && !t.IsZero() {
-			firstReqAt = t
-		}
-		if now.Sub(firstReqAt) > 30*time.Minute {
-			reqCount = 0
-			firstReqAt = now
-		}
-	}
-
-	reqCount++
-	update := bson.M{
-		"$set": bson.M{
-			"email":          email,
-			"code":           code,
-			"sentAt":         now,
-			"isActive":       true,
-			"firstRequestAt": firstReqAt,
-			"requestCount":   reqCount,
-		},
-	}
-	if reqCount >= 4 {
-		update["$set"].(bson.M)["lockUntil"] = now.Add(30 * time.Minute)
-	} else {
-		update["$unset"] = bson.M{"lockUntil": ""}
-	}
-
-	_, _ = cc.EmailCodeCollection.UpdateOne(
-		ctx,
-		bson.M{"email": email},
-		update,
-		options.Update().SetUpsert(true),
-	)
-
-	errMail := services.SendEmail(
-		email,
-		"Your Login Verification Code",
-		fmt.Sprintf("<h3>Your login code is: <b>%s</b></h3>", code),
-	)
-	if errMail != nil {
-		log.Println("Failed to send email:", errMail)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+	findErr := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&existing)
+	if findErr != nil && !errors.Is(findErr, mongo.ErrNoDocuments) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	log.Printf("Login code sent to %s: %s", email, code)
-	c.JSON(http.StatusOK, gin.H{"message": "Code sent successfully"})
+	now := time.Now()
+
+	if findErr == nil && existing.SentAt.Add(15*time.Minute).After(now) {
+		attempts = existing.SendCodeAttempts
+		currentCooldown := getCooldown(attempts)
+
+		_, _ = cc.EmailCodeCollection.UpdateOne(
+			ctx,
+			bson.M{"email": email},
+			bson.M{"$inc": bson.M{"sendCodeAttempts": 1}},
+		)
+
+		if err := services.SendEmail(
+			email,
+			"Your Login Verification Code",
+			fmt.Sprintf("<h3>Your login code is: <b>%s</b></h3>", existing.Code),
+		); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":     existing.Code,
+			"attempts": attempts + 1,
+			"cooldown": int(currentCooldown.Seconds()),
+		})
+		return
+	}
+
+	// Generate new code
+	newCode := utils.GenerateCode(6)
+	attempts++ // count this request
+	currentCooldown := getCooldown(attempts - 1)
+
+	_, err := cc.EmailCodeCollection.UpdateOne(
+		ctx,
+		bson.M{"email": email},
+		bson.M{
+			"$set": bson.M{
+				"code":     newCode,
+				"sentAt":   now,
+				"isActive": true,
+			},
+			"$inc": bson.M{"sendCodeAttempts": 1},
+		},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	if err := services.SendEmail(
+		email,
+		"Your Login Verification Code",
+		fmt.Sprintf("<h3>Your login code is: <b>%s</b></h3>", newCode),
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":     newCode,
+		"attempts": attempts,
+		"cooldown": int(currentCooldown.Seconds()),
+	})
 }
+
+// func (cc *CodeController) GetCodeSignIn(c *gin.Context) {
+// 	var input struct {
+// 		Identifier string `json:"identifier"`
+// 	}
+
+// 	if err := c.BindJSON(&input); err != nil || input.Identifier == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+// 		return
+// 	}
+
+// 	ctx := context.TODO()
+// 	now := time.Now()
+// 	code := utils.GenerateCode(6)
+// 	var user models.User
+// 	var email string
+
+// 	if strings.Contains(input.Identifier, "@") {
+// 		email = strings.TrimSpace(strings.ToLower(input.Identifier))
+// 		err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+// 		if err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+// 			return
+// 		}
+// 	} else {
+// 		err := cc.UserCollection.FindOne(ctx, bson.M{"eid": input.Identifier}).Decode(&user)
+// 		if err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+// 			return
+// 		}
+// 		email = user.Email
+// 	}
+
+// 	// Check rate limiting: max 4 requests within 30 minutes → lock for 30 minutes
+// 	// Track requestCount, firstRequestAt, and lockUntil in the same document
+// 	var existing models.EmailCode
+// 	_ = cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&existing)
+
+// 	// If locked and still within lock window
+// 	if !existing.SentAt.IsZero() {
+// 		// Read potential lockUntil from a separate field via generic map to avoid model changes
+// 		var raw bson.M
+// 		_ = cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&raw)
+// 		if raw != nil {
+// 			if lu, ok := raw["lockUntil"].(time.Time); ok {
+// 				if now.Before(lu) {
+// 					c.JSON(http.StatusTooManyRequests, gin.H{"error": "Too many failed attempts. Please try again later."})
+// 					return
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	// Determine requestCount window
+// 	var meta bson.M
+// 	_ = cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&meta)
+// 	reqCount := 0
+// 	firstReqAt := now
+// 	if meta != nil {
+// 		if v, ok := meta["requestCount"].(int32); ok {
+// 			reqCount = int(v)
+// 		}
+// 		if t, ok := meta["firstRequestAt"].(time.Time); ok && !t.IsZero() {
+// 			firstReqAt = t
+// 		}
+// 		if now.Sub(firstReqAt) > 30*time.Minute {
+// 			reqCount = 0
+// 			firstReqAt = now
+// 		}
+// 	}
+
+// 	reqCount++
+// 	update := bson.M{
+// 		"$set": bson.M{
+// 			"email":          email,
+// 			"code":           code,
+// 			"sentAt":         now,
+// 			"isActive":       true,
+// 			"firstRequestAt": firstReqAt,
+// 			"requestCount":   reqCount,
+// 		},
+// 	}
+// 	if reqCount >= 4 {
+// 		update["$set"].(bson.M)["lockUntil"] = now.Add(30 * time.Minute)
+// 	} else {
+// 		update["$unset"] = bson.M{"lockUntil": ""}
+// 	}
+
+// 	_, _ = cc.EmailCodeCollection.UpdateOne(
+// 		ctx,
+// 		bson.M{"email": email},
+// 		update,
+// 		options.Update().SetUpsert(true),
+// 	)
+
+// 	errMail := services.SendEmail(
+// 		email,
+// 		"Your Login Verification Code",
+// 		fmt.Sprintf("<h3>Your login code is: <b>%s</b></h3>", code),
+// 	)
+// 	if errMail != nil {
+// 		log.Println("Failed to send email:", errMail)
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+// 		return
+// 	}
+
+// 	log.Printf("Login code sent to %s: %s", email, code)
+// 	c.JSON(http.StatusOK, gin.H{"message": "Code sent successfully"})
+// }
 
 // Verify sign-in code (for UI feedback only - does NOT deactivate the code)
 func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
@@ -458,13 +579,86 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 // 	}
 // }
 
+// func (cc *CodeController) SendResetCode(c *gin.Context) {
+// 	var req struct {
+// 		Identifier string `json:"identifier"` // Email or EID
+// 	}
+
+// 	if err := c.ShouldBindJSON(&req); err != nil || req.Identifier == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Identifier required"})
+// 		return
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+
+// 	var user models.User
+// 	var email string
+
+// 	// Resolve identifier to email
+// 	if strings.Contains(req.Identifier, "@") {
+// 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
+// 		if err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+// 			return
+// 		}
+// 	} else {
+// 		if err := cc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user); err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+// 			return
+// 		}
+// 		email = user.Email
+// 	}
+
+// 	// Check if an active code exists
+// 	var existing models.EmailCode
+// 	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email, "isActive": true}).Decode(&existing)
+// 	if err == nil && time.Since(existing.SentAt) < 2*time.Minute { // 2-min validity
+// 		log.Println("Resending existing reset code:", existing.Code)
+// 		c.JSON(http.StatusOK, gin.H{"code": existing.Code})
+// 		return
+// 	}
+
+// 	// Generate new code
+// 	code := utils.GenerateCode(6)
+// 	resetDoc := models.EmailCode{
+// 		Email:    email,
+// 		Code:     code,
+// 		SentAt:   time.Now(),
+// 		IsActive: true,
+// 	}
+
+// 	_, err = cc.EmailCodeCollection.UpdateOne(
+// 		ctx,
+// 		bson.M{"email": email},
+// 		bson.M{"$set": resetDoc},
+// 		options.Update().SetUpsert(true),
+// 	)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+// 		return
+// 	}
+
+// 	// Send email
+// 	if err := services.SendEmail(
+// 		email,
+// 		"Password Reset Code",
+// 		fmt.Sprintf("<h3>Your password reset code is: <b>%s</b></h3>", code),
+// 	); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"code": code})
+// }
+
 func (cc *CodeController) SendResetCode(c *gin.Context) {
 	var req struct {
-		Identifier string `json:"identifier"` // Email or EID
+		Identifier string `json:"identifier"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil || req.Identifier == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Identifier required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "identifier required"})
 		return
 	}
 
@@ -474,61 +668,94 @@ func (cc *CodeController) SendResetCode(c *gin.Context) {
 	var user models.User
 	var email string
 
-	// Resolve identifier to email
 	if strings.Contains(req.Identifier, "@") {
 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
 		if err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "email not registered"})
 			return
 		}
 	} else {
 		if err := cc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid EID"})
 			return
 		}
 		email = user.Email
 	}
 
-	// Check if an active code exists
 	var existing models.EmailCode
-	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email, "isActive": true}).Decode(&existing)
-	if err == nil && time.Since(existing.SentAt) < 2*time.Minute { // 2-min validity
-		log.Println("Resending existing reset code:", existing.Code)
-		c.JSON(http.StatusOK, gin.H{"code": existing.Code})
+	attempts := 0
+
+	findErr := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&existing)
+	if findErr != nil && !errors.Is(findErr, mongo.ErrNoDocuments) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	// Generate new code
-	code := utils.GenerateCode(6)
-	resetDoc := models.EmailCode{
-		Email:    email,
-		Code:     code,
-		SentAt:   time.Now(),
-		IsActive: true,
+	now := time.Now()
+
+	if findErr == nil && existing.SentAt.Add(15*time.Minute).After(now) {
+		attempts = existing.SendCodeAttempts
+		currentCooldown := getCooldown(attempts)
+
+		_, _ = cc.EmailCodeCollection.UpdateOne(
+			ctx,
+			bson.M{"email": email},
+			bson.M{"$inc": bson.M{"sendCodeAttempts": 1}},
+		)
+
+		if err := services.SendEmail(
+			email,
+			"Password Reset Code",
+			fmt.Sprintf("<h3>Your password reset code is: <b>%s</b></h3>", existing.Code),
+		); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":     existing.Code,
+			"attempts": attempts + 1,
+			"cooldown": int(currentCooldown.Seconds()),
+		})
+		return
 	}
 
-	_, err = cc.EmailCodeCollection.UpdateOne(
+	newCode := utils.GenerateCode(6)
+	attempts++ // count this request
+	currentCooldown := getCooldown(attempts - 1)
+
+	_, err := cc.EmailCodeCollection.UpdateOne(
 		ctx,
 		bson.M{"email": email},
-		bson.M{"$set": resetDoc},
+		bson.M{
+			"$set": bson.M{
+				"code":     newCode,
+				"sentAt":   now,
+				"isActive": true,
+			},
+			"$inc": bson.M{"sendCodeAttempts": 1},
+		},
 		options.Update().SetUpsert(true),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	// Send email
 	if err := services.SendEmail(
 		email,
 		"Password Reset Code",
-		fmt.Sprintf("<h3>Your password reset code is: <b>%s</b></h3>", code),
+		fmt.Sprintf("<h3>Your password reset code is: <b>%s</b></h3>", newCode),
 	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": code})
+	c.JSON(http.StatusOK, gin.H{
+		"code":     newCode,
+		"attempts": attempts,
+		"cooldown": int(currentCooldown.Seconds()),
+	})
 }
 
 func (cc *CodeController) VerifyResetCode(c *gin.Context) {
@@ -601,50 +828,149 @@ func (cc *CodeController) GetEIDCode(c *gin.Context) {
 
 	// Check if user exists
 	var existingUser bson.M
-	if errUser := cc.UserCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existingUser); errUser != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+	if err := cc.UserCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existingUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email not registered"})
 		return
 	}
 
-	// Deactivate all previous active codes for this email
-	_, _ = cc.EmailCodeCollection.UpdateMany(
-		ctx,
-		bson.M{"email": req.Email, "isActive": true},
-		bson.M{"$set": bson.M{"isActive": false}},
-	)
+	var existing models.EmailCode
+	attempts := 0
 
-	// Generate new code
+	findErr := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existing)
+	if findErr != nil && !errors.Is(findErr, mongo.ErrNoDocuments) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	now := time.Now()
+
+	if findErr == nil && existing.SentAt.Add(15*time.Minute).After(now) {
+		attempts = existing.SendCodeAttempts
+		currentCooldown := getCooldown(attempts)
+
+		_, _ = cc.EmailCodeCollection.UpdateOne(
+			ctx,
+			bson.M{"email": req.Email},
+			bson.M{"$inc": bson.M{"sendCodeAttempts": 1}},
+		)
+
+		if err := services.SendEmail(
+			req.Email,
+			"Your EID Code",
+			fmt.Sprintf("<h1>Your code is: %s</h1>", existing.Code),
+		); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":     existing.Code,
+			"attempts": attempts + 1,
+			"cooldown": int(currentCooldown.Seconds()),
+		})
+		return
+	}
+
 	newCode := utils.GenerateCode(6)
+	attempts++ // count this request
+	currentCooldown := getCooldown(attempts - 1)
+
 	emailDoc := models.EmailCode{
 		Email:    req.Email,
 		Code:     newCode,
-		SentAt:   time.Now(),
+		SentAt:   now,
 		IsActive: true,
 	}
 
-	_, err := cc.EmailCodeCollection.InsertOne(
+	_, err := cc.EmailCodeCollection.UpdateOne(
 		ctx,
-		emailDoc,
+		bson.M{"email": req.Email},
+		bson.M{
+			"$set": emailDoc,
+			"$inc": bson.M{"sendCodeAttempts": 1},
+		},
+		options.Update().SetUpsert(true),
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	// Send email
-	if errMail := services.SendEmail(
+	if err := services.SendEmail(
 		req.Email,
 		"Your EID Code",
 		fmt.Sprintf("<h1>Your code is: %s</h1>", newCode),
-	); errMail != nil {
-		log.Println("Failed to send email:", errMail)
+	); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
 		return
 	}
 
-	log.Println("Generated new code:", newCode)
-	c.JSON(http.StatusOK, gin.H{"code": newCode})
+	c.JSON(http.StatusOK, gin.H{
+		"code":     newCode,
+		"attempts": attempts,
+		"cooldown": int(currentCooldown.Seconds()),
+	})
 }
+
+// func (cc *CodeController) GetEIDCode(c *gin.Context) {
+// 	var req struct {
+// 		Email string `json:"email"`
+// 	}
+
+// 	if err := c.BindJSON(&req); err != nil || req.Email == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+// 		return
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+
+// 	// Check if user exists
+// 	var existingUser bson.M
+// 	if errUser := cc.UserCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&existingUser); errUser != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+// 		return
+// 	}
+
+// 	// Deactivate all previous active codes for this email
+// 	_, _ = cc.EmailCodeCollection.UpdateMany(
+// 		ctx,
+// 		bson.M{"email": req.Email, "isActive": true},
+// 		bson.M{"$set": bson.M{"isActive": false}},
+// 	)
+
+// 	// Generate new code
+// 	newCode := utils.GenerateCode(6)
+// 	emailDoc := models.EmailCode{
+// 		Email:    req.Email,
+// 		Code:     newCode,
+// 		SentAt:   time.Now(),
+// 		IsActive: true,
+// 	}
+
+// 	_, err := cc.EmailCodeCollection.InsertOne(
+// 		ctx,
+// 		emailDoc,
+// 	)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+// 		return
+// 	}
+
+// 	// Send email
+// 	if errMail := services.SendEmail(
+// 		req.Email,
+// 		"Your EID Code",
+// 		fmt.Sprintf("<h1>Your code is: %s</h1>", newCode),
+// 	); errMail != nil {
+// 		log.Println("Failed to send email:", errMail)
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+// 		return
+// 	}
+
+// 	log.Println("Generated new code:", newCode)
+// 	c.JSON(http.StatusOK, gin.H{"code": newCode})
+// }
 
 func (cc *CodeController) VerifyEIDCode(c *gin.Context) {
 	var req struct {

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/language_model.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/language_model.dart';
+
 class UserProvider extends ChangeNotifier {
+  // Current session info
   String selectedLanguage = '';
   String selectedLanguageId = '';
   String firstName = '';
@@ -19,20 +26,24 @@ class UserProvider extends ChangeNotifier {
   String emailCode = '';
   String password = '';
   String confirmPassword = '';
+  String eid = '';
 
   // Cooldown & verification
   int emailCodeSecondsLeft = 0;
   bool emailCodeVerified = false;
   bool isCooldownActive = false;
-
   bool isCodeCorrect = false;
   bool isCodeValid = false;
 
   // Registration info
   bool isReturningUser = false;
-  bool isRegistered = false;
   bool justRegistered = false;
-  String eid = '';
+  
+
+  // List of all registered users
+  List<Map<String, String>> registeredUsers = [];
+
+  final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   UserProvider();
 
@@ -96,7 +107,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-   void setCodeCorrect(bool val) {
+  void setCodeCorrect(bool val) {
     isCodeCorrect = val;
     notifyListeners();
   }
@@ -121,19 +132,59 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void markAsRegistered() {
-    isRegistered = true;
+  // --------------------------
+  // REGISTERED USERS LOGIC
+  // --------------------------
+  bool get isRegistered => registeredUsers.isNotEmpty;
+
+  Future<void> registerUser({
+    required String firstName,
+    required String lastName,
+    required String eid,
+  }) async {
+    final user = {
+      "firstName": firstName,
+      "lastName": lastName,
+      "eid": eid,
+    };
+
+    registeredUsers.add(user);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("registeredUsers", jsonEncode(registeredUsers));
+
+    this.eid = eid; // set active user
     notifyListeners();
   }
 
+  // -------------------------------------------------------------------------
+  // LOAD USERS FROM STORAGE
+  // -------------------------------------------------------------------------
+  Future<void> loadFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString("registeredUsers");
+
+    if (stored != null) {
+      final decoded = jsonDecode(stored);
+      registeredUsers = decoded
+          .map<Map<String, String>>((u) => Map<String, String>.from(u))
+          .toList();
+    }
+
+    notifyListeners();
+  }
+  bool get hasAccounts => registeredUsers.isNotEmpty;
+
+  // -------------------------------------------------------------------------
+  // GET ACCOUNTS FOR SELECT ACCOUNT SCREEN
+  // -------------------------------------------------------------------------
+  List<Map<String, String>> get accounts =>
+      registeredUsers.reversed.toList(); // newest first
   // --------------------------
   // COOLDOWN SYSTEM
   // --------------------------
   Future<void> setEmailCooldownEndForEmail(
-    String email,
-    DateTime endTime,
-    FlutterSecureStorage storage,
-  ) async {
+      String email, DateTime endTime) async {
     final key = "cooldown_$email";
     await storage.write(key: key, value: endTime.toIso8601String());
     emailCodeSecondsLeft = endTime.difference(DateTime.now()).inSeconds;
@@ -141,10 +192,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> restoreEmailCooldownForEmail(
-    String email,
-    FlutterSecureStorage storage,
-  ) async {
+  Future<void> restoreEmailCooldownForEmail(String email) async {
     final key = "cooldown_$email";
     final saved = await storage.read(key: key);
 
@@ -165,35 +213,17 @@ class UserProvider extends ChangeNotifier {
   }
 
   // --------------------------
-  // PERSISTENCE
+  // HELPER
   // --------------------------
-  Future<void> loadFromStorage(FlutterSecureStorage storage) async {
-    eid = await storage.read(key: 'eid') ?? '';
-    firstName = await storage.read(key: 'firstName') ?? '';
-    lastName = await storage.read(key: 'lastName') ?? '';
-    isRegistered = eid.isNotEmpty;
-    justRegistered = false;
-    notifyListeners();
-  }
-
-  Future<void> registerUser({
-    required String firstName,
-    required String lastName,
-    required String eid,
-    required FlutterSecureStorage storage,
-  }) async {
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.eid = eid;
-    isRegistered = true;
-    justRegistered = true;
-    notifyListeners();
-
-    await storage.write(key: 'firstName', value: firstName);
-    await storage.write(key: 'lastName', value: lastName);
-    await storage.write(key: 'eid', value: eid);
+  Map<String, String>? getUserByEID(String eid) {
+    try {
+      return registeredUsers.firstWhere((u) => u['eid'] == eid);
+    } catch (_) {
+      return null;
+    }
   }
 }
+
 
 
 

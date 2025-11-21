@@ -243,6 +243,7 @@ class TabletSelectAccountContent extends StatelessWidget {
                                   account['image'] ??
                                   'assets/images/placeholder.png',
                               onTap: () {
+                                  userProvider.setEID(account['eid']!);
                                 Navigator.pushNamed(context, '/sign-in');
                               },
                               isTablet: true,
@@ -275,16 +276,21 @@ class TabletSelectAccountContent extends StatelessWidget {
   }
 }
 
-List<Map<String, String?>> _getAccounts(UserProvider userProvider) {
-  return [
-    {
-      'firstName': userProvider.firstName,
-      'lastName': userProvider.lastName,
-      'eid': userProvider.eid,
-      'image': 'assets/images/image1.png',
-    },
-  ];
+List<Map<String, String>> _getAccounts(UserProvider userProvider) {
+  return userProvider.accounts;
 }
+
+
+// List<Map<String, String?>> _getAccounts(UserProvider userProvider) {
+//   return [
+//     {
+//       'firstName': userProvider.firstName,
+//       'lastName': userProvider.lastName,
+//       'eid': userProvider.eid,
+//       'image': 'assets/images/image1.png',
+//     },
+//   ];
+// }
 
 // Updated VerticalScrollbar Widget with customizable height
 class VerticalScrollbar extends StatefulWidget {

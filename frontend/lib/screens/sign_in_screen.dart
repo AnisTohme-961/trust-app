@@ -6,7 +6,8 @@ import '../widgets/error_widgets.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../widgets/footer_widgets.dart';
-
+import 'package:flutter_project/providers/signup_data_provider.dart';
+import 'package:provider/provider.dart';
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
 
@@ -39,6 +40,13 @@ class _SignInPageState extends State<SignInPage> {
     _passwordController.addListener(() => setState(() {}));
     _emailFocus.addListener(() => setState(() {}));
     _passwordFocus.addListener(() => setState(() {}));
+    
+  Future.delayed(const Duration(milliseconds: 200), () {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (_controller.text.isEmpty && userProvider.eid.isNotEmpty) {
+      _controller.text = userProvider.eid;
+    }
+  });
   }
 
   @override
