@@ -382,4 +382,23 @@ class AuthService {
       return false;
     }
   }
+
+  // Check if EID still exists on server
+static Future<bool> checkEidExists(String eid) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/check-eid"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"eid": eid}),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return data["available"] == false; // if available=false → EID exists
+  }
+
+  // If server returns error → treat as not existing
+  return false;
+}
+
+
 }

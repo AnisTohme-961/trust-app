@@ -1060,11 +1060,11 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                             setState(() => isLoading = false);
 
                             if (eid != null) {
-                                await userProvider.registerUser(
-    firstName: userProvider.firstName,
-    lastName: userProvider.lastName,
-    eid: eid,
-  );
+                              await userProvider.registerUser(
+                                firstName: userProvider.firstName,
+                                lastName: userProvider.lastName,
+                                eid: eid,
+                              );
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => ResponsiveRegisterLivePage(),
@@ -2246,11 +2246,14 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                 //   );
                                                 // }
                                                 if (eid != null) {
-                                                   await userProvider.registerUser(
-    firstName: userProvider.firstName,
-    lastName: userProvider.lastName,
-    eid: eid,
-  );
+                                                  await userProvider
+                                                      .registerUser(
+                                                        firstName: userProvider
+                                                            .firstName,
+                                                        lastName: userProvider
+                                                            .lastName,
+                                                        eid: eid,
+                                                      );
                                                   Navigator.of(context).push(
                                                     MaterialPageRoute(
                                                       builder: (_) =>

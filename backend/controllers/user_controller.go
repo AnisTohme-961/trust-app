@@ -920,3 +920,30 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }
+
+func (uc *UserController) CheckEID(c *gin.Context) {
+	var input struct {
+		EID string `json:"eid"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil || input.EID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "EID is required"})
+		return
+	}
+
+	eid := strings.ToLower(strings.TrimSpace(input.EID))
+
+	var user models.User
+	err := uc.UserCollection.FindOne(context.TODO(), bson.M{"eid": eid}).Decode(&user)
+	if err == mongo.ErrNoDocuments {
+		// EID does NOT exist → available
+		c.JSON(http.StatusOK, gin.H{"available": true})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	// EID exists → not available
+	c.JSON(http.StatusOK, gin.H{"available": false})
+}

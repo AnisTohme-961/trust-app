@@ -41,6 +41,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       // 1️⃣ Load saved users
       await userProvider.loadFromStorage();
+      await userProvider.syncAccountsWithServer();
 
       // 2️⃣ Load languages
       await languageProvider.loadLanguages();
@@ -48,8 +49,9 @@ class _RegisterPageState extends State<RegisterPage> {
       // 3️⃣ Update filtered languages list
       setState(() {
         _filteredLanguages = languageProvider.languages;
-        _selectAccountOpen =
-            userProvider.isRegistered; // auto open if registered
+        _selectAccountOpen = false;
+        // _selectAccountOpen =
+        //     userProvider.isRegistered;
       });
     });
   }
@@ -230,51 +232,42 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
             ),
           ),
 
-          // Buttons
-          Positioned(
-            top: 580,
-            left: 138,
-            child: SizedBox(
-              width: 153,
-              child: Column(
-                children: [
-                  Consumer<UserProvider>(
-                    builder: (context, userProvider, child) {
-                      return CustomButton(
-                        text: 'Sign In',
-                        width: 150,
-                        height: 40,
-                        fontSize: 20,
-                        onTap: userProvider.isRegistered
-                            ? () {
-                                setState(() {
-                                  _selectAccountOpen = true;
-                                });
-                              }
-                            : null, // disabled if not registered
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  Consumer<UserProvider>(
-                    builder: (context, userProvider, child) {
-                      return CustomButton(
-                        text: 'Sign Up',
-                        width: 150,
-                        height: 40,
-                        fontSize: 20,
-                        onTap: !userProvider.isRegistered
-                            ? null
-                            : () {
-                                Navigator.pushNamed(context, '/sign-up');
-                              },
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
+       // Buttons
+Positioned(
+  top: 580,
+  left: 138,
+  child: SizedBox(
+    width: 153,
+    child: Column(
+      children: [
+        // Sign In
+        CustomButton(
+          text: 'Sign In',
+          width: 150,
+          height: 40,
+          fontSize: 20,
+          onTap: () {
+            setState(() {
+              _selectAccountOpen = true; // open select account popup
+            });
+          },
+        ),
+        const SizedBox(height: 30),
+        // Sign Up
+        CustomButton(
+          text: 'Sign Up',
+          width: 150,
+          height: 40,
+          fontSize: 20,
+          onTap: () {
+            Navigator.pushNamed(context, '/sign-up'); // navigate to sign-up
+          },
+        ),
+      ],
+    ),
+  ),
+),
+
 
           // 🔥 BACKGROUND OVERLAY WHEN ANY POPUP IS OPEN
           if (_languageDropdownOpen || _selectAccountOpen)

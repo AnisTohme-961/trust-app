@@ -21,6 +21,7 @@ func UserRoutes(r *gin.Engine, userCollection *mongo.Collection, codeController 
 	r.POST("/sign-in", controller.SignIn)
 	r.POST("/migrate-users-eid", controller.MigrateUsersEID)
 	r.POST("/send-code-sign-in", controller.SendCodeSignIn)
+	r.POST("/check-eid", controller.CheckEID)
 	r.POST("/register-pin", middleware.AuthMiddleware(), controller.RegisterPin)
 	r.POST("/register-pattern", middleware.AuthMiddleware(), controller.RegisterPattern)
 	r.POST("/logout", middleware.AuthMiddleware(), controller.Logout)

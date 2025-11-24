@@ -28,6 +28,7 @@ class _SignInPageState extends State<SignInPage> {
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isPasswordNotEmpty => _passwordController.text.isNotEmpty;
 
+  String serverCode = "";
   bool _hideInputFields = false;
   bool _tooManyAttempts = false;
   bool isCodeCorrect = false;

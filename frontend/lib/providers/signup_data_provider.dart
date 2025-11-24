@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/language_model.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -173,6 +174,35 @@ class UserProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+
+// -------------------------------------------------------------------------
+// SYNC LOCAL ACCOUNTS WITH SERVER (remove deleted accounts)
+// -------------------------------------------------------------------------
+Future<void> syncAccountsWithServer() async {
+  if (registeredUsers.isEmpty) return;
+
+  List<Map<String, String>> validAccounts = [];
+
+  for (final user in registeredUsers) {
+    final eid = user["eid"];
+    if (eid == null || eid.isEmpty) continue;
+
+    final exists = await AuthService.checkEidExists(eid);
+
+    if (exists) {
+      validAccounts.add(user);
+    }
+  }
+
+  registeredUsers = validAccounts;
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString("registeredUsers", jsonEncode(registeredUsers));
+
+  notifyListeners();
+}
+
+
   bool get hasAccounts => registeredUsers.isNotEmpty;
 
   // -------------------------------------------------------------------------
