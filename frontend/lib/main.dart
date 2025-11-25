@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_project/screens/forgot_eid_screen.dart';
-import 'package:flutter_project/screens/forgot_password_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
+import './providers/font_size_provider.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'screens/register.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,10 +9,7 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import 'screens/sign_in_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'screens/register_pattern_screen.dart';
-import 'screens/protect_access.dart';
+import 'screens/settings_screen.dart';
 
 void main() async {
    WidgetsFlutterBinding.ensureInitialized();
@@ -34,9 +30,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => ProtectAccessProvider()),
+        ChangeNotifierProvider(create: (context) => UserProvider()),
+        ChangeNotifierProvider(create: (context) => LanguageProvider()),
+        ChangeNotifierProvider(create: (context) => ProtectAccessProvider()),
+        ChangeNotifierProvider(create: (context) => FontSizeProvider()),
       ],
       child: Builder(
         builder: (context) {
@@ -125,160 +122,201 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onVerticalDragUpdate: (details) {
-        if (details.primaryDelta != null && details.primaryDelta! < -2) {
-          _onSwipeUp();
-        }
+    return Consumer<FontSizeProvider>(
+      builder: (context, fontProvider, child) {
+        return GestureDetector(
+          onVerticalDragUpdate: (details) {
+            if (details.primaryDelta != null && details.primaryDelta! < -2) {
+              _onSwipeUp();
+            }
+          },
+          onVerticalDragEnd: (details) {
+            _onSwipeEnd();
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity! < -100) {
+              _navigateToNextPage(context);
+            }
+          },
+          child: Scaffold(
+            backgroundColor: const Color(0xFF0B1320),
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  // Main content column
+                  Column(
+                    children: [
+                      // Top section with vector icon and welcome text
+                      Stack(
+                        children: [
+                          // Vector icon at top-right
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 20,
+                                right: 20,
+                              ),
+                              child: Image.asset(
+                                'assets/images/Vector.png',
+                                width: 23,
+                                height: 23,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+
+                          // Welcome texts
+                          // Welcome texts - UPDATED SECTION
+                          Padding(
+                            padding: const EdgeInsets.only(top: 40),
+                            child: Center(
+                              // Added Center widget here
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Welcome to',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: fontProvider.getScaledSize(
+                                        30.0,
+                                      ),
+                                      height: 1.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Egety Trust',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: fontProvider.getScaledSize(
+                                        50.0,
+                                      ),
+                                      height: 1.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Description text
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 20,
+                        ),
+                        child: Text(
+                          'Step into a dynamic realm powered by decentralization, '
+                          'where true data ownership and assets belong to you.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: fontProvider.getScaledSize(20.0),
+                            height: 1.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      // Central image
+                      Expanded(
+                        child: Center(
+                          child: SizedBox(
+                            width: 153,
+                            height: 200,
+                            child: Image.asset(
+                              'assets/images/Unlocked animstion.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Swipe Up text and arrow section
+                      // In your MobileHomePage build method, replace the Row with Stack:
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Swipe Up \n To Continue',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                fontSize: fontProvider.getScaledSize(30.0),
+                                height: 1.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              height:
+                                  179, // Same height as the GlowingVerticalOvalArrow
+                              child: Stack(
+                                children: [
+                                  // Position the glowing oval arrow
+                                  Positioned(
+                                    left: 175.0,
+                                    child: GlowingVerticalOvalArrow(
+                                      arrowAsset: "assets/images/ArrowUp.svg",
+                                      swipeUp: _swipeUp,
+                                    ),
+                                  ),
+                                  // Position the animated SVG
+                                  Positioned(
+                                    top: 70,
+                                    left:
+                                        MediaQuery.of(context).size.width *
+                                            0.7 -
+                                        40.0, // Adjust based on the Row's left padding
+                                    child: MobileSwipeUpDownAnimatedSvg(
+                                      assetPath: "assets/images/Pointer.svg",
+                                      startY:
+                                          MediaQuery.of(context).size.height *
+                                          0.89,
+                                      endY:
+                                          MediaQuery.of(context).size.height *
+                                          0.78,
+                                      width: 33.6,
+                                      height: 50,
+                                      durationMilliseconds: 1500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Bottom-right rectangle (positioned element)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Image.asset(
+                      "assets/images/Rectangle.png",
+                      width: 140,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
       },
-      onVerticalDragEnd: (details) {
-        _onSwipeEnd();
-        if (details.primaryVelocity != null &&
-            details.primaryVelocity! < -100) {
-          _navigateToNextPage(context);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0B1320),
-        body: Stack(
-          children: [
-            // Top-right Vector icon
-            Positioned(
-              top: 60,
-              left: 370,
-              child: Image.asset(
-                'assets/images/Vector.png',
-                width: 23,
-                height: 23,
-                color: Colors.white,
-              ),
-            ),
-
-            // "Welcome to" text
-            const Positioned(
-              top: 60,
-              left: 120,
-              child: SizedBox(
-                child: Text(
-                  'Welcome to',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 30,
-                    height: 1.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // "Egety Trust:" text
-            const Positioned(
-              top: 124,
-              left: 70,
-              child: SizedBox(
-                child: Text(
-                  'Egety Trust',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 50,
-                    height: 1.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // Description
-            const Positioned(
-              top: 205,
-              left: 15,
-              child: SizedBox(
-                child: Text(
-                  'Step into a dynamic realm powered by \n decentralization, '
-                  'where true data \n ownership and assets belong to you.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                    height: 1.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // Bottom-right rectangle
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Image.asset(
-                "assets/images/Rectangle.png",
-                width: 180,
-                fit: BoxFit.contain,
-              ),
-            ),
-
-            // Central image
-            Positioned(
-              top: 298,
-              left: 138,
-              child: SizedBox(
-                width: 153,
-                height: 200,
-                child: Image.asset(
-                  'assets/images/Unlocked animstion.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-
-            // Swipe Up text
-            const Positioned(
-              top: 510,
-              left: 120,
-              child: SizedBox(
-                child: Text(
-                  'Swipe Up \n To Continue',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 30,
-                    height: 1.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // Glowing vertical arrow
-            Positioned(
-              top: 580,
-              left: 180,
-              child: GlowingVerticalOvalArrow(
-                arrowAsset: "assets/images/ArrowUp.svg",
-                swipeUp: _swipeUp,
-              ),
-            ),
-
-            // Animated SVG Pointer
-            MobileSwipeUpDownAnimatedSvg(
-              assetPath: "assets/images/Pointer.svg",
-              startX: 254,
-              startY: 761.84,
-              endY: 661.84,
-              width: 33.6,
-              height: 50,
-              durationMilliseconds: 1500,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -489,7 +527,6 @@ class MobileSwipeUpDownAnimatedSvg extends StatefulWidget {
   final String assetPath;
   final double width;
   final double height;
-  final double startX;
   final double startY;
   final double endY;
   final int durationMilliseconds;
@@ -497,7 +534,6 @@ class MobileSwipeUpDownAnimatedSvg extends StatefulWidget {
   const MobileSwipeUpDownAnimatedSvg({
     super.key,
     required this.assetPath,
-    required this.startX,
     required this.startY,
     required this.endY,
     this.width = 33.6,
@@ -577,17 +613,13 @@ class _MobileSwipeUpDownAnimatedSvgState
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Positioned(
-          top: _positionAnimation.value,
-          left: widget.startX,
-          child: Transform.rotate(
-            angle: _rotationAnimation.value,
-            child: SvgPicture.asset(
-              widget.assetPath,
-              width: widget.width,
-              height: widget.height,
-              fit: BoxFit.contain,
-            ),
+        return Transform.rotate(
+          angle: _rotationAnimation.value,
+          child: SvgPicture.asset(
+            widget.assetPath,
+            width: widget.width,
+            height: widget.height,
+            fit: BoxFit.contain,
           ),
         );
       },
@@ -699,7 +731,7 @@ class _TabletSwipeUpDownAnimatedSvgState
   }
 }
 
-// Glowing Vertical Oval Arrow (Shared between mobile and tablet)
+// Glowing V// Glowing Vertical Oval Arrow (Updated for mobile only)
 class GlowingVerticalOvalArrow extends StatefulWidget {
   final String arrowAsset;
   final bool swipeUp;

@@ -570,6 +570,11 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 // 		Keys:    bson.M{"sentAt": 1},
 // 		Options: options.Index().SetExpireAfterSeconds(2 * 60),
 // 	}
+// func SetupEmailCodeTTL(collection *mongo.Collection) {
+// 	indexModel := mongo.IndexModel{
+// 		Keys:    bson.M{"sentAt": 1},
+// 		Options: options.Index().SetExpireAfterSeconds(2 * 60),
+// 	}
 
 // 	_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
 // 	if err != nil {
@@ -578,6 +583,7 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 // 		fmt.Println("✅ TTL index set: email_codes expire after 2 minutes")
 // 	}
 // }
+<<<<<<< HEAD
 
 // func (cc *CodeController) SendResetCode(c *gin.Context) {
 // 	var req struct {
@@ -651,6 +657,8 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 
 // 	c.JSON(http.StatusOK, gin.H{"code": code})
 // }
+=======
+>>>>>>> origin/johnny-main-branch-new
 
 func (cc *CodeController) SendResetCode(c *gin.Context) {
 	var req struct {

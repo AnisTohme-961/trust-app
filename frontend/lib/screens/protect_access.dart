@@ -120,8 +120,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   String serverCode = "";
 
-  int _attempts = 0;
-  bool _tooManyAttempts = false;
+  // int _attempts = 0;
+  // bool _tooManyAttempts = false;
   int _secondsLeft = 0;
   Timer? _timer;
   bool _showCodeSent = false;
@@ -416,13 +416,6 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           });
           _focusNodes[0].requestFocus();
         });
-
-        if (_attempts >= 3) {
-          setState(() {
-            _tooManyAttempts = true;
-          });
-          _timer?.cancel();
-        }
       }
     }
   }
@@ -461,9 +454,9 @@ void restoreCooldown() async {
   final saved = await storage.read(key: "emailCooldownEnd");
   if (saved == null) return;
 
-  final end = DateTime.parse(saved);
-  final now = DateTime.now();
-  int remaining = end.difference(now).inSeconds;
+    final end = DateTime.parse(saved);
+    final now = DateTime.now();
+    int remaining = end.difference(now).inSeconds;
 
   if (remaining > 0) {
     setState(() {
@@ -1148,106 +1141,37 @@ void restoreCooldown() async {
                         else
                           Positioned(
                             top: 0,
-                            child: _tooManyAttempts
-                                ? SizedBox(
-                                    width: 270,
-                                    height: 26,
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Color(0xFF0B1320),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 25.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ...List.generate(6, (index) {
+                                    return GestureDetector(
+                                      onTap: () =>
+                                          _focusNodes[index].requestFocus(),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
                                         ),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.centerLeft,
-                                              end: Alignment.centerRight,
-                                              colors: [
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.0,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.61,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.61,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.0,
-                                                ),
-                                              ],
-                                              stops: [0.0, 0.101, 0.9038, 1.0],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                        ),
-                                        Center(
-                                          child: Text(
-                                            "Too many attempts. Try again later.",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : Padding(
-                                    padding: const EdgeInsets.only(top: 25.0),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        ...List.generate(6, (index) {
-                                          return GestureDetector(
-                                            onTap: () => _focusNodes[index]
-                                                .requestFocus(),
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 5,
-                                                  ),
-                                              child: Column(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 30,
-                                                    height: 20,
-                                                    child: TextField(
-                                                      enabled: !_codeDisabled,
-                                                      readOnly: _codeDisabled,
-                                                      showCursor:
-                                                          !_codeDisabled,
+                                        child: Column(
+                                          children: [
+                                            SizedBox(
+                                              width: 30,
+                                              height: 20,
+                                              child: TextField(
+                                                enabled: !_codeDisabled,
+                                                readOnly: _codeDisabled,
+                                                showCursor: !_codeDisabled,
 
-                                                      controller:
-                                                          _codecontrollers[index],
-                                                      focusNode:
-                                                          _focusNodes[index],
+                                                controller:
+                                                    _codecontrollers[index],
+                                                focusNode: _focusNodes[index],
 
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      maxLength: 1,
-                                                      keyboardType:
-                                                          TextInputType.number,
+                                                textAlign: TextAlign.center,
+                                                maxLength: 1,
+                                                keyboardType:
+                                                    TextInputType.number,
 
                                                       style: TextStyle(
                                                         color: _codeDisabled
@@ -1268,40 +1192,37 @@ void restoreCooldown() async {
                                                             FontWeight.bold,
                                                       ),
 
-                                                      cursorColor: Colors.white,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                            counterText: "",
-                                                            border: InputBorder
-                                                                .none,
-                                                          ),
-
-                                                      onChanged: _codeDisabled
-                                                          ? null
-                                                          : (value) =>
-                                                                _onChanged(
-                                                                  value,
-                                                                  index,
-                                                                ),
+                                                cursorColor: Colors.white,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      counterText: "",
+                                                      border: InputBorder.none,
                                                     ),
-                                                  ),
 
-                                                  // Dash under input
-                                                  Container(
-                                                    width: 30,
-                                                    height: 2,
-                                                    color: _codeDisabled
-                                                        ? Colors.grey
-                                                        : (code[index].isEmpty
-                                                              ? Colors.white
-                                                              : Colors
-                                                                    .transparent),
-                                                  ),
-                                                ],
+                                                onChanged: _codeDisabled
+                                                    ? null
+                                                    : (value) => _onChanged(
+                                                        value,
+                                                        index,
+                                                      ),
                                               ),
                                             ),
-                                          );
-                                        }),
+
+                                            // Dash under input
+                                            Container(
+                                              width: 30,
+                                              height: 2,
+                                              color: _codeDisabled
+                                                  ? Colors.grey
+                                                  : (code[index].isEmpty
+                                                        ? Colors.white
+                                                        : Colors.transparent),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }),
 
                                         if (userProvider.isCodeCorrect ||
                                             _isCodeValid == false) ...[
@@ -1338,10 +1259,7 @@ void restoreCooldown() async {
                           top: 21,
                           left: 280,
                           child: GestureDetector(
-                            onTap:
-                                (_secondsLeft == 0 &&
-                                    !_tooManyAttempts &&
-                                    !_isTyping)
+                            onTap: (_secondsLeft == 0 && !_isTyping)
                                 ? fetchCodeFromGo
                                 : null,
                             child: Container(
@@ -2202,13 +2120,13 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     final code = generate6DigitCode().join();
     serverCode = code;
 
-    if (_attempts >= 3) {
-      setState(() => _tooManyAttempts = true);
-      errorStackKey.currentState?.showError(
-        "Too many failed attempts. Please try again later.",
-      );
-      return;
-    }
+    // if (_attempts >= 3) {
+    //   setState(() => _tooManyAttempts = true);
+    //   errorStackKey.currentState?.showError(
+    //     "Too many failed attempts. Please try again later.",
+    //   );
+    //   return;
+    // }
 
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/get-code"),
