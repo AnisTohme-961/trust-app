@@ -445,19 +445,19 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 }
 
 // Setup TTL for auto-delete after 2 minutes
-func SetupEmailCodeTTL(collection *mongo.Collection) {
-	indexModel := mongo.IndexModel{
-		Keys:    bson.M{"sentAt": 1},
-		Options: options.Index().SetExpireAfterSeconds(2 * 60),
-	}
+// func SetupEmailCodeTTL(collection *mongo.Collection) {
+// 	indexModel := mongo.IndexModel{
+// 		Keys:    bson.M{"sentAt": 1},
+// 		Options: options.Index().SetExpireAfterSeconds(2 * 60),
+// 	}
 
-	_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
-	if err != nil {
-		fmt.Println("⚠️ Failed to create TTL index for email_codes:", err)
-	} else {
-		fmt.Println("✅ TTL index set: email_codes expire after 2 minutes")
-	}
-}
+// 	_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
+// 	if err != nil {
+// 		fmt.Println("⚠️ Failed to create TTL index for email_codes:", err)
+// 	} else {
+// 		fmt.Println("✅ TTL index set: email_codes expire after 2 minutes")
+// 	}
+// }
 
 func (cc *CodeController) SendResetCode(c *gin.Context) {
 	var req struct {

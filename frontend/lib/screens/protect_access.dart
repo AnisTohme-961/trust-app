@@ -120,8 +120,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   String serverCode = "";
 
-  int _attempts = 0;
-  bool _tooManyAttempts = false;
+  // int _attempts = 0;
+  // bool _tooManyAttempts = false;
   int _secondsLeft = 0;
   Timer? _timer;
   bool _showCodeSent = false;
@@ -155,15 +155,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     if (response.statusCode == 200) {
       serverCode = data['code'];
-      _attempts = data['attempts'] ?? 0;
+      // _attempts = data['attempts'] ?? 0;
       _secondsLeft = data['cooldown'] ?? 0;
 
-       final storage = FlutterSecureStorage();
-       final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
-        await storage.write(
-          key: "emailCooldownEnd",
-          value: cooldownEnd.toIso8601String(),
-        );
+      final storage = FlutterSecureStorage();
+      final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+      await storage.write(
+        key: "emailCooldownEnd",
+        value: cooldownEnd.toIso8601String(),
+      );
 
       // 1️⃣ Show "Code Sent" immediately
       setState(() {
@@ -386,12 +386,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         setState(() {
           isCodeCorrect = true;
           _isCodeValid = true;
-          _tooManyAttempts = false;
         });
         _timer?.cancel();
       } else {
-        _attempts++;
-
         setState(() {
           isCodeCorrect = false;
           _isCodeValid = false;
@@ -407,13 +404,6 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           });
           _focusNodes[0].requestFocus();
         });
-
-        if (_attempts >= 3) {
-          setState(() {
-            _tooManyAttempts = true;
-          });
-          _timer?.cancel();
-        }
       }
     }
   }
@@ -449,31 +439,30 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   }
 
   void restoreCooldown() async {
-  final storage = FlutterSecureStorage();
-  final saved = await storage.read(key: "emailCooldownEnd");
-  if (saved == null) return;
+    final storage = FlutterSecureStorage();
+    final saved = await storage.read(key: "emailCooldownEnd");
+    if (saved == null) return;
 
-  final end = DateTime.parse(saved);
-  final now = DateTime.now();
-  int remaining = end.difference(now).inSeconds;
+    final end = DateTime.parse(saved);
+    final now = DateTime.now();
+    int remaining = end.difference(now).inSeconds;
 
-  if (remaining > 0) {
-    setState(() {
-      _secondsLeft = remaining;
-      _codeDisabled = true;
-    });
+    if (remaining > 0) {
+      setState(() {
+        _secondsLeft = remaining;
+        _codeDisabled = true;
+      });
 
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_secondsLeft > 0) {
-        setState(() => _secondsLeft--);
-      } else {
-        timer.cancel();
-        setState(() => _codeDisabled = false);
-      }
-    });
+      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+        if (_secondsLeft > 0) {
+          setState(() => _secondsLeft--);
+        } else {
+          timer.cancel();
+          setState(() => _codeDisabled = false);
+        }
+      });
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -1133,200 +1122,121 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                         else
                           Positioned(
                             top: 0,
-                            child: _tooManyAttempts
-                                ? SizedBox(
-                                    width: 270,
-                                    height: 26,
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Color(0xFF0B1320),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 25.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ...List.generate(6, (index) {
+                                    return GestureDetector(
+                                      onTap: () =>
+                                          _focusNodes[index].requestFocus(),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
                                         ),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.centerLeft,
-                                              end: Alignment.centerRight,
-                                              colors: [
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.0,
+                                        child: Column(
+                                          children: [
+                                            SizedBox(
+                                              width: 30,
+                                              height: 20,
+                                              child: TextField(
+                                                enabled: !_codeDisabled,
+                                                readOnly: _codeDisabled,
+                                                showCursor: !_codeDisabled,
+
+                                                controller:
+                                                    _codecontrollers[index],
+                                                focusNode: _focusNodes[index],
+
+                                                textAlign: TextAlign.center,
+                                                maxLength: 1,
+                                                keyboardType:
+                                                    TextInputType.number,
+
+                                                style: TextStyle(
+                                                  color: _codeDisabled
+                                                      ? Colors
+                                                            .grey // disabled text
+                                                      : (isCodeCorrect
+                                                            ? Color(0xFF00F0FF)
+                                                            : (_isCodeValid ==
+                                                                      false
+                                                                  ? Colors.red
+                                                                  : Colors
+                                                                        .white)),
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.61,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.61,
-                                                ),
-                                                Color.fromRGBO(
-                                                  175,
-                                                  34,
-                                                  34,
-                                                  0.0,
-                                                ),
-                                              ],
-                                              stops: [0.0, 0.101, 0.9038, 1.0],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                        ),
-                                        Center(
-                                          child: Text(
-                                            "Too many attempts. Try again later.",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : Padding(
-                                    padding: const EdgeInsets.only(top: 25.0),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        ...List.generate(6, (index) {
-                                          return GestureDetector(
-                                            onTap: () => _focusNodes[index]
-                                                .requestFocus(),
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 5,
-                                                  ),
-                                              child: Column(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 30,
-                                                    height: 20,
-                                                    child: TextField(
-                                                      enabled: !_codeDisabled,
-                                                      readOnly: _codeDisabled,
-                                                      showCursor:
-                                                          !_codeDisabled,
 
-                                                      controller:
-                                                          _codecontrollers[index],
-                                                      focusNode:
-                                                          _focusNodes[index],
-
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      maxLength: 1,
-                                                      keyboardType:
-                                                          TextInputType.number,
-
-                                                      style: TextStyle(
-                                                        color: _codeDisabled
-                                                            ? Colors
-                                                                  .grey // disabled text
-                                                            : (isCodeCorrect
-                                                                  ? Color(
-                                                                      0xFF00F0FF,
-                                                                    )
-                                                                  : (_isCodeValid ==
-                                                                            false
-                                                                        ? Colors
-                                                                              .red
-                                                                        : Colors
-                                                                              .white)),
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-
-                                                      cursorColor: Colors.white,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                            counterText: "",
-                                                            border: InputBorder
-                                                                .none,
-                                                          ),
-
-                                                      onChanged: _codeDisabled
-                                                          ? null
-                                                          : (value) =>
-                                                                _onChanged(
-                                                                  value,
-                                                                  index,
-                                                                ),
+                                                cursorColor: Colors.white,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      counterText: "",
+                                                      border: InputBorder.none,
                                                     ),
-                                                  ),
 
-                                                  // Dash under input
-                                                  Container(
-                                                    width: 30,
-                                                    height: 2,
-                                                    color: _codeDisabled
-                                                        ? Colors.grey
-                                                        : (code[index].isEmpty
-                                                              ? Colors.white
-                                                              : Colors
-                                                                    .transparent),
-                                                  ),
-                                                ],
+                                                onChanged: _codeDisabled
+                                                    ? null
+                                                    : (value) => _onChanged(
+                                                        value,
+                                                        index,
+                                                      ),
                                               ),
                                             ),
-                                          );
-                                        }),
 
-                                        if (isCodeCorrect ||
-                                            _isCodeValid == false) ...[
-                                          const SizedBox(width: 10),
-                                          AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 300,
+                                            // Dash under input
+                                            Container(
+                                              width: 30,
+                                              height: 2,
+                                              color: _codeDisabled
+                                                  ? Colors.grey
+                                                  : (code[index].isEmpty
+                                                        ? Colors.white
+                                                        : Colors.transparent),
                                             ),
-                                            width: 24,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              color: isCodeCorrect
-                                                  ? const Color(0xFF00F0FF)
-                                                  : Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isCodeCorrect
-                                                  ? Icons.check
-                                                  : Icons.close,
-                                              color: isCodeCorrect
-                                                  ? Colors.black
-                                                  : Colors.white,
-                                              size: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }),
+
+                                  if (isCodeCorrect ||
+                                      _isCodeValid == false) ...[
+                                    const SizedBox(width: 10),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: isCodeCorrect
+                                            ? const Color(0xFF00F0FF)
+                                            : Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isCodeCorrect
+                                            ? Icons.check
+                                            : Icons.close,
+                                        color: isCodeCorrect
+                                            ? Colors.black
+                                            : Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
-                                  ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
 
                         Positioned(
                           top: 21,
                           left: 280,
                           child: GestureDetector(
-                            onTap:
-                                (_secondsLeft == 0 &&
-                                    !_tooManyAttempts &&
-                                    !_isTyping)
+                            onTap: (_secondsLeft == 0 && !_isTyping)
                                 ? fetchCodeFromGo
                                 : null,
                             child: Container(
@@ -2187,13 +2097,13 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
     final code = generate6DigitCode().join();
     serverCode = code;
 
-    if (_attempts >= 3) {
-      setState(() => _tooManyAttempts = true);
-      errorStackKey.currentState?.showError(
-        "Too many failed attempts. Please try again later.",
-      );
-      return;
-    }
+    // if (_attempts >= 3) {
+    //   setState(() => _tooManyAttempts = true);
+    //   errorStackKey.currentState?.showError(
+    //     "Too many failed attempts. Please try again later.",
+    //   );
+    //   return;
+    // }
 
     final response = await http.post(
       Uri.parse("${ApiConstants.baseUrl}/get-code"),

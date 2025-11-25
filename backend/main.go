@@ -45,7 +45,7 @@ func main() {
 	countryCollection := db.Collection("countries")
 	emailCodeCollection := db.Collection("email_codes")
 
-	controllers.SetupEmailCodeTTL(emailCodeCollection)
+	// controllers.SetupEmailCodeTTL(emailCodeCollection)
 
 	// go controllers.CleanupExpiredCodes(emailCodeCollection)
 
