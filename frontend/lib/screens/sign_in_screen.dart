@@ -332,104 +332,206 @@ class _SignInPageState extends State<SignInPage> {
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
   void _onChanged(String value, int index) async {
-    // Handle typing + navigation
-    if (value.length > 1) value = value[0];
+  // Trim to a single character
+  if (value.length > 1) {
+    _codecontrollers[index].text = value[0];
+    value = value[0];
+  }
 
-    setState(() {
-      code[index] = value;
+  // Update state and navigate focus
+  setState(() {
+    code[index] = value;
+    _isTyping = code.any((c) => c.isNotEmpty);
+    _isCodeValid = true;
 
-      if (value.isNotEmpty && index < 5) {
-        _focusNodes[index + 1].requestFocus();
-      } else if (value.isEmpty && index > 0) {
-        _focusNodes[index - 1].requestFocus();
-      }
-    });
+    if (value.isNotEmpty && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+  });
 
-    // Not all 6 digits entered yet
-    if (code.any((d) => d.isEmpty)) return;
+  // Not all digits entered yet
+  if (code.any((c) => c.isEmpty)) return;
 
-    // ==============================
-    //  VERIFY CODE (Same Logic as my version)
-    // ==============================
+  // ==============================
+  // VERIFY CODE
+  // ==============================
+  final entered = code.join();
+  final email = _controller.text.trim();
 
-    final entered = code.join();
-    final email = _controller.text.trim();
+  if (email.isEmpty) {
+    errorStackKey.currentState?.showError("Email is required.");
+    return;
+  }
 
-    try {
-      bool valid = await AuthService.verifyCode(
-        identifier: email,
-        code: entered,
-      );
+  try {
+    bool valid = await AuthService.verifyCode(
+      identifier: email,
+      code: entered,
+    );
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    if (valid) {
+      userProvider.setCodeCorrect(true);
+      userProvider.setCodeValid(true);
 
       setState(() {
-        isCodeCorrect = valid;
-        _isCodeValid = valid;
+        _tooManyAttempts = false;
       });
 
-      if (valid) {
-        // reset attempt logic
-        _attempts = 0;
-        _secondsLeft = 0;
-        return;
-      }
-
-      // ---------- INVALID CODE ----------
+      _timer?.cancel();
+    } else {
       _attempts++;
+      userProvider.setCodeCorrect(false);
 
-      errorStackKey.currentState?.showError(
-        "Incorrect or expired code. Please request a new one.",
-        duration: const Duration(seconds: 5),
-      );
-
-      if (_attempts >= 3) {
-        setState(() {
-          _tooManyAttempts = true;
-        });
-        return;
-      }
-
-      // Clear boxes after 2 seconds
-      Timer(const Duration(seconds: 2), () {
-        if (!mounted) return;
-
-        setState(() {
-          code = List.generate(6, (_) => "");
-          _codecontrollers.forEach((c) => c.clear());
-          _isCodeValid = null; // hide red container
-        });
-
-        _focusNodes[0].requestFocus();
-      });
-    } catch (e) {
-      // ---------- SERVER ERROR / EXPIRED ----------
       setState(() {
-        isCodeCorrect = false;
         _isCodeValid = false;
       });
 
-      final msg = e.toString().contains('expired')
-          ? "Code expired. Please request a new one."
-          : "Incorrect code. Try again.";
-
-      errorStackKey.currentState?.showError(
-        msg,
-        duration: const Duration(seconds: 5),
-      );
-
-      // Clear fields after 2 seconds
       Timer(const Duration(seconds: 2), () {
         if (!mounted) return;
 
         setState(() {
           code = List.generate(6, (_) => "");
           _codecontrollers.forEach((c) => c.clear());
-          _isCodeValid = null;
+          _isCodeValid = true;
         });
 
         _focusNodes[0].requestFocus();
       });
     }
+  } catch (e) {
+    // Server or expired code
+    setState(() {
+      _isCodeValid = false;
+    });
+
+    final msg = e.toString().contains('expired')
+        ? "Code expired. Please request a new one."
+        : "Incorrect code. Try again.";
+
+    errorStackKey.currentState?.showError(
+      msg,
+      duration: const Duration(seconds: 5),
+    );
+
+    // Clear fields after 2 seconds
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      setState(() {
+        code = List.generate(6, (_) => "");
+        _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = true;
+      });
+
+      _focusNodes[0].requestFocus();
+    });
   }
+}
+
+
+  // void _onChanged(String value, int index) async {
+  //   // Handle typing + navigation
+  //   if (value.length > 1) value = value[0];
+
+  //   setState(() {
+  //     code[index] = value;
+
+  //     if (value.isNotEmpty && index < 5) {
+  //       _focusNodes[index + 1].requestFocus();
+  //     } else if (value.isEmpty && index > 0) {
+  //       _focusNodes[index - 1].requestFocus();
+  //     }
+  //   });
+
+  //   // Not all 6 digits entered yet
+  //   if (code.any((d) => d.isEmpty)) return;
+
+  //   // ==============================
+  //   //  VERIFY CODE (Same Logic as my version)
+  //   // ==============================
+
+  //   final entered = code.join();
+  //   final email = _controller.text.trim();
+
+  //   try {
+  //     bool valid = await AuthService.verifyCode(
+  //       identifier: email,
+  //       code: entered,
+  //     );
+
+  //     setState(() {
+  //       isCodeCorrect = valid;
+  //       _isCodeValid = valid;
+  //     });
+
+  //     if (valid) {
+  //       // reset attempt logic
+  //       _attempts = 0;
+  //       _secondsLeft = 0;
+  //       return;
+  //     }
+
+  //     // ---------- INVALID CODE ----------
+  //     _attempts++;
+
+  //     errorStackKey.currentState?.showError(
+  //       "Incorrect or expired code. Please request a new one.",
+  //       duration: const Duration(seconds: 5),
+  //     );
+
+  //     if (_attempts >= 3) {
+  //       setState(() {
+  //         _tooManyAttempts = true;
+  //       });
+  //       return;
+  //     }
+
+  //     // Clear boxes after 2 seconds
+  //     Timer(const Duration(seconds: 2), () {
+  //       if (!mounted) return;
+
+  //       setState(() {
+  //         code = List.generate(6, (_) => "");
+  //         _codecontrollers.forEach((c) => c.clear());
+  //         _isCodeValid = null; // hide red container
+  //       });
+
+  //       _focusNodes[0].requestFocus();
+  //     });
+  //   } catch (e) {
+  //     // ---------- SERVER ERROR / EXPIRED ----------
+  //     setState(() {
+  //       isCodeCorrect = false;
+  //       _isCodeValid = false;
+  //     });
+
+  //     final msg = e.toString().contains('expired')
+  //         ? "Code expired. Please request a new one."
+  //         : "Incorrect code. Try again.";
+
+  //     errorStackKey.currentState?.showError(
+  //       msg,
+  //       duration: const Duration(seconds: 5),
+  //     );
+
+  //     // Clear fields after 2 seconds
+  //     Timer(const Duration(seconds: 2), () {
+  //       if (!mounted) return;
+
+  //       setState(() {
+  //         code = List.generate(6, (_) => "");
+  //         _codecontrollers.forEach((c) => c.clear());
+  //         _isCodeValid = null;
+  //       });
+
+  //       _focusNodes[0].requestFocus();
+  //     });
+  //   }
+  // }
 
   // void _onChanged(String value, int index) async {
   //   setState(() {
