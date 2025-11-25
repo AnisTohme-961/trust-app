@@ -903,7 +903,7 @@ class MobileSignInPage extends StatelessWidget {
               );
 
               if (success) {
-                Navigator.pushReplacementNamed(context, '/register-pin');
+                Navigator.pushReplacementNamed(context, '/coming-soon');
               }
             } catch (e) {
               print('Sign in error: $e');

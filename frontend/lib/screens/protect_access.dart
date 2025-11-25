@@ -120,8 +120,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   String serverCode = "";
 
-  // int _attempts = 0;
-  // bool _tooManyAttempts = false;
+  int _attempts = 0;
+  bool _tooManyAttempts = false;
   int _secondsLeft = 0;
   Timer? _timer;
   bool _showCodeSent = false;
