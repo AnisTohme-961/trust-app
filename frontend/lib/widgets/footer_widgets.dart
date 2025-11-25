@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/font_size_provider.dart';
 
 class FooterWidget extends StatelessWidget {
   const FooterWidget({super.key});

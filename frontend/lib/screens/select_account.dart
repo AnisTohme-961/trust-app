@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/signup_data_provider.dart';
-import '../widgets/custom_button.dart';
+import '../widgets/add_new_profile_widget.dart';
 
 class SelectAccountContent extends StatefulWidget {
   final VoidCallback onClose;
@@ -304,7 +304,12 @@ class TabletSelectAccountContent extends StatelessWidget {
           const SizedBox(height: 25.0),
 
           // Add New Profile Button for tablet
-          _buildAddNewProfileButton(context, true),
+          AddNewProfileButton(
+            isTablet: false,
+            onTap: () {
+              Navigator.pushNamed(context, '/sign-in');
+            },
+          ),
         ],
       ),
     );
@@ -656,61 +661,4 @@ class VLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
-  final buttonWidth = isTablet ? 220.0 : 180.0;
-  final buttonHeight = isTablet ? 50.0 : 40.0;
-  final fontSize = isTablet ? 22.0 : 20.0;
-
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(left: isTablet ? 50 : 10),
-          child: Container(
-            height: 4,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-        ),
-      ),
-      SizedBox(width: isTablet ? 30 : 20),
-      CustomButton(
-        text: 'Add New Profile',
-        width: buttonWidth,
-        height: buttonHeight,
-        fontSize: fontSize,
-        fontWeight: FontWeight.w600,
-        textColor: Colors.white,
-        borderColor: const Color(0xFF00F0FF),
-        backgroundColor: const Color(0xFF0B1320),
-        onTap: () {
-          Navigator.pushNamed(context, '/sign-in');
-        },
-      ),
-      SizedBox(width: isTablet ? 30 : 20),
-      Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(right: isTablet ? 50 : 10),
-          child: Container(
-            height: 4,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
 }

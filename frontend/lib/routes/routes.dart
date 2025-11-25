@@ -10,6 +10,8 @@ import '../screens/sign_in_second_time_screen.dart';
 import '../screens/sign_in_pin_screen.dart';
 import '../screens/sign_in_pattern_screen.dart';
 import '../screens/coming_soon_screen.dart';
+import '../screens/bottom_nav_bar_widget.dart';
+import '../screens/settings_screen.dart';
 
 Map<String, WidgetBuilder> appRoutes() {
   return {
@@ -26,5 +28,6 @@ Map<String, WidgetBuilder> appRoutes() {
     '/sign-in-register-pin': (_) => const SignInRegisterPinScreen(),
     '/sign-in-pattern': (_) => const SignInPatternScreen(),
     '/coming-soon': (_) => const ComingSoonPage(),
+    '/settings': (_) => const SettingsScreen(),
   };
 }
