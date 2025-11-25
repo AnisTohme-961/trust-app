@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
+import 'package:http/http.dart' as http;
+
 import 'dart:async';
 import '../widgets/error_widgets.dart';
 import 'dart:convert';
@@ -8,6 +10,9 @@ import 'package:flutter/services.dart';
 import '../widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:provider/provider.dart';
+import '../constants/api_constants.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
 
@@ -29,10 +34,14 @@ class _SignInPageState extends State<SignInPage> {
   bool get _isPasswordNotEmpty => _passwordController.text.isNotEmpty;
 
   String serverCode = "";
+  int _attempts = 0;
   bool _hideInputFields = false;
   bool _tooManyAttempts = false;
+  bool _showCodeSent = false;
   bool isCodeCorrect = false;
   bool? _isCodeValid;
+  bool _isTyping = false;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -41,13 +50,13 @@ class _SignInPageState extends State<SignInPage> {
     _passwordController.addListener(() => setState(() {}));
     _emailFocus.addListener(() => setState(() {}));
     _passwordFocus.addListener(() => setState(() {}));
-    
-  Future.delayed(const Duration(milliseconds: 200), () {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    if (_controller.text.isEmpty && userProvider.eid.isNotEmpty) {
-      _controller.text = userProvider.eid;
-    }
-  });
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (_controller.text.isEmpty && userProvider.eid.isNotEmpty) {
+        _controller.text = userProvider.eid;
+      }
+    });
   }
 
   @override
@@ -72,69 +81,263 @@ class _SignInPageState extends State<SignInPage> {
 
   int _getCodeAttempts = 0;
 
-  void fetchCodeFromGo() async {
-    final identifier = _controller.text.trim();
+  Future<void> fetchCodeFromGo() async {
+  final email = _controller.text.trim();
+  final password = _passwordController.text.trim();
 
-    if (identifier.isEmpty) {
-      errorStackKey.currentState?.showError(
-        'Please enter your eid/email first',
-        duration: const Duration(seconds: 5),
-      );
-      return;
-    }
+  if (email.isEmpty) {
+    errorStackKey.currentState?.showError("Please enter your email first.");
+    return;
+  }
 
-    try {
-      if (_getCodeAttempts >= 4) {
-        errorStackKey.currentState?.showError(
-          "Too many attempts. Please try again in 10 minutes.",
-          duration: const Duration(seconds: 5),
-        );
+  if (password.isEmpty) {
+    errorStackKey.currentState?.showError("Please enter your password first.");
+    return;
+  }
 
-        Timer(const Duration(minutes: 10), () {
-          setState(() => _getCodeAttempts = 0);
-        });
-        return;
-      }
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/get-code-sign-in"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"identifier": email}),
+  );
 
-      await AuthService.sendCode(identifier: identifier);
+  final data = jsonDecode(response.body);
+
+  if (response.statusCode == 200) {
+    serverCode = data['code'];
+    _attempts = data['attempts'] ?? 0;
+    _secondsLeft = data['cooldown'] ?? 0;
+
+    final storage = FlutterSecureStorage();
+    final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+    await storage.write(
+      key: "emailCooldownEnd",
+      value: cooldownEnd.toIso8601String(),
+    );
+
+    // Show "Code Sent" for 2 seconds
+    setState(() {
+      _showCodeSent = true;
+      _hideInputFields = true; // temporarily hide/disable inputs
+    });
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
       setState(() {
-        _getCodeAttempts++;
-        _hideInputFields = true;
-        isCodeCorrect = false;
-        _isCodeValid = null;
-        code = List.generate(6, (_) => "");
-        _codecontrollers.forEach((c) => c.clear());
+        _showCodeSent = false;
+        // Inputs remain visible but disabled if cooldown active
+        _hideInputFields = _secondsLeft > 0;
       });
+    });
 
-      Timer(const Duration(seconds: 2), () {
-        setState(() {
-          _hideInputFields = false;
-        });
-      });
-
-      _secondsLeft = 120;
-      Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_secondsLeft <= 0) {
-          timer.cancel();
+    // Start cooldown timer
+    if (_secondsLeft > 0) {
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_secondsLeft > 0) {
+          setState(() => _secondsLeft--);
         } else {
+          timer.cancel();
           setState(() {
-            _secondsLeft--;
+            _hideInputFields = false; // enable inputs after cooldown
           });
         }
       });
-    } catch (e) {
-      errorStackKey.currentState?.showError(
-        'Failed to send code',
-        duration: const Duration(seconds: 5),
-      );
     }
+  } else {
+    errorStackKey.currentState?.showError(
+      data['error'] ?? "Failed to send code. Please try again.",
+    );
   }
+}
+
+
+  // Future<void> fetchCodeFromGo() async {
+  //   final email = _controller.text.trim();
+  //   final password = _passwordController.text.trim();
+
+  //   if (email.isEmpty) {
+  //     errorStackKey.currentState?.showError("Please enter your email first.");
+  //     return;
+  //   }
+
+  //   if (password.isEmpty) {
+  //     errorStackKey.currentState?.showError(
+  //       "Please enter your password first.",
+  //     );
+  //     return;
+  //   }
+
+  //   final response = await http.post(
+  //     Uri.parse("${ApiConstants.baseUrl}/get-code-sign-in"),
+  //     headers: {"Content-Type": "application/json"},
+  //     body: jsonEncode({"identifier": email}),
+  //   );
+
+  //   final data = jsonDecode(response.body);
+
+  //   if (response.statusCode == 200) {
+  //     serverCode = data['code'];
+  //     _attempts = data['attempts'] ?? 0;
+  //     _secondsLeft = data['cooldown'] ?? 0;
+
+  //     final storage = FlutterSecureStorage();
+  //     final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+  //     await storage.write(
+  //       key: "emailCooldownEnd",
+  //       value: cooldownEnd.toIso8601String(),
+  //     );
+
+  //     // Show code inputs but disable them
+  //     setState(() {
+  //       _hideInputFields = true; // inputs are disabled
+  //       _showCodeSent = false; // no "Code Sent" popup
+  //     });
+
+  //     if (_secondsLeft > 0) {
+  //       _timer?.cancel();
+  //       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //         if (_secondsLeft > 0) {
+  //           setState(() => _secondsLeft--);
+  //         } else {
+  //           timer.cancel();
+  //           setState(() {
+  //             _hideInputFields = false; // enable inputs again
+  //           });
+  //         }
+  //       });
+  //     }
+  //   } else {
+  //     errorStackKey.currentState?.showError(
+  //       data['error'] ?? "Failed to send code. Please try again.",
+  //     );
+  //   }
+  // }
+
+  //   Future<void> fetchCodeFromGo() async {
+  //   final email = _controller.text.trim();
+  //   if (email.isEmpty) {
+  //     errorStackKey.currentState?.showError("Please enter your email first.");
+  //     return;
+  //   }
+
+  //   final response = await http.post(
+  //     Uri.parse("${ApiConstants.baseUrl}/get-code-sign-in"),
+  //     headers: {"Content-Type": "application/json"},
+  //     body: jsonEncode({"identifier": email}),
+  //   );
+
+  //   final data = jsonDecode(response.body);
+
+  //   if (response.statusCode == 200) {
+  //     serverCode = data['code'];
+  //     _attempts = data['attempts'] ?? 0;
+  //     _secondsLeft = data['cooldown'] ?? 0;
+
+  //     // Save cooldown to storage
+  //     final storage = FlutterSecureStorage();
+  //     final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+  //     await storage.write(key: "emailCooldownEnd", value: cooldownEnd.toIso8601String());
+
+  //     // Show "Code Sent"
+  //     setState(() {
+  //       _showCodeSent = true;
+  //       _hideInputFields = _secondsLeft > 0;
+  //     });
+
+  //     // Start cooldown timer
+  //     if (_secondsLeft > 0) {
+  //       _timer?.cancel();
+  //       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //         if (_secondsLeft > 0) {
+  //           setState(() => _secondsLeft--);
+  //         } else {
+  //           timer.cancel();
+  //           setState(() {
+  //             _hideInputFields = false;
+  //           });
+  //         }
+  //       });
+  //     }
+
+  //     // Hide "Code Sent" after 2 seconds
+  //     Future.delayed(const Duration(seconds: 2), () {
+  //       if (mounted) setState(() => _showCodeSent = false);
+  //     });
+  //   } else {
+  //     errorStackKey.currentState?.showError(
+  //       data['error'] ?? "Failed to send code. Please try again.",
+  //     );
+  //   }
+  // }
+
+  // void fetchCodeFromGo() async {
+  //   final identifier = _controller.text.trim();
+
+  //   if (identifier.isEmpty) {
+  //     errorStackKey.currentState?.showError(
+  //       'Please enter your eid/email first',
+  //       duration: const Duration(seconds: 5),
+  //     );
+  //     return;
+  //   }
+
+  //   try {
+  //     if (_getCodeAttempts >= 4) {
+  //       errorStackKey.currentState?.showError(
+  //         "Too many attempts. Please try again in 10 minutes.",
+  //         duration: const Duration(seconds: 5),
+  //       );
+
+  //       Timer(const Duration(minutes: 10), () {
+  //         setState(() => _getCodeAttempts = 0);
+  //       });
+  //       return;
+  //     }
+
+  //     await AuthService.sendCode(identifier: identifier);
+  //     setState(() {
+  //       _getCodeAttempts++;
+  //       _hideInputFields = true;
+  //       isCodeCorrect = false;
+  //       _isCodeValid = null;
+  //       code = List.generate(6, (_) => "");
+  //       _codecontrollers.forEach((c) => c.clear());
+  //     });
+
+  //     Timer(const Duration(seconds: 2), () {
+  //       setState(() {
+  //         _hideInputFields = false;
+  //       });
+  //     });
+
+  //     _secondsLeft = 120;
+  //     Timer.periodic(const Duration(seconds: 1), (timer) {
+  //       if (_secondsLeft <= 0) {
+  //         timer.cancel();
+  //       } else {
+  //         setState(() {
+  //           _secondsLeft--;
+  //         });
+  //       }
+  //     });
+  //   } catch (e) {
+  //     errorStackKey.currentState?.showError(
+  //       'Failed to send code',
+  //       duration: const Duration(seconds: 5),
+  //     );
+  //   }
+  // }
 
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
   void _onChanged(String value, int index) async {
+    // Handle typing + navigation
+    if (value.length > 1) value = value[0];
+
     setState(() {
       code[index] = value;
+
       if (value.isNotEmpty && index < 5) {
         _focusNodes[index + 1].requestFocus();
       } else if (value.isEmpty && index > 0) {
@@ -142,58 +345,181 @@ class _SignInPageState extends State<SignInPage> {
       }
     });
 
-    if (getEnteredCode().length == 6 &&
-        getEnteredCode().split('').every((d) => d.isNotEmpty)) {
-      try {
-        final res = await AuthService.verifyCode(
-          identifier: _controller.text.trim(),
-          code: getEnteredCode(),
-        );
+    // Not all 6 digits entered yet
+    if (code.any((d) => d.isEmpty)) return;
 
-        setState(() {
-          isCodeCorrect = res;
-          _isCodeValid = res;
-        });
+    // ==============================
+    //  VERIFY CODE (Same Logic as my version)
+    // ==============================
 
-        if (res) {
-          _secondsLeft = 0;
-        } else {
-          errorStackKey.currentState?.showError(
-            'Incorrect or expired code. Please request a new one',
-            duration: const Duration(seconds: 5),
-          );
+    final entered = code.join();
+    final email = _controller.text.trim();
 
-          // Clear input fields and hide red container after 2 seconds
-          Timer(const Duration(seconds: 2), () {
-            setState(() {
-              code = List.generate(6, (_) => "");
-              _codecontrollers.forEach((c) => c.clear());
-              _isCodeValid = null; // hide red container
-            });
-          });
-        }
-      } catch (e) {
-        setState(() {
-          isCodeCorrect = false;
-          _isCodeValid = false;
-        });
-        final msg = e.toString().contains('expired')
-            ? 'Code expired. Please request a new one'
-            : 'Incorrect code. Try again';
-        errorStackKey.currentState?.showError(
-          msg,
-          duration: const Duration(seconds: 5),
-        );
+    try {
+      bool valid = await AuthService.verifyCode(
+        identifier: email,
+        code: entered,
+      );
 
-        // Clear input fields and hide red container after 2 seconds
-        Timer(const Duration(seconds: 2), () {
-          setState(() {
-            code = List.generate(6, (_) => "");
-            _codecontrollers.forEach((c) => c.clear());
-            _isCodeValid = null; // hide red container
-          });
-        });
+      setState(() {
+        isCodeCorrect = valid;
+        _isCodeValid = valid;
+      });
+
+      if (valid) {
+        // reset attempt logic
+        _attempts = 0;
+        _secondsLeft = 0;
+        return;
       }
+
+      // ---------- INVALID CODE ----------
+      _attempts++;
+
+      errorStackKey.currentState?.showError(
+        "Incorrect or expired code. Please request a new one.",
+        duration: const Duration(seconds: 5),
+      );
+
+      if (_attempts >= 3) {
+        setState(() {
+          _tooManyAttempts = true;
+        });
+        return;
+      }
+
+      // Clear boxes after 2 seconds
+      Timer(const Duration(seconds: 2), () {
+        if (!mounted) return;
+
+        setState(() {
+          code = List.generate(6, (_) => "");
+          _codecontrollers.forEach((c) => c.clear());
+          _isCodeValid = null; // hide red container
+        });
+
+        _focusNodes[0].requestFocus();
+      });
+    } catch (e) {
+      // ---------- SERVER ERROR / EXPIRED ----------
+      setState(() {
+        isCodeCorrect = false;
+        _isCodeValid = false;
+      });
+
+      final msg = e.toString().contains('expired')
+          ? "Code expired. Please request a new one."
+          : "Incorrect code. Try again.";
+
+      errorStackKey.currentState?.showError(
+        msg,
+        duration: const Duration(seconds: 5),
+      );
+
+      // Clear fields after 2 seconds
+      Timer(const Duration(seconds: 2), () {
+        if (!mounted) return;
+
+        setState(() {
+          code = List.generate(6, (_) => "");
+          _codecontrollers.forEach((c) => c.clear());
+          _isCodeValid = null;
+        });
+
+        _focusNodes[0].requestFocus();
+      });
+    }
+  }
+
+  // void _onChanged(String value, int index) async {
+  //   setState(() {
+  //     code[index] = value;
+  //     if (value.isNotEmpty && index < 5) {
+  //       _focusNodes[index + 1].requestFocus();
+  //     } else if (value.isEmpty && index > 0) {
+  //       _focusNodes[index - 1].requestFocus();
+  //     }
+  //   });
+
+  //   if (getEnteredCode().length == 6 &&
+  //       getEnteredCode().split('').every((d) => d.isNotEmpty)) {
+  //     try {
+  //       final res = await AuthService.verifyCode(
+  //         identifier: _controller.text.trim(),
+  //         code: getEnteredCode(),
+  //       );
+
+  //       setState(() {
+  //         isCodeCorrect = res;
+  //         _isCodeValid = res;
+  //       });
+
+  //       if (res) {
+  //         _secondsLeft = 0;
+  //       } else {
+  //         errorStackKey.currentState?.showError(
+  //           'Incorrect or expired code. Please request a new one',
+  //           duration: const Duration(seconds: 5),
+  //         );
+
+  //         // Clear input fields and hide red container after 2 seconds
+  //         Timer(const Duration(seconds: 2), () {
+  //           setState(() {
+  //             code = List.generate(6, (_) => "");
+  //             _codecontrollers.forEach((c) => c.clear());
+  //             _isCodeValid = null; // hide red container
+  //           });
+  //         });
+  //       }
+  //     } catch (e) {
+  //       setState(() {
+  //         isCodeCorrect = false;
+  //         _isCodeValid = false;
+  //       });
+  //       final msg = e.toString().contains('expired')
+  //           ? 'Code expired. Please request a new one'
+  //           : 'Incorrect code. Try again';
+  //       errorStackKey.currentState?.showError(
+  //         msg,
+  //         duration: const Duration(seconds: 5),
+  //       );
+
+  //       // Clear input fields and hide red container after 2 seconds
+  //       Timer(const Duration(seconds: 2), () {
+  //         setState(() {
+  //           code = List.generate(6, (_) => "");
+  //           _codecontrollers.forEach((c) => c.clear());
+  //           _isCodeValid = null; // hide red container
+  //         });
+  //       });
+  //     }
+  //   }
+  // }
+
+  void restoreCooldown() async {
+    final storage = FlutterSecureStorage();
+    final saved = await storage.read(key: "emailCooldownEnd");
+    if (saved == null) return;
+
+    final end = DateTime.parse(saved);
+    int remaining = end.difference(DateTime.now()).inSeconds;
+
+    if (remaining > 0) {
+      setState(() {
+        _secondsLeft = remaining;
+        _hideInputFields = true;
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_secondsLeft > 0)
+          setState(() => _secondsLeft--);
+        else {
+          timer.cancel();
+          setState(() => _hideInputFields = false);
+        }
+      });
+    } else {
+      setState(() => _hideInputFields = false);
     }
   }
 
@@ -358,7 +684,7 @@ class MobileSignInPage extends StatelessWidget {
               _buildForgotRow(context),
               _buildRememberMe(),
               const SizedBox(height: 10),
-              _buildEmailVerification(),
+              _buildEmailVerification(context),
               _buildSignInButton(context),
               const SizedBox(height: 20),
               const Text(
@@ -651,7 +977,8 @@ class MobileSignInPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmailVerification() {
+  Widget _buildEmailVerification(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: SizedBox(
@@ -714,6 +1041,7 @@ class MobileSignInPage extends StatelessWidget {
                             width: 30,
                             height: 24,
                             child: TextField(
+                              enabled: !hideInputFields,
                               controller: codecontrollers[index],
                               focusNode: focusNodes[index],
                               showCursor: !(code.every((c) => c.isNotEmpty)),
@@ -721,7 +1049,7 @@ class MobileSignInPage extends StatelessWidget {
                               maxLength: 1,
                               keyboardType: TextInputType.number,
                               style: TextStyle(
-                                color: isCodeCorrect
+                                color: userProvider.isCodeCorrect
                                     ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
@@ -729,7 +1057,7 @@ class MobileSignInPage extends StatelessWidget {
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
-                              cursorColor: isCodeCorrect
+                              cursorColor: userProvider.isCodeCorrect
                                   ? const Color(0xFF00F0FF)
                                   : (isCodeValid == false
                                         ? Colors.red
@@ -755,7 +1083,7 @@ class MobileSignInPage extends StatelessWidget {
                 ),
               ),
 
-            if (isCodeCorrect || isCodeValid == false)
+            if (userProvider.isCodeCorrect || isCodeValid == false)
               Positioned(
                 top: 25,
                 left: 240,
@@ -764,12 +1092,16 @@ class MobileSignInPage extends StatelessWidget {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: isCodeCorrect ? const Color(0xFF00F0FF) : Colors.red,
+                    color: userProvider.isCodeCorrect
+                        ? const Color(0xFF00F0FF)
+                        : Colors.red,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isCodeCorrect ? Icons.check : Icons.close,
-                    color: isCodeCorrect ? Colors.black : Colors.white,
+                    userProvider.isCodeCorrect ? Icons.check : Icons.close,
+                    color: userProvider.isCodeCorrect
+                        ? Colors.black
+                        : Colors.white,
                     size: 16,
                   ),
                 ),
