@@ -67,7 +67,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   bool isChecked = false;
   bool isLoading = false;
 
-  void _validateAndSubmit() {
+  void _validatePassword() {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
@@ -79,7 +79,14 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
       _hasMin10 = password.length >= 10;
       _passwordsMatch = password == confirmPassword && password.isNotEmpty;
     });
-    _nextClicked = true;
+  }
+
+  void _validateAndSubmit() {
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    // Always validate before submission
+    _validatePassword();
 
     if (password.isEmpty) {
       _errorStackKey.currentState?.showError("Please enter your password.");
@@ -109,6 +116,49 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
       );
       return;
     }
+
+    // If all validations pass, proceed with submission
+    _proceedWithSubmission();
+  }
+
+  void _proceedWithSubmission() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    setState(() => isLoading = true);
+
+    String? eid = await ApiService.createUser(
+      firstName: userProvider.firstName,
+      lastName: userProvider.lastName,
+      email: userProvider.email,
+      password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text,
+      emailCode: userProvider.emailCode!.trim(),
+      sponsorCode: userProvider.sponsorCode,
+      gender: userProvider.gender,
+      country: {"name": userProvider.country, "code": userProvider.countryId},
+      language: {
+        "name": userProvider.selectedLanguage,
+        "code": userProvider.selectedLanguageId,
+      },
+      dob: userProvider.dob,
+    );
+
+    setState(() => isLoading = false);
+
+    if (eid != null) {
+      await userProvider.registerUser(
+        firstName: userProvider.firstName,
+        lastName: userProvider.lastName,
+        eid: eid,
+      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => ResponsiveRegisterLivePage()));
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to create user")));
+    }
   }
 
   void _flickSignUpGlow() {
@@ -119,10 +169,17 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   }
 
   Color bulletColor(bool isValid) {
-    if (!_nextClicked) return const Color(0xB300F0FF); // normal
+    // Always show validation status based on current password state
     return isValid
-        ? Colors.green
-        : Colors.red; // green if valid, red if invalid
+        ? const Color(0xFF00F0FF) // Change to #00F0FF when valid
+        : const Color(0xFFFF0000); // Keep red if invalid
+  }
+
+  Color requirementTextColor(bool isValid) {
+    // Always show validation status based on current password state
+    return isValid
+        ? const Color(0xFF00F0FF) // Change to #00F0FF when valid
+        : const Color(0xFFFF0000); // Keep red if invalid
   }
 
   String generatePassword() {
@@ -169,10 +226,18 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   void initState() {
     super.initState();
 
-    // Listen to password input changes
+    // Listen to password input changes for automatic validation
     _passwordController.addListener(() {
       setState(() {
         _hasTextInPassword = _passwordController.text.isNotEmpty;
+        _validatePassword(); // Validate automatically on every change
+      });
+    });
+
+    // Listen to confirm password input changes for automatic validation
+    _confirmPasswordController.addListener(() {
+      setState(() {
+        _validatePassword(); // Validate automatically on every change
       });
     });
   }
@@ -624,6 +689,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                               setState(() {
                                 _passwordController.text = newPassword;
                                 _confirmPasswordController.text = newPassword;
+                                _validatePassword(); // Validate immediately after generating
                               });
                             },
                             child: Row(
@@ -875,62 +941,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                             ? SystemMouseCursors.click
                             : SystemMouseCursors.basic,
                         child: GestureDetector(
-                          onTap: () async {
-                            _validateAndSubmit();
-
-                            if (_has2Caps &&
-                                _has2Lower &&
-                                _has2Numbers &&
-                                _has2Special &&
-                                _hasMin10 &&
-                                _passwordsMatch &&
-                                isChecked) {
-                              setState(() => isLoading = true);
-
-                              String? eid = await ApiService.createUser(
-                                firstName: userProvider.firstName,
-                                lastName: userProvider.lastName,
-                                email: userProvider.email,
-                                password: _passwordController.text,
-                                confirmPassword:
-                                    _confirmPasswordController.text,
-                                emailCode: userProvider.emailCode!.trim(),
-                                sponsorCode: userProvider.sponsorCode,
-                                gender: userProvider.gender,
-                                country: {
-                                  "name": userProvider.country,
-                                  "code": userProvider.countryId,
-                                },
-                                language: {
-                                  "name": userProvider.selectedLanguage,
-                                  "code": userProvider.selectedLanguageId,
-                                },
-                                dob: userProvider.dob,
-                              );
-
-                              setState(() => isLoading = false);
-
-                              if (eid != null) {
-                                await userProvider.registerUser(
-                                  firstName: userProvider.firstName,
-                                  lastName: userProvider.lastName,
-                                  eid: eid,
-                                );
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ResponsiveRegisterLivePage(),
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Failed to create user"),
-                                  ),
-                                );
-                              }
-                            }
-                          },
+                          onTap: _validateAndSubmit,
                           child: Container(
                             width: 105,
                             height: 40,
@@ -1022,7 +1033,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 15,
-            color: bulletColor(isValid),
+            color: requirementTextColor(isValid),
             letterSpacing: -0.03 * 20,
             height: 1.0,
           ),

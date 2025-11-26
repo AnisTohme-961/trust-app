@@ -218,12 +218,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Color bulletColor(bool condition) {
-    if (!_validationPerformed) {
-      return Color(0xFF00F0FF); // Default color when no validation performed
-    }
+    // Always show validation status based on current password state
     return condition
-        ? Colors.green
-        : Colors.red; // Green for valid, red for invalid
+        ? const Color(0xFF00F0FF) // Change to #00F0FF when valid
+        : const Color(0xFFFF0000); // Keep red if invalid
   }
 
   void _updatePasswordRules() {
@@ -244,6 +242,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() {
       _validationPerformed = true;
       _updatePasswordRules();
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen to password input changes for automatic validation
+    _passwordController.addListener(() {
+      setState(() {
+        _hasTextInPassword = _passwordController.text.isNotEmpty;
+        _updatePasswordRules(); // Validate automatically on every change
+      });
+    });
+
+    // Listen to confirm password input changes for automatic validation
+    _confirmPasswordController.addListener(() {
+      setState(() {
+        _updatePasswordRules(); // Validate automatically on every change
+      });
     });
   }
 
@@ -589,6 +607,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               _hasTextInPassword =
                                   _passwordController.text.isNotEmpty ||
                                   _confirmPasswordController.text.isNotEmpty;
+                              _updatePasswordRules(); // Auto validate on change
                             });
                           },
                         ),
@@ -1231,8 +1250,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           borderColor: const Color(0xFF00F0FF),
           backgroundColor: const Color(0xFF0B1320),
           onTap: () async {
-            _validatePassword();
-
             // Only proceed if password is valid
             if (_has2Caps &&
                 _has2Lower &&
@@ -1299,6 +1316,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               } catch (e) {
                 _errorStackKey.currentState?.showError(e.toString());
               }
+            } else {
+              _errorStackKey.currentState?.showError(
+                "Please follow password requirements",
+              );
             }
           },
         ),
@@ -1322,93 +1343,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ],
     );
   }
-
-  // Widget buildBackAndChangeButtons() {
-  //   return Row(
-  //     mainAxisAlignment: MainAxisAlignment.center,
-  //     children: [
-  //       Expanded(
-  //         child: Padding(
-  //           padding: const EdgeInsets.only(left: 15),
-  //           child: Container(
-  //             height: 4,
-  //             decoration: const BoxDecoration(
-  //               gradient: LinearGradient(
-  //                 colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-  //                 begin: Alignment.centerLeft,
-  //                 end: Alignment.centerRight,
-  //               ),
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //       const SizedBox(width: 20),
-  //       CustomButton(
-  //         text: 'Back',
-  //         width: 100,
-  //         height: 45,
-  //         fontSize: 20,
-  //         textColor: Colors.white,
-  //         borderColor: const Color(0xFF00F0FF),
-  //         backgroundColor: const Color(0xFF0B1320),
-  //         onTap: () async {
-  //           _validatePassword();
-  //           if (_has2Caps &&
-  //               _has2Lower &&
-  //               _has2Numbers &&
-  //               _has2Special &&
-  //               _hasMin10 &&
-  //               _passwordsMatch) {
-  //             final code = _emailCode.join(); // Or whichever code type you use
-  //             try {
-  //               final verified = await AuthService.verifyResetCode(
-  //                 identifier: _controller.text.trim(),
-  //                 code: code,
-  //               );
-
-  //               if (!verified) {
-  //                 _errorStackKey.currentState?.showError(
-  //                   "Invalid or expired code",
-  //                 );
-  //                 return;
-  //               }
-
-  //               // Then change password
-  //               await AuthService.resetPassword(
-  //                identifier: _controller.text.trim(),
-  //                code: _emailCode.join(),
-  //                newPassword: _passwordController.text,
-  //               );
-
-  //               setState(() => _showPasswordChangedOverlay = true);
-  //               Timer(const Duration(seconds: 3), () {
-  //                 setState(() => _showPasswordChangedOverlay = false);
-  //                 Navigator.pushReplacementNamed(context, '/sign-in');
-  //               });
-  //             } catch (e) {
-  //               _errorStackKey.currentState?.showError(e.toString());
-  //             }
-  //           }
-  //         },
-  //       ),
-
-  //       const SizedBox(width: 20),
-  //       Expanded(
-  //         child: Padding(
-  //           padding: const EdgeInsets.only(right: 15),
-  //           child: Container(
-  //             height: 4,
-  //             decoration: const BoxDecoration(
-  //               gradient: LinearGradient(
-  //                 colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-  //                 begin: Alignment.centerLeft,
-  //                 end: Alignment.centerRight,
-  //               ),
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
 }
