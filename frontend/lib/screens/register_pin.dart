@@ -125,20 +125,20 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                 ),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(1.0, 0.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeInOut;
-                  var tween = Tween(
-                    begin: begin,
-                    end: end,
-                  ).chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween = Tween(
+                begin: begin,
+                end: end,
+              ).chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
 
-                  return SlideTransition(
-                    position: offsetAnimation,
-                    child: child,
-                  );
-                },
+              return SlideTransition(
+                position: offsetAnimation,
+                child: child,
+              );
+            },
             transitionDuration: const Duration(milliseconds: 300),
           ),
         );
@@ -152,61 +152,55 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: SizedBox(
-          width: 430,
-          height: 932,
-          child: Stack(
-            children: [
-              // ===== Top Buttons =====
-              Positioned(
-                top: 100,
-                left: 99,
-                width: 230,
-                height: 40,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _OutlinedButton(
-                        text: 'Sign In',
-                        onTap: () => Navigator.pushNamed(context, '/sign-in'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ===== Top Section =====
+            Column(
+              children: [
+                const SizedBox(height: 20),
+                
+                // ===== Top Buttons =====
+                SizedBox(
+                  width: 230,
+                  height: 40,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _OutlinedButton(
+                          text: 'Sign In',
+                          onTap: () => Navigator.pushNamed(context, '/sign-in'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: _GradientButton(
-                        text: 'Sign Up',
-                        onTap: () => Navigator.pushNamed(context, '/sign-up'),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: _GradientButton(
+                          text: 'Sign Up',
+                          onTap: () => Navigator.pushNamed(context, '/sign-up'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ===== Subtitle =====
-              const Positioned(
-                top: 152,
-                left: 65,
-                child: Center(
-                  child: Text(
-                    "Protect Your Access",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 30,
-                      color: Colors.white,
-                    ),
+                    ],
                   ),
                 ),
-              ),
 
-              // ===== Progress Steps =====
-              Positioned(
-                top: 200,
-                left: 10,
-                right: 0,
-                child: SizedBox(
+                const SizedBox(height: 12),
+
+                // ===== Subtitle =====
+                const Text(
+                  "Protect Your Access",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 30,
+                    color: Colors.white,
+                  ),
+                ),
+
+                const SizedBox(height: 5),
+
+                // ===== Progress Steps =====
+                SizedBox(
                   width: double.infinity,
                   child: Stack(
                     alignment: Alignment.center,
@@ -215,25 +209,28 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                         top: 9.5,
                         left: 32,
                         right: 40,
-                        child: _ProgressLine(totalSteps: 5, completedSteps: 2),
+                        child: _ProgressLine(
+                          totalSteps: 5,
+                          completedSteps: 4, 
+                        ),
                       ),
                       const _ProgressSteps(),
                     ],
                   ),
                 ),
-              ),
+              ],
+            ),
 
-              // ===== PIN Input Section =====
-              Positioned(
-                top: 240,
-                left: 6,
-                right: 0,
+            // ===== PIN Input Section =====
+            Expanded(
+              child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 30,
+                    horizontal: 10,
+                    vertical: 5,
                   ),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Title only - eye icon removed
                       Text(
@@ -245,7 +242,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
 
                       // PIN Boxes - always show actual digits
                       Row(
@@ -278,21 +275,23 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                           );
                         }),
                       ),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 40),
 
                       // Keypad
                       _Keypad(onKeyTap: _onKeyTap, numbers: _numbers),
+                      
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
               ),
+            ),
 
-              // ===== Bottom Navigation =====
-              Positioned(
-                top: 775,
-                left: 15.5,
-                child: SizedBox(
-                  width: 399,
+            // ===== Bottom Navigation =====
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
                   height: 40,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -307,17 +306,25 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                     ],
                   ),
                 ),
-              ),
-              ErrorStack(key: _errorStackKey),
-              // ===== Footer =====
-              Positioned(bottom: 20, left: 0, right: 0, child: FooterWidget()),
-            ],
-          ),
+                
+                const SizedBox(height: 30),
+                
+                // ===== Footer =====
+                FooterWidget(),
+                
+                const SizedBox(height: 10),
+              ],
+            ),
+
+            // ===== Error Stack =====
+            ErrorStack(key: _errorStackKey),
+          ],
         ),
       ),
     );
   }
 }
+
 
 class TabletRegisterPinScreen extends StatefulWidget {
   final String title;
@@ -815,48 +822,52 @@ class _ProgressLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 343, // fixed width
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final totalWidth = constraints.maxWidth;
-            final segmentWidth = totalWidth / (totalSteps - 1);
+    return SizedBox(
+      width: double.infinity,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth = constraints.maxWidth;
 
-            final gradients = [
-              const LinearGradient(
-                colors: [Color(0xFF00F0FF), Color(0xFF0EA0BB)],
-              ),
-              const LinearGradient(
-                colors: [Color(0xFF13D2C7), Color(0xFF01259E)],
-              ),
-              const LinearGradient(
-                colors: [Color(0xFF01259E), Color(0xFF01259E)],
-              ),
-            ];
+          final segmentCount = totalSteps - 1;
+          final filledSegments = completedSteps - 1;
 
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(
-                totalSteps - 1,
-                (i) => Container(
-                  width: segmentWidth,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.horizontal(
-                      left: i == 0 ? const Radius.circular(100) : Radius.zero,
-                      right: i == totalSteps - 2
-                          ? const Radius.circular(100)
-                          : Radius.zero,
-                    ),
-                    gradient: i < gradients.length ? gradients[i] : null,
-                    color: i >= gradients.length ? Colors.white : null,
+          final filledWidth = totalWidth * (filledSegments / segmentCount);
+          final remainingWidth = totalWidth - filledWidth;
+
+          return Row(
+            children: [
+              // -------- FILLED PART --------
+              Container(
+                width: filledWidth,
+                height: 5,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(100),
+                    bottomLeft: Radius.circular(100),
+                  ),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00F0FF), Color(0xFF0EA0BB)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
                 ),
               ),
-            );
-          },
-        ),
+
+              // -------- REMAINING PART --------
+              Container(
+                width: remainingWidth,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(100),
+                    bottomRight: Radius.circular(100),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -866,65 +877,61 @@ class _ProgressSteps extends StatelessWidget {
   const _ProgressSteps({super.key});
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: SizedBox(
-      width: 385, // 👈 fixed width
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 66,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment
-            .spaceBetween, // better alignment with _ProgressLine
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildStep("Profile\nStart", filled: true),
-          _buildStep(
-            "Contact\nand Verify",
-            filled: true,
-            filledColor: const Color(0xFF0EA0BB),
-          ),
-          _buildStep(
-            "Security\nBase",
-            filled: true,
-            filledColor: const Color(0xFF0764AD),
-          ),
+          _buildStep("", filled: true),
+          _buildStep("", filled: true, filledColor: Color(0xFF0EA0BB)),
+          _buildStep("", filled: true, filledColor: Color(0xFF0764AD)),
           _buildStep(
             "Register\nLive",
             filled: true,
-            filledColor: const Color(0xFF01259E),
+            filledColor: Color(0xFF01259E),
           ),
-          _buildStep("Register\nPattern"),
+          _buildStep(""),
         ],
       ),
-    ),
-  );
+    );
+  }
 
   static Widget _buildStep(
     String label, {
     bool filled = false,
     Color? filledColor,
-  }) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      CircleAvatar(
-        radius: 12,
-        backgroundColor: filled
-            ? (filledColor ?? const Color(0xFF00F0FF))
-            : Colors.white,
-        child: filled
-            ? const Icon(Icons.check, color: Colors.white, size: 16)
-            : null,
+  }) {
+    return SizedBox(
+      width: 65,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: filled
+                ? (filledColor ?? Color(0xFF00F0FF))
+                : Colors.white,
+            child: filled
+                ? Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
+          ),
+          SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.0,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 8),
-      Text(
-        label,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 15,
-          height: 1.0,
-          color: Colors.white,
-        ),
-      ),
-    ],
-  );
+    );
+  }
 }
 
 // ===== Keypad =====
@@ -948,7 +955,7 @@ class _Keypad extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 30),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: row.map((text) {
               final isLogout = text == 'Logout';
               final isClear = text == 'Clear';

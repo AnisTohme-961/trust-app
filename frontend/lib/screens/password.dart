@@ -399,7 +399,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 10),
 
                 // Password Section
                 Column(
@@ -736,7 +736,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 0),
 
                 // Terms and Conditions
                 Row(

@@ -278,7 +278,7 @@ class _MobileRegisterPatternScreenState
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     const Text(
                       'Protect Your Access',
                       textAlign: TextAlign.center,
@@ -289,26 +289,26 @@ class _MobileRegisterPatternScreenState
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 10),
                     // Progress Line + Steps
                     SizedBox(
                       width: double.infinity,
                       child: Stack(
+                        alignment: Alignment.center,
                         children: [
                           Positioned(
-                            top: 12,
+                            top: 10,
                             left: 32,
                             right: 38,
                             child: _ProgressLine(
                               totalSteps: 5,
-                              completedSteps: 2,
+                              completedSteps: 2, // example
                             ),
                           ),
                           const _ProgressSteps(),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 400),
                       switchInCurve: Curves.easeOutCubic,
@@ -354,7 +354,7 @@ class _MobileRegisterPatternScreenState
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 0),
                             // Pattern Grid
                             Center(
                               child: AspectRatio(
@@ -1268,48 +1268,82 @@ class _PatternPainter extends CustomPainter {
 class _ProgressLine extends StatelessWidget {
   final int totalSteps;
   final int completedSteps;
-  const _ProgressLine({required this.totalSteps, required this.completedSteps});
+
+  const _ProgressLine({
+    required this.totalSteps,
+    required this.completedSteps,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 343,
+      width: double.infinity,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final totalWidth = constraints.maxWidth;
-          final segmentWidth = totalWidth / (totalSteps - 1);
+          final segmentCount = totalSteps - 1;
+          final filledSegments = completedSteps - 1;
+
+          // Divide the width into filled + remaining
+          final filledWidth = totalWidth * (filledSegments / segmentCount);
+          final remainingWidth = totalWidth - filledWidth;
+
+          // Define gradient for the filled part
           final gradients = [
             const LinearGradient(
               colors: [Color(0xFF00F0FF), Color(0xFF0EA0BB)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
             const LinearGradient(
               colors: [Color(0xFF13D2C7), Color(0xFF01259E)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
             const LinearGradient(
               colors: [Color(0xFF01259E), Color(0xFF01259E)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
             const LinearGradient(
               colors: [Color(0xFF01259E), Color(0xFF00259E)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
           ];
+
           return Row(
-            children: List.generate(
-              totalSteps - 1,
-              (i) => Container(
-                width: segmentWidth,
+            children: [
+              // FILLED PART
+              Container(
+                width: filledWidth,
                 height: 5,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.horizontal(
-                    left: i == 0 ? const Radius.circular(100) : Radius.zero,
-                    right: i == totalSteps - 2
-                        ? const Radius.circular(100)
-                        : Radius.zero,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(100),
+                    bottomLeft: Radius.circular(100),
                   ),
-                  gradient: i < gradients.length ? gradients[i] : null,
-                  color: i >= gradients.length ? Colors.white : null,
+                  gradient:
+                      gradients[filledSegments > 0
+                          ? filledSegments - 1
+                          : 0], // pick gradient for last filled segment
                 ),
               ),
-            ),
+
+              // REMAINING PART
+              Container(
+                width: remainingWidth,
+                height: 5,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(100),
+                    bottomRight: Radius.circular(100),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -1319,66 +1353,62 @@ class _ProgressLine extends StatelessWidget {
 
 // ===== Progress Steps =====
 class _ProgressSteps extends StatelessWidget {
-  const _ProgressSteps();
+  const _ProgressSteps({super.key});
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 410,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStep("Profile\nStart", filled: true),
-        _buildStep(
-          "Contact\nand Verify",
-          filled: true,
-          filledColor: const Color(0xFF0EA0BB),
-        ),
-        _buildStep(
-          "Security\nBase",
-          filled: true,
-          filledColor: const Color(0xFF0764AD),
-        ),
-        _buildStep(
-          "Register\nLive",
-          filled: true,
-          filledColor: const Color(0xFF01259E),
-        ),
-        _buildStep(
-          "Register\nPattern",
-          filled: true,
-          filledColor: const Color(0xFF01259E),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 66,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildStep("", filled: true),
+          _buildStep("", filled: true, filledColor: const Color(0xFF0EA0BB)),
+          _buildStep("", filled: true, filledColor: const Color(0xFF0764AD)),
+          _buildStep("", filled: true, filledColor: const Color(0xFF01259E)),
+          _buildStep(
+            "Register\nPattern",
+            filled: true,
+            filledColor: const Color(0xFF01259E),
+          ),
+        ],
+      ),
+    );
+  }
 
   static Widget _buildStep(
     String label, {
     bool filled = false,
     Color? filledColor,
-  }) => Column(
-    children: [
-      CircleAvatar(
-        radius: 12,
-        backgroundColor: filled
-            ? (filledColor ?? const Color(0xFF00F0FF))
-            : Colors.white,
-        child: filled
-            ? const Icon(Icons.check, color: Colors.white, size: 16)
-            : null,
+  }) {
+    return SizedBox(
+      width: 65,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: filled
+                ? (filledColor ?? const Color(0xFF00F0FF))
+                : Colors.white,
+            child: filled
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.0,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 8),
-      Text(
-        label,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 15,
-          height: 1.0,
-          color: Colors.white,
-        ),
-      ),
-    ],
-  );
+    );
+  }
 }

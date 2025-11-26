@@ -9,8 +9,6 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import 'screens/settings_screen.dart';
-import 'screens/sign_in_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
