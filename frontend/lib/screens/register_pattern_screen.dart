@@ -302,7 +302,7 @@ class _MobileRegisterPatternScreenState
                             right: 38,
                             child: _ProgressLine(
                               totalSteps: 5,
-                              completedSteps: 2, // example
+                              completedSteps: 5,
                             ),
                           ),
                           const _ProgressSteps(),
