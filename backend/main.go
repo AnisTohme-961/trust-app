@@ -81,6 +81,10 @@ func main() {
 	routes.TOTPRoutes(r, totpController)
 	routes.UserRoutes(r, userCollection, codeController)
 
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "API is running"})
+	})
+
 	r.Static("/flags", "./assets/images/flags")
 	r.Static("/flags2", "./assets/images/flags2")
 
@@ -90,7 +94,8 @@ func main() {
 	}
 
 	log.Println("Server running on port", port)
-	if err := r.Run("0.0.0.0:" + port); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
+
 }
