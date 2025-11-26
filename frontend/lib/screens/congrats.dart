@@ -38,102 +38,121 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
-        child: Center(
-          child: Container(
-            width: 430,
-            height: 932,
-            child: Stack(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // Top spacing
+                const SizedBox(height: 40),
+
                 // "Congratulations! You're In!"
-                Positioned(
-                  top: 100,
-                  left: 20,
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      "Congratulations! You're In!",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 30,
-                        color: Colors.white,
-                      ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    "Congratulations! You're In!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: MediaQuery.of(context).size.width > 350
+                          ? 30
+                          : 26,
+                      color: Colors.white,
                     ),
                   ),
                 ),
+
+                // Spacing between texts
+                const SizedBox(height: 20),
 
                 // "Welcome to Egety Trust"
-                Positioned(
-                  top: 158,
-                  left: 73,
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      "Welcome to Egety Trust",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 25,
-                        color: Colors.white,
-                      ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    "Welcome to Egety Trust",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: MediaQuery.of(context).size.width > 350
+                          ? 25
+                          : 22,
+                      color: Colors.white,
                     ),
                   ),
                 ),
 
+                // Spacing before gradient bar
+                const SizedBox(height: 40),
+
                 // Gradient bar with user name
-                Positioned(
-                  top: 218,
-                  left: 1,
-                  child: Container(
-                    width: 428,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          const Color.fromRGBO(0, 240, 255, 0),
-                          const Color.fromRGBO(0, 240, 255, 0.8),
-                          const Color.fromRGBO(0, 240, 255, 0),
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
-                      ),
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        const Color.fromRGBO(0, 240, 255, 0),
+                        const Color.fromRGBO(0, 240, 255, 0.8),
+                        const Color.fromRGBO(0, 240, 255, 0),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // User Name
-                        Text(
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // User Name
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
                           "${userProvider.firstName} ${userProvider.lastName}",
-                          style: const TextStyle(
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
-                            fontSize: 30,
-                            color: Color(0xFF0B1320),
+                            fontSize: MediaQuery.of(context).size.width > 350
+                                ? 30
+                                : 26,
+                            color: const Color(0xFF0B1320),
                           ),
                         ),
+                      ),
 
-                        // Add this import at the top
-
-                        // EID + Icon
-                        GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(
-                              ClipboardData(text: userProvider.eid),
-                            );
-                          },
+                      // EID + Icon
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(
+                            ClipboardData(text: userProvider.eid),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('EID copied to clipboard!'),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 "EID: ${userProvider.eid}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 25,
-                                  color: Color(0xFF0B1320),
+                                  fontSize:
+                                      MediaQuery.of(context).size.width > 350
+                                      ? 25
+                                      : 20,
+                                  color: const Color(0xFF0B1320),
                                 ),
                               ),
                               const SizedBox(width: 5),
@@ -149,116 +168,132 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+
+                // Spacing after gradient bar
+                const SizedBox(height: 20),
 
                 // Description text
-                Positioned(
-                  top: 318,
-                  left: 8,
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      "Your EID is your unique ID across \n all apps. Save it safely you'll \n need it to access everything",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 24,
-                        color: Colors.white,
-                      ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    "Your EID is your unique ID across all apps. Save it safely you'll need it to access everything",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: MediaQuery.of(context).size.width > 350
+                          ? 24
+                          : 20,
+                      color: Colors.white,
                     ),
                   ),
                 ),
+
+                // Spacing before animation
+                const SizedBox(height: 32),
 
                 // Unlocked animation image
-                Positioned(
-                  top: 470,
-                  left: 139,
-                  child: Container(
-                    width: 153,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Image.asset(
-                      'assets/images/Unlocked animstion.png',
-                      fit: BoxFit.contain,
-                    ),
+                Container(
+                  width: 153,
+                  height: 200,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Image.asset(
+                    'assets/images/Unlocked animstion.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
 
-                // Left gradient line
-                Positioned(
-                  top: 734,
-                  left: 28,
-                  child: Container(
-                    width: 91,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(11),
-                      gradient: const LinearGradient(
-                        begin: Alignment.centerRight,
-                        end: Alignment.centerLeft,
-                        colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-                      ),
-                    ),
-                  ),
-                ),
+                // Flexible spacer to push remaining content to bottom
+                const SizedBox(height: 40),
 
-                // "Get Started" button
-                Positioned(
-                  top: 716,
-                  left: 135,
-                  child: CustomButton(
-                    text: "Get Started",
-                    width: 161,
-                    height: 40,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    textColor: Colors.white,
-                    backgroundColor: Colors.transparent,
-                    borderColor: const Color(0xFF00F0FF),
-                    borderRadius: 10,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegisterPage(),
+                // Bottom section with gradient lines and button
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: Column(
+                    children: [
+                      // Button and gradient lines row
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Left gradient line
+                            Expanded(
+                              child: Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(11),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.centerRight,
+                                    end: Alignment.centerLeft,
+                                    colors: [
+                                      Color(0xFF00F0FF),
+                                      Color(0xFF0B1320),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            // "Get Started" button
+                            CustomButton(
+                              text: "Get Started",
+                              width: 161,
+                              height: 40,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              textColor: Colors.white,
+                              backgroundColor: Colors.transparent,
+                              borderColor: const Color(0xFF00F0FF),
+                              borderRadius: 10,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const RegisterPage(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            // Right gradient line
+                            Expanded(
+                              child: Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(11),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.centerRight,
+                                    end: Alignment.centerLeft,
+                                    colors: [
+                                      Color(0xFF0B1320),
+                                      Color(0xFF00F0FF),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Right gradient line
-                Positioned(
-                  top: 734,
-                  left: 312,
-                  child: Container(
-                    width: 90,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(11),
-                      gradient: const LinearGradient(
-                        begin: Alignment.centerRight,
-                        end: Alignment.centerLeft,
-                        colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
                       ),
-                    ),
+                    ],
                   ),
                 ),
 
                 // Footer
-                const Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: FooterWidget(),
-                ),
+                const FooterWidget(),
               ],
             ),
           ),

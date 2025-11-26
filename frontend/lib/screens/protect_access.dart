@@ -128,83 +128,82 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _hideInputFields = false;
   bool? _isCodeValid;
 
- Future<void> fetchCodeFromGo() async {
-  final email = _emailController.text.trim();
+  Future<void> fetchCodeFromGo() async {
+    final email = _emailController.text.trim();
 
-  if (email.isEmpty) {
-    errorStackKey.currentState?.showError("Please enter your email first.");
-    return;
-  }
+    if (email.isEmpty) {
+      errorStackKey.currentState?.showError("Please enter your email first.");
+      return;
+    }
 
-  final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
-  if (!RegExp(emailPattern).hasMatch(email)) {
-    errorStackKey.currentState?.showError(
-      "Please enter a valid email address.",
-    );
-    return;
-  }
+    final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
+    if (!RegExp(emailPattern).hasMatch(email)) {
+      errorStackKey.currentState?.showError(
+        "Please enter a valid email address.",
+      );
+      return;
+    }
 
-  final response = await http.post(
-    Uri.parse("${ApiConstants.baseUrl}/get-code"),
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({"email": email}),
-  );
-
-  final data = jsonDecode(response.body);
-  _timer?.cancel(); // stop any previous timer
-
-  if (response.statusCode == 200) {
-    serverCode = data['code'];
-    _attempts = data['attempts'] ?? 0;
-    _secondsLeft = data['cooldown'] ?? 0;
-
-    final storage = FlutterSecureStorage();
-    final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
-    await storage.write(
-      key: "emailCooldownEnd",
-      value: cooldownEnd.toIso8601String(),
+    final response = await http.post(
+      Uri.parse("${ApiConstants.baseUrl}/get-code"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
     );
 
-    // 1️⃣ Show "Code Sent" immediately
-    setState(() {
-      _showCodeSent = true;
-      _hideInputFields = false; // initially keep input visible
-      _codeDisabled = _secondsLeft > 0;
-    });
+    final data = jsonDecode(response.body);
+    _timer?.cancel(); // stop any previous timer
 
-    // 2️⃣ Start cooldown timer
-    if (_secondsLeft > 0) {
-      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-        if (_secondsLeft > 0) {
-          setState(() => _secondsLeft--);
-        } else {
-          timer.cancel();
+    if (response.statusCode == 200) {
+      serverCode = data['code'];
+      _attempts = data['attempts'] ?? 0;
+      _secondsLeft = data['cooldown'] ?? 0;
+
+      final storage = FlutterSecureStorage();
+      final cooldownEnd = DateTime.now().add(Duration(seconds: _secondsLeft));
+      await storage.write(
+        key: "emailCooldownEnd",
+        value: cooldownEnd.toIso8601String(),
+      );
+
+      // 1️⃣ Show "Code Sent" immediately
+      setState(() {
+        _showCodeSent = true;
+        _hideInputFields = false; // initially keep input visible
+        _codeDisabled = _secondsLeft > 0;
+      });
+
+      // 2️⃣ Start cooldown timer
+      if (_secondsLeft > 0) {
+        _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+          if (_secondsLeft > 0) {
+            setState(() => _secondsLeft--);
+          } else {
+            timer.cancel();
+            setState(() {
+              _codeDisabled = false; // re-enable typing
+              _hideInputFields = true; // enable input fields when cooldown ends
+            });
+          }
+        });
+      } else {
+        // no cooldown → show input fields immediately
+        setState(() => _hideInputFields = true);
+      }
+
+      // 3️⃣ Hide "Code Sent" after 2 seconds
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
           setState(() {
-            _codeDisabled = false;       // re-enable typing
-            _hideInputFields = true;     // enable input fields when cooldown ends
+            _showCodeSent = false;
           });
         }
       });
     } else {
-      // no cooldown → show input fields immediately
-      setState(() => _hideInputFields = true);
+      errorStackKey.currentState?.showError(
+        data['error'] ?? "Failed to send code. Please try again.",
+      );
     }
-
-    // 3️⃣ Hide "Code Sent" after 2 seconds
-    Future.delayed(Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _showCodeSent = false;
-        });
-      }
-    });
-  } else {
-    errorStackKey.currentState?.showError(
-      data['error'] ?? "Failed to send code. Please try again.",
-    );
   }
-}
-
 
   Future<bool> verifyCode(String email, String code) async {
     final body = {"email": email.trim(), "code": code.trim()};
@@ -263,7 +262,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   @override
   void initState() {
     super.initState();
-    
+
     restoreCooldown();
     _monthController = ScrollController(initialScrollOffset: 0.0);
     _dayController = ScrollController(initialScrollOffset: 0.0);
@@ -369,7 +368,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     if (value.length > 1) {
       _codecontrollers[index].text = value[0];
     }
-    
+
     setState(() {
       code[index] = _codecontrollers[index].text;
       _isTyping = code.any((c) => c.isNotEmpty);
@@ -449,39 +448,39 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     final year = _years[_selectedYear].toString();
     return "$month $day $year";
   }
-void restoreCooldown() async {
-  final storage = FlutterSecureStorage();
-  final saved = await storage.read(key: "emailCooldownEnd");
-  if (saved == null) return;
+
+  void restoreCooldown() async {
+    final storage = FlutterSecureStorage();
+    final saved = await storage.read(key: "emailCooldownEnd");
+    if (saved == null) return;
 
     final end = DateTime.parse(saved);
     final now = DateTime.now();
     int remaining = end.difference(now).inSeconds;
 
-  if (remaining > 0) {
-    setState(() {
-      _secondsLeft = remaining;
-      _codeDisabled = true;
-      _hideInputFields = false; // hide input fields while cooldown
-    });
+    if (remaining > 0) {
+      setState(() {
+        _secondsLeft = remaining;
+        _codeDisabled = true;
+        _hideInputFields = false; // hide input fields while cooldown
+      });
 
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_secondsLeft > 0) {
-        setState(() => _secondsLeft--);
-      } else {
-        timer.cancel();
-        setState(() {
-          _codeDisabled = false;
-          _hideInputFields = true; // show input fields when cooldown ends
-        });
-      }
-    });
-  } else {
-    // cooldown expired → show input fields
-    setState(() => _hideInputFields = true);
+      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+        if (_secondsLeft > 0) {
+          setState(() => _secondsLeft--);
+        } else {
+          timer.cancel();
+          setState(() {
+            _codeDisabled = false;
+            _hideInputFields = true; // show input fields when cooldown ends
+          });
+        }
+      });
+    } else {
+      // cooldown expired → show input fields
+      setState(() => _hideInputFields = true);
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -544,104 +543,96 @@ void restoreCooldown() async {
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
         children: [
-          // Main content - Mobile layout with absolute positioning
-          Positioned(
-            width: 430,
-            height: 932,
-            child: Stack(
-              children: [
-                // ErrorStack at the top of the screen
-                ErrorStack(key: errorStackKey),
-                // Your existing mobile layout code here...
-                // This is the original Stack with all the Positioned widgets
-                // I'm keeping it the same as your original code for mobile
-                Positioned(
-                  top: 100,
-                  left: 99,
-                  width: 230,
-                  height: 40,
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: 126,
-                        child: CustomButton(
-                          text: 'Sign Up',
-                          width: 104,
-                          height: 40,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          onTap: () {},
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF00F0FF).withOpacity(0.5),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        child: GestureDetector(
-                          child: Container(
-                            width: 106,
+          // Main content - Normal layout using Column instead of Positioned
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+
+                  // ErrorStack at the top
+                  ErrorStack(key: errorStackKey),
+
+                  const SizedBox(
+                    height: 60,
+                  ), // Space between error stack and sign in/up
+                  // Sign In / Sign Up Buttons
+                  SizedBox(
+                    width: 230,
+                    height: 40,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 126,
+                          child: CustomButton(
+                            text: 'Sign Up',
+                            width: 104,
                             height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                width: 1,
-                                color: const Color(0xFF00F0FF),
-                              ),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            onTap: () {},
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
                             ),
-                            child: CustomButton(
-                              text: 'Sign In',
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00F0FF).withOpacity(0.5),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          child: GestureDetector(
+                            child: Container(
                               width: 106,
                               height: 40,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              onTap: () {},
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  width: 1,
+                                  color: const Color(0xFF00F0FF),
+                                ),
+                              ),
+                              child: CustomButton(
+                                text: 'Sign In',
+                                width: 106,
+                                height: 40,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                onTap: () {},
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Title
-                Positioned(
-                  top: 152,
-                  left: 14,
-                  width: 402,
-                  height: 36,
-                  child: const Center(
-                    child: Text(
-                      "Your Digital Pass Into Egety",
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 29,
-                        height: 1.0,
-                        color: Colors.white,
-                      ),
+                      ],
                     ),
                   ),
-                ),
 
-                // Progress Steps
-                Positioned(
-                  top: 200,
-                  left: 25,
-                  right: 45,
-                  child: SizedBox(
+                  const SizedBox(height: 12),
+
+                  // Title
+                  const Text(
+                    "Your Digital Pass Into Egety",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 29,
+                      height: 1.0,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Progress Steps
+                  SizedBox(
                     width: double.infinity,
                     child: Stack(
                       alignment: Alignment.center,
@@ -718,13 +709,11 @@ void restoreCooldown() async {
                       ],
                     ),
                   ),
-                ),
 
-                // Country Input
-                Positioned(
-                  top: 290,
-                  left: 18,
-                  child: Column(
+                  const SizedBox(height: 40),
+
+                  // Country Input
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
@@ -747,7 +736,7 @@ void restoreCooldown() async {
                         child: Stack(
                           children: [
                             Container(
-                              width: 374,
+                              width: double.infinity,
                               height: 50,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -803,7 +792,7 @@ void restoreCooldown() async {
                             ),
                             Positioned(
                               top: 16,
-                              left: 341,
+                              right: 16,
                               child: SizedBox(
                                 width: 18,
                                 height: 18,
@@ -821,13 +810,11 @@ void restoreCooldown() async {
                       ),
                     ],
                   ),
-                ),
 
-                // Date of Birth Input
-                Positioned(
-                  top: 393,
-                  left: 18,
-                  child: Column(
+                  const SizedBox(height: 40),
+
+                  // Date of Birth Input
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
@@ -851,7 +838,7 @@ void restoreCooldown() async {
                           });
                         },
                         child: Container(
-                          width: 374,
+                          width: double.infinity,
                           height: 50,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
@@ -892,13 +879,11 @@ void restoreCooldown() async {
                       ),
                     ],
                   ),
-                ),
 
-                // Email Input
-                Positioned(
-                  top: 495,
-                  left: 18,
-                  child: Column(
+                  const SizedBox(height: 40),
+
+                  // Email Input
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
@@ -920,7 +905,7 @@ void restoreCooldown() async {
                         children: [
                           // Main Input Container
                           Container(
-                            width: 374,
+                            width: double.infinity,
                             height: 50,
                             padding: const EdgeInsets.only(left: 12, right: 70),
                             decoration: BoxDecoration(
@@ -1077,14 +1062,12 @@ void restoreCooldown() async {
                       ),
                     ],
                   ),
-                ),
 
-                // Email Verification
-                Positioned(
-                  top: 609,
-                  left: 19,
-                  child: Container(
-                    width: 393,
+                  const SizedBox(height: 40),
+
+                  // Email Verification
+                  Container(
+                    width: double.infinity,
                     height: 44,
                     color: Colors.transparent,
                     child: Stack(
@@ -1173,24 +1156,21 @@ void restoreCooldown() async {
                                                 keyboardType:
                                                     TextInputType.number,
 
-                                                      style: TextStyle(
-                                                        color: _codeDisabled
-                                                            ? Colors
-                                                                  .grey // disabled text
-                                                            : (userProvider.isCodeCorrect
-                                                                  ? Color(
-                                                                      0xFF00F0FF,
-                                                                    )
-                                                                  : (_isCodeValid ==
-                                                                            false
-                                                                        ? Colors
-                                                                              .red
-                                                                        : Colors
-                                                                              .white)),
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
+                                                style: TextStyle(
+                                                  color: _codeDisabled
+                                                      ? Colors
+                                                            .grey // disabled text
+                                                      : (userProvider
+                                                                .isCodeCorrect
+                                                            ? Color(0xFF00F0FF)
+                                                            : (_isCodeValid ==
+                                                                      false
+                                                                  ? Colors.red
+                                                                  : Colors
+                                                                        .white)),
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
 
                                                 cursorColor: Colors.white,
                                                 decoration:
@@ -1224,46 +1204,45 @@ void restoreCooldown() async {
                                     );
                                   }),
 
-                                        if (userProvider.isCodeCorrect ||
-                                            _isCodeValid == false) ...[
-                                          const SizedBox(width: 10),
-                                          AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 300,
-                                            ),
-                                            width: 24,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              color: userProvider.isCodeCorrect
-                                                  ? const Color(0xFF00F0FF)
-                                                  : Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              userProvider.isCodeCorrect
-                                                  ? Icons.check
-                                                  : Icons.close,
-                                              color: userProvider.isCodeCorrect
-                                                  ? Colors.black
-                                                  : Colors.white,
-                                              size: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
+                                  if (userProvider.isCodeCorrect ||
+                                      _isCodeValid == false) ...[
+                                    const SizedBox(width: 10),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: userProvider.isCodeCorrect
+                                            ? const Color(0xFF00F0FF)
+                                            : Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        userProvider.isCodeCorrect
+                                            ? Icons.check
+                                            : Icons.close,
+                                        color: userProvider.isCodeCorrect
+                                            ? Colors.black
+                                            : Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
-                                  ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
 
                         Positioned(
                           top: 21,
-                          left: 280,
+                          right: 0,
                           child: GestureDetector(
                             onTap: (_secondsLeft == 0 && !_isTyping)
                                 ? fetchCodeFromGo
                                 : null,
                             child: Container(
-                              width: 100,
                               height: 27,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
@@ -1313,14 +1292,12 @@ void restoreCooldown() async {
                       ],
                     ),
                   ),
-                ),
 
-                // Navigation Buttons
-                Positioned(
-                  top: 708,
-                  left: 15.5,
-                  child: SizedBox(
-                    width: 399,
+                  const SizedBox(height: 40),
+
+                  // Navigation Buttons
+                  SizedBox(
+                    width: double.infinity,
                     height: 40,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1393,30 +1370,25 @@ void restoreCooldown() async {
                           ),
                         ),
 
-                        Padding(
-                          padding: const EdgeInsets.only(right: 15.0),
-                          child: Container(
-                            width: 64,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(11),
-                              gradient: const LinearGradient(
-                                begin: Alignment.centerRight,
-                                end: Alignment.centerLeft,
-                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-                              ),
+                        Container(
+                          width: 64,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(11),
+                            gradient: const LinearGradient(
+                              begin: Alignment.centerRight,
+                              end: Alignment.centerLeft,
+                              colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
 
-                Positioned(
-                  top: 816,
-                  left: 17,
-                  child: SizedBox(
+                  const SizedBox(height: 40),
+
+                  SizedBox(
                     child: const Center(
                       child: Text(
                         "Your ID is now verified\nYour vault is a step closer to being yours",
@@ -1433,370 +1405,356 @@ void restoreCooldown() async {
                       ),
                     ),
                   ),
-                ),
 
-                if (_isAnyDropdownOpen)
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: Colors.black.withOpacity(0.6),
-                  ),
+                  const SizedBox(height: 40),
 
-                // Dropdowns (Country and DOB) - same as original
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut,
-                  bottom: _countryDropdownOpen ? 0 : -_dropdownHeight,
-                  left: 0,
-                  right: 0,
-                  height: _dropdownHeight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 20),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xFF0B1320),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                          border: Border(
-                            top: BorderSide(
-                              color: Color(0xFF00F0FF), // top border color
-                              width: 2.0,
-                            ),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            SizedBox(height: 12),
+                  const FooterWidget(),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
 
-                            // CLOSE HANDLE
-                            GestureDetector(
-                              onTap: () {
-                                setState(() => _countryDropdownOpen = false);
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.only(left: 20),
-                                child: CustomPaint(
-                                  size: Size(120, 20),
-                                  painter: VLinePainter(),
-                                ),
-                              ),
-                            ),
+          if (_isAnyDropdownOpen)
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.black.withOpacity(0.6),
+            ),
 
-                            // SEARCH FIELD
-                            Container(
-                              margin: EdgeInsets.symmetric(horizontal: 50),
-                              child: TextField(
-                                controller: _countrySearchController,
-                                onChanged: _filterCountries,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'Search Country',
-                                  hintStyle: TextStyle(color: Colors.white54),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-
-                            Divider(color: Colors.white24, thickness: 0.5),
-
-                            // LIST - Updated to use emoji flags
-                            Expanded(
-                              child: _filteredCountries.isEmpty
-                                  ? Center(
-                                      child: Text(
-                                        "No countries found",
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 50,
-                                        vertical: 16,
-                                      ),
-                                      itemCount: _filteredCountries.length,
-                                      itemBuilder: (context, index) {
-                                        final country =
-                                            _filteredCountries[index];
-
-                                        return GestureDetector(
-                                          onTap: () => _selectCountry(country),
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: 8.0,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                // Using emoji flags instead of network images
-                                                // In your ListView.builder, update the flag display to:
-                                                SvgPicture.asset(
-                                                  country['flag']!,
-                                                  width: 30,
-                                                  height: 30,
-                                                  fit: BoxFit.contain,
-                                                ),
-                                                SizedBox(width: 10),
-                                                Text(
-                                                  country['name'] ?? '',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ],
-                        ),
+          // Dropdowns (Country and DOB) - same as original
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+            bottom: _countryDropdownOpen ? 0 : -_dropdownHeight,
+            left: 0,
+            right: 0,
+            height: _dropdownHeight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 20),
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFF0B1320),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    border: Border(
+                      top: BorderSide(
+                        color: Color(0xFF00F0FF), // top border color
+                        width: 2.0,
                       ),
                     ),
                   ),
-                ),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 12),
 
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut,
-                  bottom: _dobDropdownOpen ? 0 : -_dropdownAge,
-                  left: 0,
-                  right: 0,
-                  height: _dropdownAge,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 20.0),
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(
-                          20,
-                        ), // top-left and top-right rounded
-                      ),
-                      child: Container(
-                        width: 394,
-                        height: 286,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0B1320),
-                          border: const Border(
-                            top: BorderSide(
-                              color: Color(0xFF00F0FF), // top border color
-                              width: 2.0,
-                            ),
-                          ),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(20),
+                      // CLOSE HANDLE
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _countryDropdownOpen = false);
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 20),
+                          child: CustomPaint(
+                            size: Size(120, 20),
+                            painter: VLinePainter(),
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () =>
-                                  setState(() => _dobDropdownOpen = false),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 12,
+                      ),
+
+                      // SEARCH FIELD
+                      Container(
+                        margin: EdgeInsets.symmetric(horizontal: 50),
+                        child: TextField(
+                          controller: _countrySearchController,
+                          onChanged: _filterCountries,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Search Country',
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+
+                      Divider(color: Colors.white24, thickness: 0.5),
+
+                      // LIST - Updated to use emoji flags
+                      Expanded(
+                        child: _filteredCountries.isEmpty
+                            ? Center(
+                                child: Text(
+                                  "No countries found",
+                                  style: TextStyle(color: Colors.white),
                                 ),
-                                child: CustomPaint(
-                                  size: const Size(120, 20),
-                                  painter: VLinePainter(),
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 50,
+                                  vertical: 16,
                                 ),
+                                itemCount: _filteredCountries.length,
+                                itemBuilder: (context, index) {
+                                  final country = _filteredCountries[index];
+
+                                  return GestureDetector(
+                                    onTap: () => _selectCountry(country),
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Using emoji flags instead of network images
+                                          // In your ListView.builder, update the flag display to:
+                                          SvgPicture.asset(
+                                            country['flag']!,
+                                            width: 30,
+                                            height: 30,
+                                            fit: BoxFit.contain,
+                                          ),
+                                          SizedBox(width: 10),
+                                          Text(
+                                            country['name'] ?? '',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            ),
-                            SizedBox(
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+            bottom: _dobDropdownOpen ? 0 : -_dropdownAge,
+            left: 0,
+            right: 0,
+            height: _dropdownAge,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20), // top-left and top-right rounded
+              ),
+              child: Container(
+                width: double.infinity, // This makes it take full width
+                height: 286,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0B1320),
+                  border: const Border(
+                    top: BorderSide(
+                      color: Color(0xFF00F0FF), // top border color
+                      width: 2.0,
+                    ),
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => _dobDropdownOpen = false),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: CustomPaint(
+                          size: const Size(120, 20),
+                          painter: VLinePainter(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 286,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Container(
+                              width: double.infinity, // Full width
                               height: 286,
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Container(
-                                      width: 430,
-                                      height: 286,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF0B1320),
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(20),
-                                          topRight: Radius.circular(20),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.center,
-                                    child: Container(
-                                      width: 432,
-                                      height: 49,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF00BEBF),
-                                        border: Border.all(
-                                          color: const Color(0xFF007BFF),
-                                          width: 1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                                  // Month List
-                                  Positioned(
-                                    top: 0,
-                                    left: 10,
-                                    width: 144,
-                                    height: 286,
-                                    child:
-                                        NotificationListener<
-                                          ScrollEndNotification
-                                        >(
-                                          onNotification: (notification) {
-                                            _snapToItem(
-                                              _monthController,
-                                              _selectedMonth,
-                                            );
-                                            return true;
-                                          },
-                                          child: ListView.builder(
-                                            itemCount: _months.length,
-                                            controller: _monthController,
-                                            physics:
-                                                const BouncingScrollPhysics(),
-                                            itemExtent: 40,
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: (286 - 40) / 2,
-                                            ),
-                                            itemBuilder: (context, index) {
-                                              final isSelected =
-                                                  index == _selectedMonth;
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _selectedMonth = index;
-                                                    _datePicked = true;
-                                                  });
-                                                  onDobPicked();
-                                                  _snapToItem(
-                                                    _monthController,
-                                                    _selectedMonth,
-                                                  );
-                                                },
-                                                child: Container(
-                                                  alignment: Alignment.center,
-                                                  child: Text(
-                                                    _months[index],
-                                                    style: TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color: isSelected
-                                                          ? Colors.black
-                                                          : Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                  ),
-                                  // Day List
-                                  Positioned(
-                                    top: 0,
-                                    left: 154,
-                                    width: 144,
-                                    height: 286,
-                                    child: ListView.builder(
-                                      itemCount: _days.length,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: (286 - 40) / 2,
-                                      ),
-                                      itemExtent: 40,
-                                      physics: const BouncingScrollPhysics(),
-                                      controller: _dayController,
-                                      itemBuilder: (context, index) {
-                                        final isSelected =
-                                            index == _selectedDay;
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedDay = index;
-                                              _datePicked = true;
-                                            });
-                                            onDobPicked();
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              _days[index].toString(),
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isSelected
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  // Year List
-                                  Positioned(
-                                    top: 0,
-                                    left: 298,
-                                    width: 144,
-                                    height: 286,
-                                    child: ListView.builder(
-                                      itemCount: _years.length,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: (286 - 40) / 2,
-                                      ),
-                                      itemExtent: 40,
-                                      physics: const BouncingScrollPhysics(),
-                                      controller: _yearController,
-                                      itemBuilder: (context, index) {
-                                        final isSelected =
-                                            index == _selectedYear;
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedYear = index;
-                                              _datePicked = true;
-                                            });
-                                            onDobPicked();
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              _years[index].toString(),
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isSelected
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0B1320),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(20),
+                                  topRight: Radius.circular(20),
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: double
+                                  .infinity, // Full width or adjust as needed
+                              height: 49,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00BEBF),
+                                border: Border.all(
+                                  color: const Color(0xFF007BFF),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                          // Month List
+                          Positioned(
+                            top: 0,
+                            left: 10,
+                            width: 144,
+                            height: 286,
+                            child: NotificationListener<ScrollEndNotification>(
+                              onNotification: (notification) {
+                                _snapToItem(_monthController, _selectedMonth);
+                                return true;
+                              },
+                              child: ListView.builder(
+                                itemCount: _months.length,
+                                controller: _monthController,
+                                physics: const BouncingScrollPhysics(),
+                                itemExtent: 40,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: (286 - 40) / 2,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final isSelected = index == _selectedMonth;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedMonth = index;
+                                        _datePicked = true;
+                                      });
+                                      onDobPicked();
+                                      _snapToItem(
+                                        _monthController,
+                                        _selectedMonth,
+                                      );
+                                    },
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        _months[index],
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          // Day List
+                          Positioned(
+                            top: 0,
+                            left: 154,
+                            width: 144,
+                            height: 286,
+                            child: ListView.builder(
+                              itemCount: _days.length,
+                              padding: EdgeInsets.symmetric(
+                                vertical: (286 - 40) / 2,
+                              ),
+                              itemExtent: 40,
+                              physics: const BouncingScrollPhysics(),
+                              controller: _dayController,
+                              itemBuilder: (context, index) {
+                                final isSelected = index == _selectedDay;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedDay = index;
+                                      _datePicked = true;
+                                    });
+                                    onDobPicked();
+                                  },
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      _days[index].toString(),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w500,
+                                        color: isSelected
+                                            ? Colors.black
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Year List
+                          Positioned(
+                            top: 0,
+                            left: 298,
+                            width: 144,
+                            height: 286,
+                            child: ListView.builder(
+                              itemCount: _years.length,
+                              padding: EdgeInsets.symmetric(
+                                vertical: (286 - 40) / 2,
+                              ),
+                              itemExtent: 40,
+                              physics: const BouncingScrollPhysics(),
+                              controller: _yearController,
+                              itemBuilder: (context, index) {
+                                final isSelected = index == _selectedYear;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedYear = index;
+                                      _datePicked = true;
+                                    });
+                                    onDobPicked();
+                                  },
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      _years[index].toString(),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w500,
+                                        color: isSelected
+                                            ? Colors.black
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -1881,7 +1839,7 @@ void restoreCooldown() async {
 
   Widget _buildStep(String label, {bool filled = false, Color? filledColor}) {
     return SizedBox(
-      height: 77,
+      height: 83,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -2019,7 +1977,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   @override
   void initState() {
     super.initState();
-    
+
     _monthController = ScrollController(initialScrollOffset: 0.0);
     _dayController = ScrollController(initialScrollOffset: 0.0);
     _yearController = ScrollController(initialScrollOffset: 0.0);
@@ -2199,7 +2157,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
           // isCodeCorrect = true;
         });
         userProvider.setCodeCorrect(true);
-        
+
         return true;
       } else {
         return false;
@@ -2246,7 +2204,6 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
       bool valid = await verifyCode(email, code.join());
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       if (valid) {
-        
         userProvider.setCodeCorrect(true);
         setState(() {
           // isCodeCorrect = true;
@@ -2342,7 +2299,6 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
         code[i] = emailCode[i];
       }
       userProvider.setCodeCorrect(userProvider.emailCodeVerified);
-
     }
 
     if (userProvider.emailCodeSecondsLeft > 0 && !userProvider.isCodeCorrect) {
@@ -2378,7 +2334,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.08,
+                      horizontal: screenWidth * 0.07,
                       vertical: screenHeight * 0.03,
                     ),
                     child: Center(
@@ -2643,7 +2599,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                       ),
                                     ),
 
-                                    const SizedBox(height: 30),
+                                    const SizedBox(height: 0),
 
                                     // Footer
                                     const FooterWidget(),
@@ -3455,7 +3411,9 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                     ),
                     child: Icon(
                       userProvider.isCodeCorrect ? Icons.check : Icons.close,
-                      color: userProvider.isCodeCorrect ? Colors.black : Colors.white,
+                      color: userProvider.isCodeCorrect
+                          ? Colors.black
+                          : Colors.white,
                       size: 16,
                     ),
                   ),

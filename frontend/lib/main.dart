@@ -13,7 +13,7 @@ import 'screens/settings_screen.dart';
 import 'screens/sign_in_screen.dart';
 
 void main() async {
-   WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
   runApp(const MyApp());
 
@@ -39,9 +39,11 @@ class MyApp extends StatelessWidget {
       child: Builder(
         builder: (context) {
           // Load user data after provider is available
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
-          userProvider.loadFromStorage(); 
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          userProvider.loadFromStorage();
 
           return MaterialApp(
             debugShowCheckedModeBanner: false,
@@ -50,7 +52,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: SignInPage(),
+            home: ResponsiveHomePage(),
             routes: appRoutes(),
           );
         },
@@ -58,7 +60,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 
 class ResponsiveHomePage extends StatelessWidget {
   const ResponsiveHomePage({super.key});
