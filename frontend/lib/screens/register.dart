@@ -132,317 +132,330 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
-      body: Stack(
-        children: [
-          // Language toggle button
-          Positioned(
-            top: 60,
-            left: 370,
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _languageDropdownOpen = !_languageDropdownOpen;
-                });
-              },
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // Background image - Bottom Right
+            Positioned(
+              bottom: 0,
+              right: 0,
               child: Image.asset(
-                'assets/images/Vector.png',
-                width: 23,
-                height: 23,
-                color: Colors.white,
-              ),
-            ),
-          ),
-
-          // Welcome texts
-          const Positioned(
-            top: 60,
-            left: 100,
-            child: SizedBox(
-              width: 220,
-              height: 50,
-              child: Text(
-                'Welcome to',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 28,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const Positioned(
-            top: 124,
-            left: 100,
-            child: Text(
-              'Egety Trust',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-                fontSize: 40,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const Positioned(
-            top: 205,
-            left: 1,
-            child: SizedBox(
-              width: 425,
-              height: 72,
-              child: Text(
-                'Step into a dynamic realm powered by decentralization, '
-                'where true data ownership and assets belong to you.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 20,
-                  height: 1.0,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-
-          // Background image bottom-right
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Image.asset(
-              "assets/images/Rectangle2.png",
-              width: 180,
-              fit: BoxFit.contain,
-            ),
-          ),
-
-          // Middle animation
-          Positioned(
-            top: 298,
-            left: 138,
-            child: SizedBox(
-              width: 153,
-              height: 200,
-              child: Image.asset(
-                'assets/images/Unlocked animstion.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-       // Buttons
-Positioned(
-  top: 580,
-  left: 138,
-  child: SizedBox(
-    width: 153,
-    child: Column(
-      children: [
-        // Sign In
-        CustomButton(
-          text: 'Sign In',
-          width: 150,
-          height: 40,
-          fontSize: 20,
-          onTap: () {
-            setState(() {
-              _selectAccountOpen = true; // open select account popup
-            });
-          },
-        ),
-        const SizedBox(height: 30),
-        // Sign Up
-        CustomButton(
-          text: 'Sign Up',
-          width: 150,
-          height: 40,
-          fontSize: 20,
-          onTap: () {
-            Navigator.pushNamed(context, '/sign-up'); // navigate to sign-up
-          },
-        ),
-      ],
-    ),
-  ),
-),
-
-
-          // 🔥 BACKGROUND OVERLAY WHEN ANY POPUP IS OPEN
-          if (_languageDropdownOpen || _selectAccountOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectAccountOpen = false;
-                    _languageDropdownOpen = false;
-                  });
-                },
-                child: Container(color: Colors.black.withOpacity(0.6)),
+                "assets/images/Rectangle2.png",
+                width: 180,
+                fit: BoxFit.contain,
               ),
             ),
 
-          // SELECT ACCOUNT POPUP
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOut,
-            bottom: _selectAccountOpen ? 0 : -_dropdownHeight,
-            left: 0,
-            right: 0,
-            height: _dropdownHeight,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              child: Container(
-                color: const Color(0xFF0B1320),
-                child: SelectAccountContent(
-                  onClose: () {
-                    setState(() {
-                      _selectAccountOpen = false;
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
-
-          // LANGUAGE DROPDOWN POPUP
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOut,
-            bottom: _languageDropdownOpen ? 0 : -dropdownHeight,
-            left: 0,
-            right: 0,
-            height: dropdownHeight,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0B1320),
-                  border: const Border(
-                    top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
-                  ),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                ),
+            // Main content - Centered and takes full height
+            SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: SingleChildScrollView(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _languageDropdownOpen = false;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 20),
-                        child: CustomPaint(
-                          size: const Size(120, 20),
-                          painter: VLinePainter(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 60),
 
-                    // SEARCH FIELD
+                    // Header section
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 50),
-                      child: TextField(
-                        controller: _languageSearchController,
-                        onChanged: (value) {
-                          final query = value.toLowerCase();
-                          setState(() {
-                            _filteredCountries = _languages
-                                .where(
-                                  (c) =>
-                                      c['name']!.toLowerCase().contains(query),
-                                )
-                                .toList();
-                          });
-                        },
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search Language',
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                          ),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    const Divider(color: Colors.white24, thickness: 0.5),
-
-                    // COUNTRY LIST
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 50,
-                          vertical: 16,
-                        ),
-                        itemCount: _filteredCountries.length,
-                        itemBuilder: (context, index) {
-                          final country = _filteredCountries[index];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _languageSearchController.text =
-                                    country['name']!;
-                                _languageDropdownOpen = false;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8.0,
-                              ),
-                              child: Row(
-                                children: [
-                                  SvgPicture.asset(
-                                    country['flag']!,
-                                    width: 30,
-                                    height: 30,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              width: 30,
-                                              height: 30,
-                                              color: Colors.grey,
-                                              child: const Icon(
-                                                Icons.flag,
-                                                size: 20,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    country['name']!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: const Column(
+                        children: [
+                          SizedBox(
+                            width: 220,
+                            child: Text(
+                              'Welcome to',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 28,
+                                color: Colors.white,
                               ),
                             ),
-                          );
-                        },
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Egety Trust',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 40,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+
+                    // Description text
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: const Text(
+                        'Step into a dynamic realm powered by decentralization, '
+                        'where true data ownership and assets belong to you.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 20,
+                          height: 1.0,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Middle animation
+                    SizedBox(
+                      width: 153,
+                      height: 200,
+                      child: Image.asset(
+                        'assets/images/Unlocked animstion.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+
+                    const SizedBox(height: 82),
+
+                    // Buttons
+                    Column(
+                      children: [
+                        // Sign In
+                        CustomButton(
+                          text: 'Sign In',
+                          width: 150,
+                          height: 40,
+                          fontSize: 20,
+                          onTap: () {
+                            setState(() {
+                              _selectAccountOpen =
+                                  true; // open select account popup
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 30),
+                        // Sign Up
+                        CustomButton(
+                          text: 'Sign Up',
+                          width: 150,
+                          height: 40,
+                          fontSize: 20,
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/sign-up',
+                            ); // navigate to sign-up
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 60),
                   ],
                 ),
               ),
             ),
-          ),
-        ],
+
+            // Language toggle button - Top Right
+            Positioned(
+              top: 60,
+              right: 20,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _languageDropdownOpen = !_languageDropdownOpen;
+                  });
+                },
+                child: Image.asset(
+                  'assets/images/Vector.png',
+                  width: 23,
+                  height: 23,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            // 🔥 BACKGROUND OVERLAY WHEN ANY POPUP IS OPEN
+            if (_languageDropdownOpen || _selectAccountOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectAccountOpen = false;
+                      _languageDropdownOpen = false;
+                    });
+                  },
+                  child: Container(color: Colors.black.withOpacity(0.6)),
+                ),
+              ),
+
+            // SELECT ACCOUNT POPUP
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+              bottom: _selectAccountOpen ? 0 : -_dropdownHeight,
+              left: 0,
+              right: 0,
+              height: _dropdownHeight,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                child: Container(
+                  color: const Color(0xFF0B1320),
+                  child: SelectAccountContent(
+                    onClose: () {
+                      setState(() {
+                        _selectAccountOpen = false;
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+            // LANGUAGE DROPDOWN POPUP
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+              bottom: _languageDropdownOpen ? 0 : -dropdownHeight,
+              left: 0,
+              right: 0,
+              height: dropdownHeight,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0B1320),
+                    border: const Border(
+                      top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
+                    ),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _languageDropdownOpen = false;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 20),
+                          child: CustomPaint(
+                            size: const Size(120, 20),
+                            painter: VLinePainter(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // SEARCH FIELD
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 50),
+                        child: TextField(
+                          controller: _languageSearchController,
+                          onChanged: (value) {
+                            final query = value.toLowerCase();
+                            setState(() {
+                              _filteredCountries = _languages
+                                  .where(
+                                    (c) => c['name']!.toLowerCase().contains(
+                                      query,
+                                    ),
+                                  )
+                                  .toList();
+                            });
+                          },
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Search Language',
+                            hintStyle: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const Divider(color: Colors.white24, thickness: 0.5),
+
+                      // COUNTRY LIST
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 50,
+                            vertical: 16,
+                          ),
+                          itemCount: _filteredCountries.length,
+                          itemBuilder: (context, index) {
+                            final country = _filteredCountries[index];
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _languageSearchController.text =
+                                      country['name']!;
+                                  _languageDropdownOpen = false;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: Row(
+                                  children: [
+                                    SvgPicture.asset(
+                                      country['flag']!,
+                                      width: 30,
+                                      height: 30,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                width: 30,
+                                                height: 30,
+                                                color: Colors.grey,
+                                                child: const Icon(
+                                                  Icons.flag,
+                                                  size: 20,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      country['name']!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
