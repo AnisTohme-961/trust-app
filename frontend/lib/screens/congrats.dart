@@ -93,7 +93,7 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                 Container(
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 20),
-                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 3),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.centerLeft,
@@ -125,8 +125,6 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 10),
 
                       // EID + Icon
                       GestureDetector(

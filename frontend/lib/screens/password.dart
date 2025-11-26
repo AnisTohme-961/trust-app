@@ -502,7 +502,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 0),
 
                     // Confirm Password and Generate Row
                     Row(
