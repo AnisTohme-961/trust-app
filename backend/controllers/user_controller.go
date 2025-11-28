@@ -610,6 +610,55 @@ func (uc *UserController) SignIn(c *gin.Context) {
 		},
 	})
 }
+
+func (uc *UserController) ValidateCredentials(c *gin.Context) {
+	var input struct {
+		Identifier string `json:"identifier"`
+		Password   string `json:"password"`
+	}
+
+	if err := c.BindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if input.Identifier == "" || input.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Identifier and password are required"})
+		return
+	}
+
+	ctx := context.TODO()
+	var user models.User
+	var err error
+
+	// Resolve identifier (email or EID)
+	if strings.Contains(input.Identifier, "@") {
+		err = uc.UserCollection.FindOne(ctx, bson.M{
+			"email": strings.TrimSpace(strings.ToLower(input.Identifier)),
+		}).Decode(&user)
+	} else {
+		err = uc.UserCollection.FindOne(ctx, bson.M{
+			"eid": input.Identifier,
+		}).Decode(&user)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"valid": false})
+		return
+	}
+
+	// Compare password
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)) != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"valid": false})
+		return
+	}
+
+	// Everything OK
+	c.JSON(http.StatusOK, gin.H{
+		"valid": true,
+	})
+}
+
 func (uc *UserController) SendCodeSignIn(c *gin.Context) {
 	var input struct {
 		Identifier string `json:"identifier"`

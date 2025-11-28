@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_project/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,22 +31,77 @@ class UserProvider extends ChangeNotifier {
   String confirmPassword = '';
   String eid = '';
 
-  // Cooldown & verification
-  int emailCodeSecondsLeft = 0;
-  bool emailCodeVerified = false;
-  bool isCooldownActive = false;
+  
+Map<String, int> emailCooldowns = {};        // email -> seconds left
+Map<String, bool> emailVerified = {};        // email -> verified or not
+Map<String, Timer?> emailTimers = {};        // email -> cooldown timer
+Map<String, bool> emailCodeValid = {};       // email -> is code valid (for UI)
+Map<String, int> emailAttempts = {};         // email -> number of attempts
+
+  // int emailCodeSecondsLeft = 0;
+  // bool emailCodeVerified = false;
+  // bool isCooldownActive = false;
   bool isCodeCorrect = false;
   bool isCodeValid = false;
 
   // Registration info
   bool isReturningUser = false;
   bool justRegistered = false;
-  
+
+
+// Set cooldown for a specific email
+void setEmailCooldown(String email, int seconds) {
+  emailCooldowns[email] = seconds;
+  notifyListeners();
+}
+
+// Get cooldown for a specific email
+int getEmailCooldown(String email) {
+  return emailCooldowns[email] ?? 0;
+}
+
+// Set timer for a specific email
+void setEmailTimer(String email, Timer? timer) {
+  emailTimers[email]?.cancel(); // cancel previous if exists
+  emailTimers[email] = timer;
+}
+
+
+void setEmailVerified(String email, bool verified) {
+  emailVerified[email] = verified;
+  notifyListeners();
+}
+
+bool isEmailVerified(String email) {
+  return emailVerified[email] ?? false;
+}
+
+// Set code validity for UI
+void setEmailCodeValid(String email, bool valid) {
+  emailCodeValid[email] = valid;
+  notifyListeners();
+}
+
+// Get code validity for UI
+bool isEmailCodeValid(String email) {
+  return emailCodeValid[email] ?? true;
+}
+
+// Set attempt count for an email
+void setEmailAttempts(String email, int attempts) {
+  emailAttempts[email] = attempts;
+  notifyListeners();
+}
+
+// Get attempt count for an email
+int getEmailAttempts(String email) {
+  return emailAttempts[email] ?? 0;
+}
 
   // List of all registered users
   List<Map<String, String>> registeredUsers = [];
 
-  final FlutterSecureStorage storage = const FlutterSecureStorage();
+  // final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   UserProvider();
 
@@ -98,15 +155,15 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEmailCodeTimer(int seconds) {
-    emailCodeSecondsLeft = seconds;
-    notifyListeners();
-  }
+  // void setEmailCodeTimer(int seconds) {
+  //   emailCodeSecondsLeft = seconds;
+  //   notifyListeners();
+  // }
 
-  void setEmailCodeVerified(bool val) {
-    emailCodeVerified = val;
-    notifyListeners();
-  }
+  // void setEmailCodeVerified(bool val) {
+  //   emailCodeVerified = val;
+  //   notifyListeners();
+  // }
 
   void setCodeCorrect(bool val) {
     isCodeCorrect = val;
@@ -213,34 +270,25 @@ Future<void> syncAccountsWithServer() async {
   // --------------------------
   // COOLDOWN SYSTEM
   // --------------------------
-  Future<void> setEmailCooldownEndForEmail(
-      String email, DateTime endTime) async {
-    final key = "cooldown_$email";
-    await storage.write(key: key, value: endTime.toIso8601String());
-    emailCodeSecondsLeft = endTime.difference(DateTime.now()).inSeconds;
-    isCooldownActive = emailCodeSecondsLeft > 0;
-    notifyListeners();
-  }
+// Future<void> setEmailCooldownEndForEmail(String email, DateTime endTime) async {
+//   final key = "cooldown_$email";
+//   await storage.write(key: key, value: endTime.toIso8601String());
+//   final secondsLeft = endTime.difference(DateTime.now()).inSeconds;
+//   setEmailCooldown(email, secondsLeft > 0 ? secondsLeft : 0);
+// }
 
-  Future<void> restoreEmailCooldownForEmail(String email) async {
-    final key = "cooldown_$email";
-    final saved = await storage.read(key: key);
+// Future<void> restoreEmailCooldownForEmail(String email) async {
+//   final key = "cooldown_$email";
+//   final saved = await storage.read(key: key);
+//   if (saved != null) {
+//     final endTime = DateTime.tryParse(saved) ?? DateTime.now();
+//     final secondsLeft = endTime.difference(DateTime.now()).inSeconds;
+//     setEmailCooldown(email, secondsLeft > 0 ? secondsLeft : 0);
+//   } else {
+//     setEmailCooldown(email, 0);
+//   }
+// }
 
-    if (saved == null) {
-      emailCodeSecondsLeft = 0;
-      isCooldownActive = false;
-      notifyListeners();
-      return;
-    }
-
-    final endTime = DateTime.tryParse(saved) ?? DateTime.now();
-    final remaining = endTime.difference(DateTime.now()).inSeconds;
-
-    emailCodeSecondsLeft = remaining > 0 ? remaining : 0;
-    isCooldownActive = remaining > 0;
-
-    notifyListeners();
-  }
 
   // --------------------------
   // HELPER

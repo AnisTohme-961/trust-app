@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -28,6 +29,7 @@ class _SignInPageState extends State<SignInPage> {
 
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isPasswordNotEmpty => _passwordController.text.isNotEmpty;
+  
 
   String serverCode = "";
   bool _hideInputFields = false;
@@ -38,6 +40,7 @@ class _SignInPageState extends State<SignInPage> {
   @override
   void initState() {
     super.initState();
+    //  _restoreCooldown();
     _controller.addListener(() => setState(() {}));
     _passwordController.addListener(() => setState(() {}));
     _emailFocus.addListener(() => setState(() {}));
@@ -59,7 +62,7 @@ class _SignInPageState extends State<SignInPage> {
     _passwordFocus.dispose();
     _codecontrollers.forEach((c) => c.dispose());
     _focusNodes.forEach((f) => f.dispose());
-
+    _timer?.cancel(); 
     super.dispose();
   }
 
@@ -70,66 +73,76 @@ class _SignInPageState extends State<SignInPage> {
   List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   List<String> code = List.generate(6, (_) => "");
   int _secondsLeft = 0;
-
+  bool _showCodeSent = false;
+  bool _codeDisabled = false;
   int _getCodeAttempts = 0;
 
-  void fetchCodeFromGo() async {
-    final identifier = _controller.text.trim();
+  final _storage = const FlutterSecureStorage();
+ Timer? _timer;
+ int _attempts = 0;
 
-    if (identifier.isEmpty) {
-      errorStackKey.currentState?.showError(
-        'Please enter your eid/email first',
-        duration: const Duration(seconds: 5),
-      );
-      return;
-    }
+ Future<void> fetchCodeFromGo() async {
+  final identifier = _controller.text.trim();
+  final password = _passwordController.text.trim();
+  final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    try {
-      if (_getCodeAttempts >= 4) {
-        errorStackKey.currentState?.showError(
-          "Too many attempts. Please try again in 10 minutes.",
-          duration: const Duration(seconds: 5),
-        );
-
-        Timer(const Duration(minutes: 10), () {
-          setState(() => _getCodeAttempts = 0);
-        });
-        return;
-      }
-
-      await AuthService.sendCode(identifier: identifier);
-      setState(() {
-        _getCodeAttempts++;
-        _hideInputFields = true;
-        isCodeCorrect = false;
-        _isCodeValid = null;
-        code = List.generate(6, (_) => "");
-        _codecontrollers.forEach((c) => c.clear());
-      });
-
-      Timer(const Duration(seconds: 2), () {
-        setState(() {
-          _hideInputFields = false;
-        });
-      });
-
-      _secondsLeft = 120;
-      Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_secondsLeft <= 0) {
-          timer.cancel();
-        } else {
-          setState(() {
-            _secondsLeft--;
-          });
-        }
-      });
-    } catch (e) {
-      errorStackKey.currentState?.showError(
-        'Failed to send code',
-        duration: const Duration(seconds: 5),
-      );
-    }
+  if (identifier.isEmpty || password.isEmpty) {
+    errorStackKey.currentState?.showError(
+      'Please enter your eid/email and password first',
+      duration: const Duration(seconds: 5),
+    );
+    return;
   }
+
+  final credentialsValid = await AuthService.validateCredentials(
+    identifier: identifier,
+    password: password,
+  );
+
+  if (!credentialsValid) {
+    errorStackKey.currentState?.showError(
+      "Incorrect password. Please try again.",
+      duration: const Duration(seconds: 5),
+    );
+    return;
+  }
+
+  try {
+    _timer?.cancel();
+    final data = await AuthService.sendCode(identifier: identifier);
+
+    serverCode = data['code'];
+    _attempts = data['attempts'] ?? 0;
+    int cooldown = data['cooldown'] ?? 60;
+
+    setState(() {
+      _showCodeSent = true;
+      _codeDisabled = true; // grey input fields
+      _secondsLeft = cooldown;
+    });
+
+    // hide "Code Sent" after 2s
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _showCodeSent = false);
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+      } else {
+        timer.cancel();
+        if (mounted) setState(() => _codeDisabled = false); // enable fields
+      }
+    });
+  } catch (e) {
+    errorStackKey.currentState?.showError(
+      'Failed to send code. Please try again.',
+      duration: const Duration(seconds: 5),
+    );
+  }
+}
+
+
 
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
@@ -251,6 +264,8 @@ class _SignInPageState extends State<SignInPage> {
               onCodeChanged: _onChanged,
               emailFocus: _emailFocus, // <-- add this
               passwordFocus: _passwordFocus,
+              tooManyAttempts: _tooManyAttempts,
+              
             );
           }
         },
@@ -269,6 +284,8 @@ class MobileSignInPage extends StatelessWidget {
   final bool hideInputFields;
   final bool isCodeCorrect;
   final bool? isCodeValid;
+  final bool _codeDisabled = false;
+  final _showCodeSent = false;
   final List<TextEditingController> codecontrollers;
   final List<FocusNode> focusNodes;
   final List<String> code;
@@ -280,6 +297,7 @@ class MobileSignInPage extends StatelessWidget {
   final void Function(String, int) onCodeChanged; // Fixed type
   final FocusNode emailFocus;
   final FocusNode passwordFocus;
+  final bool tooManyAttempts;
 
   const MobileSignInPage({
     super.key,
@@ -303,6 +321,7 @@ class MobileSignInPage extends StatelessWidget {
     required this.onCodeChanged,
     required this.emailFocus,
     required this.passwordFocus,
+    required this.tooManyAttempts,
   });
 
   @override
@@ -721,6 +740,7 @@ class MobileSignInPage extends StatelessWidget {
                               textAlign: TextAlign.center,
                               maxLength: 1,
                               keyboardType: TextInputType.number,
+                              
                               style: TextStyle(
                                 color: isCodeCorrect
                                     ? const Color(0xFF00F0FF)
@@ -780,7 +800,7 @@ class MobileSignInPage extends StatelessWidget {
               top: 21,
               left: 270,
               child: GestureDetector(
-                onTap: (secondsLeft == 0) ? onFetchCode : null,
+                onTap: (secondsLeft == 0 && !tooManyAttempts) ? onFetchCode : null,
                 child: Container(
                   width: 100,
                   height: 26,
@@ -811,7 +831,8 @@ class MobileSignInPage extends StatelessWidget {
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
+                        : Text(
+                            tooManyAttempts ? "Locked":
                             "Get Code",
                             style: TextStyle(
                               fontFamily: 'Inter',

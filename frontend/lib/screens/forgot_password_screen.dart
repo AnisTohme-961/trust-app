@@ -61,6 +61,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _passwordsMatch = false;
 
   bool _validationPerformed = false;
+  String? _activeCodeType;
 
   Timer? _timer;
   int _remainingSeconds = 0;
@@ -113,52 +114,169 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   // Updated _fetchCode to handle timer
   // Changed the _fetchCode to call the api in auth service
+
   void _fetchCode(String type) async {
-    if (_countdowns[type]! > 0) return;
+  // Disable if ANY type is active
+  if (_activeCodeType != null && _activeCodeType != type) return;
 
-    if (_controller.text.isEmpty) {
-      _errorStackKey.currentState?.showError("Please enter your EID / Email");
-      return;
-    }
+  if (_countdowns[type]! > 0) return;
 
-    try {
-      if (type == 'auth') {
-        final totpData = await AuthService.generateTOTP(
-          _controller.text.trim(),
-        );
-        print("Secret: ${totpData['secret']} QR URL: ${totpData['qrUrl']}");
-      } else {
-        await AuthService.sendResetCode(_controller.text.trim());
-      }
-
-      // Temporarily show "Code Sent"
-      _setCodeSentFlag(type, true);
-
-      // Hide "Code Sent" after 2 seconds (does not block input)
-      Timer(const Duration(seconds: 2), () {
-        _setCodeSentFlag(type, false);
-      });
-
-      // Start 2-minute cooldown for button
-      setState(() {
-        _countdowns[type] = 120;
-      });
-
-      _timers[type]?.cancel();
-      _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() {
-          if (_countdowns[type]! > 0) {
-            _countdowns[type] = _countdowns[type]! - 1;
-          } else {
-            timer.cancel();
-            _timers.remove(type);
-          }
-        });
-      });
-    } catch (e) {
-      _errorStackKey.currentState?.showError(e.toString());
-    }
+  if (_controller.text.isEmpty) {
+    _errorStackKey.currentState?.showError("Please enter your EID / Email");
+    return;
   }
+
+  final identifier = _controller.text.trim();
+
+  try {
+    Map<String, dynamic> data;
+
+    if (type == "auth") {
+      data = await AuthService.generateTOTP(identifier);
+    } else {
+      data = await AuthService.sendResetCode(identifier);
+    }
+
+    final int cooldown = data["cooldown"] ?? 60;
+
+    // 🔵 Show "Code Sent"
+    _setCodeSentFlag(type, true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) _setCodeSentFlag(type, false);
+    });
+
+    // 🔵 Start cooldown + disable ALL buttons
+    setState(() {
+      _activeCodeType = type;          // 🔥 lock all buttons except this one
+      _countdowns[type] = cooldown;
+    });
+
+    _timers[type]?.cancel();
+    _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+
+      setState(() {
+        if (_countdowns[type]! > 0) {
+          _countdowns[type] = _countdowns[type]! - 1;
+        } else {
+          timer.cancel();
+          _timers[type] = null;
+          _activeCodeType = null;      
+        }
+      });
+    });
+  } catch (e) {
+    _errorStackKey.currentState?.showError(
+      "Failed to send code. Please try again.",
+    );
+  }
+}
+
+//   void _fetchCode(String type) async {
+
+//   if (_activeCodeType != null && _activeCodeType != type) {
+//     return;
+//   }
+
+//   if (_countdowns[type]! > 0) return; // already cooling down
+
+//   if (_controller.text.isEmpty) {
+//     _errorStackKey.currentState?.showError("Please enter your EID / Email");
+//     return;
+//   }
+
+//   final identifier = _controller.text.trim();
+
+//   try {
+//     // 🔵 Step 1 — Call backend based on type
+//     Map<String, dynamic> data;
+
+//     if (type == "auth") {
+//       data = await AuthService.generateTOTP(identifier);
+//     } else {
+//       data = await AuthService.sendResetCode(identifier);
+//     }
+
+//     // ---- Server returns: code, attempts, cooldown ----
+//     final int cooldown = data["cooldown"] ?? 60;
+
+//     // 🔵 Step 2 — Show "Code Sent"
+//     _setCodeSentFlag(type, true);
+//     Future.delayed(const Duration(seconds: 2), () {
+//       if (mounted) _setCodeSentFlag(type, false);
+//     });
+
+//     // 🔵 Step 3 — Start cooldown using server cooldown
+//     setState(() {
+//       _activeCodeType = type;
+//       _countdowns[type] = cooldown;
+//     });
+
+//     _timers[type]?.cancel();
+//     _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+//       if (!mounted) return;
+//       setState(() {
+//         if (_countdowns[type]! > 0) {
+//           _countdowns[type] = _countdowns[type]! - 1;
+//         } else {
+//           timer.cancel();
+//           _timers[type] = null;
+//         }
+//       });
+//     });
+//   } catch (e) {
+//     _errorStackKey.currentState?.showError(
+//       "Failed to send code. Please try again.",
+//     );
+//   }
+// }
+
+  // void _fetchCode(String type) async {
+  //   if (_countdowns[type]! > 0) return;
+
+  //   if (_controller.text.isEmpty) {
+  //     _errorStackKey.currentState?.showError("Please enter your EID / Email");
+  //     return;
+  //   }
+
+  //   try {
+  //     if (type == 'auth') {
+  //       final totpData = await AuthService.generateTOTP(
+  //         _controller.text.trim(),
+  //       );
+  //       print("Secret: ${totpData['secret']} QR URL: ${totpData['qrUrl']}");
+  //     } else {
+  //       await AuthService.sendResetCode(_controller.text.trim());
+  //     }
+
+  //     // Temporarily show "Code Sent"
+  //     _setCodeSentFlag(type, true);
+
+  //     // Hide "Code Sent" after 2 seconds (does not block input)
+  //     Timer(const Duration(seconds: 2), () {
+  //       _setCodeSentFlag(type, false);
+  //     });
+
+  //     // Start 2-minute cooldown for button
+  //     setState(() {
+  //       _countdowns[type] = 120;
+  //     });
+
+  //     _timers[type]?.cancel();
+  //     _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //       setState(() {
+  //         if (_countdowns[type]! > 0) {
+  //           _countdowns[type] = _countdowns[type]! - 1;
+  //         } else {
+  //           timer.cancel();
+  //           _timers.remove(type);
+  //         }
+  //       });
+  //     });
+  //   } catch (e) {
+  //     _errorStackKey.currentState?.showError(e.toString());
+  //   }
+  // }
 
   void _setCodeSentFlag(String type, bool value) {
     setState(() {
@@ -1150,7 +1268,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               top: 21,
               left: 280,
               child: GestureDetector(
-                onTap: () {
+                onTap: (_activeCodeType == null || _activeCodeType == type)
+                  ? () {
                   if (_controller.text.isEmpty) {
                     _errorStackKey.currentState?.showError(
                       "Please enter your EID / Email",
@@ -1158,7 +1277,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     return;
                   }
                   _fetchCode(type);
-                },
+                }: null,
                 child: Container(
                   width: 94,
                   height: 23,

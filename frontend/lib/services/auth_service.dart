@@ -12,20 +12,23 @@ class AuthService {
   static const _emailKey = 'user_email'; // new
   static const _eidKey = 'user_eid'; // new
 
-  // Send code for sign-in (by EID or email)
-  static Future<void> sendCode({required String identifier}) async {
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/send-code-sign-in"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'identifier': identifier}),
-    );
+  static Future<Map<String, dynamic>> sendCode({required String identifier}) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/get-code-sign-in"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'identifier': identifier}),
+  );
 
-    print('Send code response: ${response.statusCode} ${response.body}');
+  final data = jsonDecode(response.body);
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send code: ${response.body}');
-    }
+  print('Send code response: ${response.statusCode} $data');
+
+  if (response.statusCode != 200) {
+    throw Exception(data['error'] ?? 'Failed to send code');
   }
+
+  return data;
+}
 
   // Verify code (optional - for UI feedback only)
   static Future<bool> verifyCode({
@@ -230,16 +233,32 @@ class AuthService {
     }
   }
 
-  static Future<void> sendResetCode(String identifier) async {
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'identifier': identifier}),
-    );
-    if (response.statusCode != 200) {
-      throw Exception(jsonDecode(response.body)['error']);
-    }
+static Future<Map<String, dynamic>> sendResetCode(String identifier) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'identifier': identifier}),
+  );
+
+  final data = jsonDecode(response.body);
+
+  if (response.statusCode != 200) {
+    throw Exception(data['error'] ?? "Unknown error occurred");
   }
+
+  return data;  // MUST return the full JSON
+}
+
+  // static Future<void> sendResetCode(String identifier) async {
+  //   final response = await http.post(
+  //     Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'identifier': identifier}),
+  //   );
+  //   if (response.statusCode != 200) {
+  //     throw Exception(jsonDecode(response.body)['error']);
+  //   }
+  // }
 
   static Future<bool> verifyResetCode({
     required String identifier,
@@ -398,6 +417,29 @@ static Future<bool> checkEidExists(String eid) async {
 
   // If server returns error → treat as not existing
   return false;
+}
+
+static Future<bool> validateCredentials({
+  required String identifier,
+  required String password,
+}) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/validate-credentials"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'identifier': identifier,
+      'password': password,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return data['valid'] == true;   // true = password matches
+  } else if (response.statusCode == 401) {
+    return false; // wrong password
+  } else {
+    throw Exception("Validation failed: ${response.body}");
+  }
 }
 
 
