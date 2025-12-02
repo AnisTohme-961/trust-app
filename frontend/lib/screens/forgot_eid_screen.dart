@@ -31,7 +31,9 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   bool isCodeCorrect = false;
   bool _isCodeValid = true;
   bool _codeSent = false;
-
+  int cooldown = 0;
+  int attempts = 0;
+  Timer? _cooldownTimer;
   // New state variables for color management
   Color _otpTextColor = Colors.white;
   Timer? _colorResetTimer;
@@ -100,23 +102,95 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   }
 
   void _handleSendCode() async {
-    if (_isTimerRunning) return;
     final email = _controller.text.trim();
+
     if (email.isEmpty) {
       _errorStackKey.currentState?.showError('Please enter your Email');
       return;
     }
+
     try {
-      await AuthService.sendEidCode(email);
-      if (!mounted) return;
+      final data = await AuthService.sendEidCode(email);
+
+      final int backendCooldown =
+          data["cooldown"] ?? 0; // cooldown from backend
+      attempts = data["attempts"] ?? 0;
+
       setState(() {
         _codeSent = true;
-        _startTimer();
+        _remainingSeconds = backendCooldown; // start UI timer
+      });
+
+      // Start countdown timer
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (_remainingSeconds > 0) {
+          setState(() => _remainingSeconds--);
+        } else {
+          t.cancel();
+        }
       });
     } catch (e) {
       _errorStackKey.currentState?.showError('Email not registered');
     }
   }
+
+  // void _handleSendCode() async {
+
+  //   final email = _controller.text.trim();
+
+  //   if (email.isEmpty) {
+  //     _errorStackKey.currentState?.showError('Please enter your Email');
+  //     return;
+  //   }
+
+  //   try {
+  //     final data = await AuthService.sendEidCode(email);
+
+  //     setState(() {
+  //       _codeSent = true;
+
+  //       attempts = data["attempts"] ?? 0;
+  //       cooldown = data["cooldown"] ?? 0;
+
+  //       // UI timer cooldown
+  //       _remainingSeconds = cooldown;
+  //     });
+
+  //     // Start cooldown timer
+  //     _timer?.cancel();
+  //     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+  //       if (_remainingSeconds > 0) {
+  //         setState(() => _remainingSeconds--);
+  //       } else {
+  //         t.cancel();
+  //       }
+  //     });
+  //   } catch (e) {
+  //     _errorStackKey.currentState?.showError('Email not registered');
+  //   }
+  // }
+
+  // void _handleSendCode() async {
+  //   if (cooldown > 0) return;
+  //   final email = _controller.text.trim();
+  //   if (email.isEmpty) {
+  //     _errorStackKey.currentState?.showError('Please enter your Email');
+  //     return;
+  //   }
+  //   try {
+  //     final data = await AuthService.sendEidCode(email);
+  //     final int cooldown = data['cooldown'] ?? 0;
+  //     attempts = data['attempts'] ?? 0;
+  //     if (!mounted) return;
+  //     setState(() {
+  //       _codeSent = true;
+  //       _startTimer();
+  //     });
+  //   } catch (e) {
+  //     _errorStackKey.currentState?.showError('Email not registered');
+  //   }
+  // }
 
   void _openOverlay() {
     setState(() => _showOverlay = true);
@@ -173,7 +247,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
 
       // Clear input fields after 2 seconds
       _colorResetTimer?.cancel();
-      _colorResetTimer = Timer(const Duration(seconds: 2), () {
+      _colorResetTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) {
           setState(() {
             for (var controller in _otpControllers) {
@@ -448,6 +522,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
   }
 
   Widget _buildOtpInput() {
+    bool isCooldown = widget.remainingSeconds > 0;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const NeverScrollableScrollPhysics(),
@@ -469,15 +544,15 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
-                      showCursor: !widget.isCodeCorrect,
-                      enabled: !widget.isCodeCorrect,
-                      readOnly: widget.isCodeCorrect,
+                      showCursor: !widget.isCodeCorrect && !isCooldown,
+                      enabled: !widget.isCodeCorrect && !isCooldown,
+                      readOnly: widget.isCodeCorrect || isCooldown,
                       style: TextStyle(
-                        color: widget.otpTextColor,
+                        color: isCooldown ? Colors.grey : widget.otpTextColor,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
-                      cursorColor: widget.isCodeCorrect
+                      cursorColor: widget.isCodeCorrect || isCooldown
                           ? Colors.transparent
                           : widget.otpTextColor,
                       decoration: const InputDecoration(
@@ -506,18 +581,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
 
                         // Auto-verify when all fields are filled
                         if (widget.code.every((c) => c.isNotEmpty)) {
-                          final email = widget.controller.text.trim();
-                          bool valid = await widget.onVerifyCode(
-                            email,
-                            widget.code.join(),
-                          );
-
-                          if (valid) {
-                            // Code is correct - trigger the verification flow
-                            widget.onHandleCodeVerification();
-                          } else {
-                            // Code is incorrect - handled in the main method
-                          }
+                          widget.onHandleCodeVerification();
                         }
                       },
                     ),
@@ -526,9 +590,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                     duration: const Duration(milliseconds: 250),
                     width: 35,
                     height: widget.isCodeCorrect ? 0 : 2,
-                    color: widget.isCodeCorrect
-                        ? Colors.transparent
-                        : widget.otpTextColor,
+                    color: isCooldown ? Colors.grey : widget.otpTextColor,
                   ),
                 ],
               ),
@@ -698,9 +760,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: widget.codeSent ? _buildOtpInput() : Container(height: 40),
-          ),
+          Expanded(child: _buildOtpInput()),
           const SizedBox(width: 10),
           GestureDetector(
             onTap: widget.isTimerRunning ? null : widget.onHandleSendCode,

@@ -62,6 +62,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   bool _validationPerformed = false;
   String? _activeCodeType;
+  bool codeDisabled = false;
 
   Timer? _timer;
   int _remainingSeconds = 0;
@@ -95,6 +96,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
+
   void _onChanged(
     String value,
     int index,
@@ -116,120 +129,122 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // Changed the _fetchCode to call the api in auth service
 
   void _fetchCode(String type) async {
-  // Disable if ANY type is active
-  if (_activeCodeType != null && _activeCodeType != type) return;
+    // Disable if ANY type is active
+    if (_activeCodeType != null && _activeCodeType != type) return;
 
-  if (_countdowns[type]! > 0) return;
+    if (_countdowns[type]! > 0) return;
 
-  if (_controller.text.isEmpty) {
-    _errorStackKey.currentState?.showError("Please enter your EID / Email");
-    return;
-  }
-
-  final identifier = _controller.text.trim();
-
-  try {
-    Map<String, dynamic> data;
-
-    if (type == "auth") {
-      data = await AuthService.generateTOTP(identifier);
-    } else {
-      data = await AuthService.sendResetCode(identifier);
+    if (_controller.text.isEmpty) {
+      _errorStackKey.currentState?.showError("Please enter your EID / Email");
+      return;
     }
 
-    final int cooldown = data["cooldown"] ?? 60;
+    final identifier = _controller.text.trim();
 
-    // 🔵 Show "Code Sent"
-    _setCodeSentFlag(type, true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) _setCodeSentFlag(type, false);
-    });
+    try {
+      Map<String, dynamic> data;
 
-    // 🔵 Start cooldown + disable ALL buttons
-    setState(() {
-      _activeCodeType = type;          // 🔥 lock all buttons except this one
-      _countdowns[type] = cooldown;
-    });
+      if (type == "auth") {
+        data = await AuthService.generateTOTP(identifier);
+      } else {
+        data = await AuthService.sendResetCode(identifier);
+      }
 
-    _timers[type]?.cancel();
-    _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
+      final int cooldown = data["cooldown"] ?? 60;
 
-      setState(() {
-        if (_countdowns[type]! > 0) {
-          _countdowns[type] = _countdowns[type]! - 1;
-        } else {
-          timer.cancel();
-          _timers[type] = null;
-          _activeCodeType = null;      
-        }
+      // 🔵 Show "Code Sent"
+      _setCodeSentFlag(type, true);
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _setCodeSentFlag(type, false);
       });
-    });
-  } catch (e) {
-    _errorStackKey.currentState?.showError(
-      "Failed to send code. Please try again.",
-    );
+
+      // 🔵 Start cooldown + disable ALL buttons
+      setState(() {
+        _activeCodeType = type; // 🔥 lock all buttons except this one
+        _countdowns[type] = cooldown;
+        codeDisabled = true; // disable all buttons
+      });
+
+      _timers[type]?.cancel();
+      _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
+
+        setState(() {
+          if (_countdowns[type]! > 0) {
+            _countdowns[type] = _countdowns[type]! - 1;
+          } else {
+            timer.cancel();
+            _timers[type] = null;
+            _activeCodeType = null;
+            codeDisabled = false;
+          }
+        });
+      });
+    } catch (e) {
+      _errorStackKey.currentState?.showError(
+        "Failed to send code. Please try again.",
+      );
+    }
   }
-}
 
-//   void _fetchCode(String type) async {
+  //   void _fetchCode(String type) async {
 
-//   if (_activeCodeType != null && _activeCodeType != type) {
-//     return;
-//   }
+  //   if (_activeCodeType != null && _activeCodeType != type) {
+  //     return;
+  //   }
 
-//   if (_countdowns[type]! > 0) return; // already cooling down
+  //   if (_countdowns[type]! > 0) return; // already cooling down
 
-//   if (_controller.text.isEmpty) {
-//     _errorStackKey.currentState?.showError("Please enter your EID / Email");
-//     return;
-//   }
+  //   if (_controller.text.isEmpty) {
+  //     _errorStackKey.currentState?.showError("Please enter your EID / Email");
+  //     return;
+  //   }
 
-//   final identifier = _controller.text.trim();
+  //   final identifier = _controller.text.trim();
 
-//   try {
-//     // 🔵 Step 1 — Call backend based on type
-//     Map<String, dynamic> data;
+  //   try {
+  //     // 🔵 Step 1 — Call backend based on type
+  //     Map<String, dynamic> data;
 
-//     if (type == "auth") {
-//       data = await AuthService.generateTOTP(identifier);
-//     } else {
-//       data = await AuthService.sendResetCode(identifier);
-//     }
+  //     if (type == "auth") {
+  //       data = await AuthService.generateTOTP(identifier);
+  //     } else {
+  //       data = await AuthService.sendResetCode(identifier);
+  //     }
 
-//     // ---- Server returns: code, attempts, cooldown ----
-//     final int cooldown = data["cooldown"] ?? 60;
+  //     // ---- Server returns: code, attempts, cooldown ----
+  //     final int cooldown = data["cooldown"] ?? 60;
 
-//     // 🔵 Step 2 — Show "Code Sent"
-//     _setCodeSentFlag(type, true);
-//     Future.delayed(const Duration(seconds: 2), () {
-//       if (mounted) _setCodeSentFlag(type, false);
-//     });
+  //     // 🔵 Step 2 — Show "Code Sent"
+  //     _setCodeSentFlag(type, true);
+  //     Future.delayed(const Duration(seconds: 2), () {
+  //       if (mounted) _setCodeSentFlag(type, false);
+  //     });
 
-//     // 🔵 Step 3 — Start cooldown using server cooldown
-//     setState(() {
-//       _activeCodeType = type;
-//       _countdowns[type] = cooldown;
-//     });
+  //     // 🔵 Step 3 — Start cooldown using server cooldown
+  //     setState(() {
+  //       _activeCodeType = type;
+  //       _countdowns[type] = cooldown;
+  //     });
 
-//     _timers[type]?.cancel();
-//     _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
-//       if (!mounted) return;
-//       setState(() {
-//         if (_countdowns[type]! > 0) {
-//           _countdowns[type] = _countdowns[type]! - 1;
-//         } else {
-//           timer.cancel();
-//           _timers[type] = null;
-//         }
-//       });
-//     });
-//   } catch (e) {
-//     _errorStackKey.currentState?.showError(
-//       "Failed to send code. Please try again.",
-//     );
-//   }
-// }
+  //     _timers[type]?.cancel();
+  //     _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //       if (!mounted) return;
+  //       setState(() {
+  //         if (_countdowns[type]! > 0) {
+  //           _countdowns[type] = _countdowns[type]! - 1;
+  //         } else {
+  //           timer.cancel();
+  //           _timers[type] = null;
+  //         }
+  //       });
+  //     });
+  //   } catch (e) {
+  //     _errorStackKey.currentState?.showError(
+  //       "Failed to send code. Please try again.",
+  //     );
+  //   }
+  // }
 
   // void _fetchCode(String type) async {
   //   if (_countdowns[type]! > 0) return;
@@ -426,6 +441,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     focusNodes: _emailFocusNodes,
                     codeList: _emailCode,
                     type: 'email',
+                    codeDisabled: codeDisabled,
                   ),
                   const SizedBox(height: 10),
                   buildVerificationSection(
@@ -435,6 +451,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     focusNodes: _smsFocusNodes,
                     codeList: _smsCode,
                     type: 'sms',
+                    codeDisabled: codeDisabled,
                   ),
                   const SizedBox(height: 10),
                   buildVerificationSection(
@@ -444,6 +461,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     focusNodes: _authFocusNodes,
                     codeList: _authCode,
                     type: 'auth',
+                    codeDisabled: codeDisabled,
                   ),
                   const SizedBox(height: 0),
                   buildPasswordRow(
@@ -1028,6 +1046,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required List<FocusNode> focusNodes,
     required List<String> codeList,
     required String type,
+    required bool codeDisabled,
   }) {
     bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
     bool isCodeValid = isCodeValidMap[type] ?? true;
@@ -1098,14 +1117,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               child: TextField(
                                 controller: codeControllers[index],
                                 focusNode: focusNodes[index],
-                                showCursor: !(isCodeCorrect),
-                                enabled: !isCodeCorrect,
-                                readOnly: isCodeCorrect,
+                                showCursor: !codeDisabled,
+                                enabled: !codeDisabled,
+                                readOnly: codeDisabled,
                                 textAlign: TextAlign.center,
                                 maxLength: 1,
                                 keyboardType: TextInputType.number,
                                 style: TextStyle(
-                                  color: isCodeCorrect
+                                  color: codeDisabled
+                                      ? Colors.grey
+                                      : isCodeCorrect
                                       ? const Color(0xFF00F0FF)
                                       : (isCodeValid == false
                                             ? Colors.red
@@ -1113,8 +1134,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
-                                cursorColor: isCodeCorrect
-                                    ? Colors.transparent
+                                cursorColor: codeDisabled
+                                    ? Colors.grey
+                                    : isCodeCorrect
+                                    ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
                                           : Colors.white),
@@ -1126,26 +1149,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                                 // Replace the onChanged callback in buildVerificationSection with this:
                                 onChanged: (value) async {
-                                  if (isCodeCorrect) return;
+                                  // Update current field
+                                  codeList[index] = value.isEmpty
+                                      ? ''
+                                      : value[0];
+                                  codeControllers[index].text = codeList[index];
+                                  codeControllers[index]
+                                      .selection = TextSelection.fromPosition(
+                                    TextPosition(
+                                      offset:
+                                          codeControllers[index].text.length,
+                                    ),
+                                  );
 
-                                  if (value.length > 1) {
-                                    codeControllers[index].text = value[0];
-                                  }
-
+                                  // Move focus
                                   if (value.isNotEmpty && index < 5) {
                                     focusNodes[index + 1].requestFocus();
                                   } else if (value.isEmpty && index > 0) {
                                     focusNodes[index - 1].requestFocus();
                                   }
 
+                                  // Reset validity while typing
                                   setState(() {
-                                    codeList[index] =
-                                        codeControllers[index].text;
-                                    isCodeValidMap[type] =
-                                        true; // Reset to true while typing
+                                    isCodeValidMap[type] = true;
+                                    isCodeCorrectMap[type] = false;
                                   });
 
-                                  // When all digits are filled
+                                  // Only verify when all digits are filled
                                   if (codeList.every((c) => c.isNotEmpty)) {
                                     final email = _controller.text.trim();
                                     bool valid = false;
@@ -1164,55 +1194,58 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                             );
                                       }
 
-                                      setState(() {
-                                        isCodeCorrectMap[type] = valid;
-                                        isCodeValidMap[type] =
-                                            valid; // ✅ This is the key fix - set to false when invalid
-                                      });
-
-                                      // ✅ Pause/Stop timer if code is correct
                                       if (valid) {
+                                        setState(() {
+                                          isCodeCorrectMap[type] = true;
+                                          isCodeValidMap[type] = true;
+                                        });
                                         _timers[type]?.cancel();
                                         _timers[type] = null;
                                         _countdowns[type] = 0;
                                       } else {
-                                        // reset fields after 3s if invalid
+                                        // ❌ Show error for 3 seconds, then reset
+                                        setState(() {
+                                          isCodeValidMap[type] = false;
+                                          isCodeCorrectMap[type] = false;
+                                        });
+
                                         Timer(const Duration(seconds: 3), () {
                                           if (!mounted) return;
                                           setState(() {
-                                            for (var c in codeControllers) {
-                                              c.clear();
+                                            for (
+                                              var i = 0;
+                                              i < codeControllers.length;
+                                              i++
+                                            ) {
+                                              codeControllers[i].clear();
+                                              codeList[i] = '';
                                             }
-                                            codeList = List.generate(
-                                              6,
-                                              (_) => "",
-                                            );
-                                            isCodeValidMap[type] =
-                                                true; // Reset to neutral state
+                                            isCodeValidMap[type] = true;
+                                            isCodeCorrectMap[type] = false;
                                           });
                                           focusNodes[0].requestFocus();
                                         });
                                       }
                                     } catch (e) {
-                                      // Handle error case
+                                      // ❌ On error, show red for 3 seconds, then reset
                                       setState(() {
+                                        isCodeValidMap[type] = false;
                                         isCodeCorrectMap[type] = false;
-                                        isCodeValidMap[type] =
-                                            false; // Show red X on error
                                       });
 
-                                      // reset fields after 3s
                                       Timer(const Duration(seconds: 3), () {
                                         if (!mounted) return;
                                         setState(() {
-                                          for (var c in codeControllers) {
-                                            c.clear();
+                                          for (
+                                            var i = 0;
+                                            i < codeControllers.length;
+                                            i++
+                                          ) {
+                                            codeControllers[i].clear();
+                                            codeList[i] = '';
                                           }
-                                          codeList = List.generate(
-                                            6,
-                                            (_) => "",
-                                          );
                                           isCodeValidMap[type] = true;
+                                          isCodeCorrectMap[type] = false;
                                         });
                                         focusNodes[0].requestFocus();
                                       });
@@ -1227,7 +1260,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               duration: const Duration(milliseconds: 250),
                               width: 35,
                               height: isCodeCorrect ? 0 : 2,
-                              color: isCodeCorrect
+                              color: codeDisabled
+                                  ? Colors.grey
+                                  : isCodeCorrect
                                   ? Colors.transparent
                                   : (isCodeValid == false
                                         ? Colors.red
@@ -1269,15 +1304,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               left: 280,
               child: GestureDetector(
                 onTap: (_activeCodeType == null || _activeCodeType == type)
-                  ? () {
-                  if (_controller.text.isEmpty) {
-                    _errorStackKey.currentState?.showError(
-                      "Please enter your EID / Email",
-                    );
-                    return;
-                  }
-                  _fetchCode(type);
-                }: null,
+                    ? () {
+                        if (_controller.text.isEmpty) {
+                          _errorStackKey.currentState?.showError(
+                            "Please enter your EID / Email",
+                          );
+                          return;
+                        }
+                        _fetchCode(type);
+                      }
+                    : null,
                 child: Container(
                   width: 94,
                   height: 23,
@@ -1298,7 +1334,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   alignment: Alignment.center,
                   child: _countdowns[type]! > 0
                       ? Text(
-                          "${_countdowns[type]! ~/ 60}m ${_countdowns[type]! % 60}s",
+                          formatCooldown(_countdowns[type]!),
+
+                          // "${_countdowns[type]! ~/ 60}m ${_countdowns[type]! % 60}s",
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,

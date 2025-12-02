@@ -344,21 +344,38 @@ static Future<Map<String, dynamic>> sendResetCode(String identifier) async {
     }
   }
 
-  static Future<String> sendEidCode(String email) async {
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
+static Future<Map<String, dynamic>> sendEidCode(String email) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'email': email}),
+  );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['code']; // return server-generated code
-    } else {
-      final error = jsonDecode(response.body)['error'] ?? 'Failed to send code';
-      throw Exception(error);
-    }
+  final data = jsonDecode(response.body);
+
+
+  if (response.statusCode != 200) {
+    throw Exception(data['error'] ?? "Unknown error occurred"); 
   }
+
+  return data;
+}
+
+  // static Future<String> sendEidCode(String email) async {
+  //   final response = await http.post(
+  //     Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'email': email}),
+  //   );
+
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body);
+  //     return data['code']; // return server-generated code
+  //   } else {
+  //     final error = jsonDecode(response.body)['error'] ?? 'Failed to send code';
+  //     throw Exception(error);
+  //   }
+  // }
 
   // verify EID code
   static Future<bool> verifyEidCode({

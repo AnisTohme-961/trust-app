@@ -36,6 +36,10 @@ class _SignInPageState extends State<SignInPage> {
   bool _tooManyAttempts = false;
   bool isCodeCorrect = false;
   bool? _isCodeValid;
+  bool _codeDisabled = false;
+  bool _showCodeSent = false;
+
+
 
   @override
   void initState() {
@@ -73,13 +77,12 @@ class _SignInPageState extends State<SignInPage> {
   List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   List<String> code = List.generate(6, (_) => "");
   int _secondsLeft = 0;
-  bool _showCodeSent = false;
-  bool _codeDisabled = false;
   int _getCodeAttempts = 0;
 
   final _storage = const FlutterSecureStorage();
  Timer? _timer;
  int _attempts = 0;
+ 
 
  Future<void> fetchCodeFromGo() async {
   final identifier = _controller.text.trim();
@@ -113,7 +116,7 @@ class _SignInPageState extends State<SignInPage> {
 
     serverCode = data['code'];
     _attempts = data['attempts'] ?? 0;
-    int cooldown = data['cooldown'] ?? 60;
+    int cooldown = data['cooldown'] ?? 0;
 
     setState(() {
       _showCodeSent = true;
@@ -265,7 +268,8 @@ class _SignInPageState extends State<SignInPage> {
               emailFocus: _emailFocus, // <-- add this
               passwordFocus: _passwordFocus,
               tooManyAttempts: _tooManyAttempts,
-              
+              codeDisabled: _codeDisabled,
+              showCodeSent: _showCodeSent,
             );
           }
         },
@@ -275,6 +279,18 @@ class _SignInPageState extends State<SignInPage> {
 }
 
 class MobileSignInPage extends StatelessWidget {
+  String formatCooldown(int secondsLeft) {
+  if (secondsLeft >= 3600) {
+    int hours = secondsLeft ~/ 3600;
+    int minutes = (secondsLeft % 3600) ~/ 60;
+    return "${hours}h ${minutes}m";
+  } else {
+    int minutes = secondsLeft ~/ 60;
+    int seconds = secondsLeft % 60;
+    return "${minutes}m ${seconds}s";
+  }
+}
+
   final TextEditingController controller;
   final TextEditingController passwordController;
   final bool showPassword;
@@ -284,8 +300,6 @@ class MobileSignInPage extends StatelessWidget {
   final bool hideInputFields;
   final bool isCodeCorrect;
   final bool? isCodeValid;
-  final bool _codeDisabled = false;
-  final _showCodeSent = false;
   final List<TextEditingController> codecontrollers;
   final List<FocusNode> focusNodes;
   final List<String> code;
@@ -298,6 +312,8 @@ class MobileSignInPage extends StatelessWidget {
   final FocusNode emailFocus;
   final FocusNode passwordFocus;
   final bool tooManyAttempts;
+  final bool codeDisabled;
+  final bool showCodeSent;
 
   const MobileSignInPage({
     super.key,
@@ -322,6 +338,8 @@ class MobileSignInPage extends StatelessWidget {
     required this.emailFocus,
     required this.passwordFocus,
     required this.tooManyAttempts,
+    required this.codeDisabled,
+    required this.showCodeSent,
   });
 
   @override
@@ -694,7 +712,7 @@ class MobileSignInPage extends StatelessWidget {
                 ),
               ),
             ),
-            if (hideInputFields)
+            if (showCodeSent)
               Positioned(
                 top: 21,
                 left: 50,
@@ -720,7 +738,7 @@ class MobileSignInPage extends StatelessWidget {
                   ),
                 ),
               ),
-            if (!hideInputFields)
+            if (!showCodeSent)
               Positioned(
                 top: 22,
                 left: 0,
@@ -736,13 +754,16 @@ class MobileSignInPage extends StatelessWidget {
                             child: TextField(
                               controller: codecontrollers[index],
                               focusNode: focusNodes[index],
-                              showCursor: !(code.every((c) => c.isNotEmpty)),
+                              enabled: !codeDisabled,
+                              readOnly: codeDisabled,
+                              showCursor: !codeDisabled,
                               textAlign: TextAlign.center,
                               maxLength: 1,
                               keyboardType: TextInputType.number,
                               
                               style: TextStyle(
-                                color: isCodeCorrect
+                                color: codeDisabled ? Colors.grey
+                                : isCodeCorrect
                                     ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
@@ -750,7 +771,8 @@ class MobileSignInPage extends StatelessWidget {
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
-                              cursorColor: isCodeCorrect
+                              cursorColor: codeDisabled ? Colors.grey
+                              : isCodeCorrect
                                   ? const Color(0xFF00F0FF)
                                   : (isCodeValid == false
                                         ? Colors.red
@@ -765,7 +787,7 @@ class MobileSignInPage extends StatelessWidget {
                           Container(
                             width: 30,
                             height: 2,
-                            color: code[index].isEmpty
+                            color: codeDisabled ? Colors.grey : code[index].isEmpty
                                 ? Colors.white
                                 : Colors.transparent,
                           ),
@@ -823,7 +845,8 @@ class MobileSignInPage extends StatelessWidget {
                   child: Center(
                     child: secondsLeft > 0
                         ? Text(
-                            "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
+                          formatCooldown(secondsLeft),
+                            // "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,

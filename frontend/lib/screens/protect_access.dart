@@ -115,6 +115,19 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   // Hardcoded list of countries with flags in country_service.dart
   List<Map<String, String>> get countries => CountriesService.getCountries();
 
+  String formatCooldown(int secondsLeft) {
+  if (secondsLeft >= 3600) {
+    int hours = secondsLeft ~/ 3600;
+    int minutes = (secondsLeft % 3600) ~/ 60;
+    return "${hours}h ${minutes}m";
+  } else {
+    int minutes = secondsLeft ~/ 60;
+    int seconds = secondsLeft % 60;
+    return "${minutes}m ${seconds}s";
+  }
+}
+
+
   List<String> generate6DigitCode() {
     final rnd = Random.secure();
     return List.generate(6, (_) => rnd.nextInt(10).toString());
@@ -675,6 +688,7 @@ void _onChanged(String value, int index) async {
   @override
   Widget build(BuildContext context) {
     const double dropdownHeight = 650;
+
 
     final userProvider = Provider.of<UserProvider>(context);
 
@@ -1497,7 +1511,8 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                               child: Center(
                                 child: cooldown > 0
                                     ? Text(
-                                        "${cooldown ~/ 60}m ${cooldown % 60}s",
+                                      formatCooldown(cooldown),
+                                        // "${cooldown ~/ 60}m ${cooldown % 60}s",
                                         style: const TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w500,
