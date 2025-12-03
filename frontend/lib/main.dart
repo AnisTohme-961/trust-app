@@ -12,6 +12,7 @@ import 'widgets/footer_widgets.dart';
 import 'screens/settings_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/sign_in_pattern_screen.dart';
+import'screens/forgot_eid_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,7 +54,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: SettingsScreen(),
+            home: ResponsiveHomePage(),
             routes: appRoutes(),
           );
         },
