@@ -14,7 +14,7 @@ class SignInPatternScreen extends StatefulWidget {
 }
 
 class _SignInPatternScreenState extends State<SignInPatternScreen> {
-  bool isEyeVisible = true; 
+  bool isEyeVisible = true;
   static const int gridCount = 3;
   static const double dotSize = 18.0;
   final GlobalKey _gridKey = GlobalKey();
@@ -58,7 +58,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
 
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        bottom: 0,
+        top: 0,
         left: 0,
         right: 0,
         child: Material(
@@ -70,7 +70,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
 
     overlay.insert(overlayEntry);
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 3000), () {
       overlayEntry.remove();
     });
   }
@@ -288,7 +288,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      debugPrint('Use Pin Instead tapped');
+                      Navigator.pushNamed(context, '/sign-in-pin');
                     },
                     child: const Text(
                       'Use Pin Instead',
@@ -362,7 +362,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
             borderColor: const Color(0xFF00F0FF),
             backgroundColor: const Color(0xFF0B1320),
             onTap: () async {
-              _logout(); 
+              _logout();
             },
           ),
 

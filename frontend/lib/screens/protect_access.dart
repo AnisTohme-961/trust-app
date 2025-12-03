@@ -19,6 +19,7 @@ import '../widgets/custom_button.dart';
 import '../services/country_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_project/widgets/slide_up_menu_widget.dart'; // Import the SlideUpMenu
+import 'package:flutter_project/widgets/slide_up_menu_widget.dart'; // Import the SlideUpMenu
 
 class ResponsiveProtectAccess extends StatelessWidget {
   const ResponsiveProtectAccess({super.key});
@@ -1684,7 +1685,43 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
             child: Column(
               children: [
                 SizedBox(height: 12),
+          // Country Dropdown using SlideUpMenu
+          SlideUpMenu(
+            menuHeight: MediaQuery.of(context).size.height * 0.7,
+            isVisible: _countryDropdownOpen,
+            onToggle: () {
+              setState(() {
+                _countryDropdownOpen = !_countryDropdownOpen;
+              });
+            },
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: Column(
+              children: [
+                SizedBox(height: 12),
 
+                // SEARCH FIELD
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 50),
+                  child: TextField(
+                    controller: _countrySearchController,
+                    onChanged: _filterCountries,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search Country',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
                 // SEARCH FIELD
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: 50),
@@ -1705,7 +1742,25 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                 ),
 
                 Divider(color: Colors.white24, thickness: 0.5),
+                Divider(color: Colors.white24, thickness: 0.5),
 
+                // LIST - Updated to use emoji flags
+                Expanded(
+                  child: _filteredCountries.isEmpty
+                      ? Center(
+                          child: Text(
+                            "No countries found",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 50,
+                            vertical: 16,
+                          ),
+                          itemCount: _filteredCountries.length,
+                          itemBuilder: (context, index) {
+                            final country = _filteredCountries[index];
                 // LIST - Updated to use emoji flags
                 Expanded(
                   child: _filteredCountries.isEmpty
@@ -1811,7 +1866,95 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                       // Date picker columns
                       Row(
                         children: [
+                            return GestureDetector(
+                              onTap: () => _selectCountry(country),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8.0),
+                                child: Row(
+                                  children: [
+                                    // Using emoji flags instead of network images
+                                    // In your ListView.builder, update the flag display to:
+                                    SvgPicture.asset(
+                                      country['flag']!,
+                                      width: 30,
+                                      height: 30,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      country['name'] ?? '',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+
+          // DOB Dropdown using SlideUpMenu
+          SlideUpMenu(
+            menuHeight: 350,
+            isVisible: _dobDropdownOpen,
+            onToggle: () {
+              setState(() {
+                _dobDropdownOpen = !_dobDropdownOpen;
+              });
+            },
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 286,
+                  child: Stack(
+                    children: [
+                      // Background container
+                      Positioned.fill(
+                        child: Container(
+                          width: double.infinity,
+                          height: 286,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0B1320),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Center highlight
+                      Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: double.infinity,
+                          height: 49,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00BEBF),
+                            border: Border.all(
+                              color: const Color(0xFF007BFF),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      // Date picker columns
+                      Row(
+                        children: [
                           // Month List
+                          Expanded(
                           Expanded(
                             child: NotificationListener<ScrollEndNotification>(
                               onNotification: (notification) {
@@ -1860,6 +2003,7 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                           ),
                           // Day List
                           Expanded(
+                          Expanded(
                             child: ListView.builder(
                               itemCount: _days.length,
                               padding: EdgeInsets.symmetric(
@@ -1897,6 +2041,7 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                           ),
                           // Year List
                           Expanded(
+                          Expanded(
                             child: ListView.builder(
                               itemCount: _years.length,
                               padding: EdgeInsets.symmetric(
@@ -1933,6 +2078,11 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                             ),
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
                       ),
                     ],
                   ),
