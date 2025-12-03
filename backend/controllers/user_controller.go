@@ -418,6 +418,7 @@ func (uc *UserController) MigrateUsersEID(c *gin.Context) {
 }
 
 // Sign in user (by EID or Email) with remember me + JWT + email code verification
+
 func (uc *UserController) SignIn(c *gin.Context) {
 	var input struct {
 		Identifier string `json:"identifier"` // EID or Email
@@ -440,7 +441,7 @@ func (uc *UserController) SignIn(c *gin.Context) {
 	var user models.User
 	var email string
 
-	// --- Resolve identifier to email
+	// --- Resolve identifier to email ---
 	if strings.Contains(input.Identifier, "@") {
 		email = strings.TrimSpace(strings.ToLower(input.Identifier))
 		err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
@@ -457,68 +458,13 @@ func (uc *UserController) SignIn(c *gin.Context) {
 		email = user.Email
 	}
 
-	now := time.Now()
-
-	// --- ACCOUNT LOCK HANDLING ---
-	if !user.AccountLockUntil.IsZero() && now.Before(user.AccountLockUntil) {
-		remaining := user.AccountLockUntil.Sub(now)
-		h := int(remaining.Hours())
-		m := int(remaining.Minutes()) % 60
-		s := int(remaining.Seconds()) % 60
-		c.JSON(http.StatusLocked, gin.H{
-			"error":            fmt.Sprintf("Too many failed attempts. Your account is locked for %02dh:%02dm:%02ds.", h, m, s),
-			"remainingSeconds": int(remaining.Seconds()),
-		})
-		return
-	}
-
-	// --- Reset attempts if lock expired ---
-	if !user.AccountLockUntil.IsZero() && now.After(user.AccountLockUntil) {
-		_, _ = uc.UserCollection.UpdateOne(ctx,
-			bson.M{"email": email},
-			bson.M{
-				"$set": bson.M{
-					"failedAttempts":   0,
-					"accountLockUntil": time.Time{},
-				},
-			},
-		)
-		user.FailedAttempts = 0
-		user.AccountLockUntil = time.Time{}
-	}
-
 	// --- PASSWORD VERIFICATION ---
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		// Increment failed attempts
-		update := bson.M{
-			"$set": bson.M{"lastFailedAt": now},
-			"$inc": bson.M{"failedAttempts": 1},
-		}
-
-		user.FailedAttempts++
-		if user.FailedAttempts >= 5 {
-			lockUntil := now.Add(24 * time.Hour)
-			update["$set"].(bson.M)["accountLockUntil"] = lockUntil
-			_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
-
-			c.JSON(http.StatusLocked, gin.H{
-				"error":            "Account locked for 24 hours due to too many failed attempts",
-				"remainingSeconds": int(time.Until(lockUntil).Seconds()),
-			})
-			return
-		}
-
-		_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
 		return
 	}
 
 	// --- VERIFY EMAIL CODE ---
-	if uc.CodeController == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "CodeController not initialized"})
-		return
-	}
-
 	filter := bson.M{
 		"email":    email,
 		"code":     input.Code,
@@ -528,37 +474,13 @@ func (uc *UserController) SignIn(c *gin.Context) {
 	var codeDoc models.EmailCode
 	err := uc.CodeController.EmailCodeCollection.FindOne(ctx, filter).Decode(&codeDoc)
 	if err != nil {
-		// Increment failedAttempts for invalid code
-		update := bson.M{
-			"$set": bson.M{"lastFailedAt": now},
-			"$inc": bson.M{"failedAttempts": 1},
-		}
-		user.FailedAttempts++
-		if user.FailedAttempts >= 5 {
-			lockUntil := now.Add(24 * time.Hour)
-			update["$set"].(bson.M)["accountLockUntil"] = lockUntil
-			_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
-			c.JSON(http.StatusLocked, gin.H{
-				"error":            fmt.Sprintf("Too many failed attempts. Your account is locked for 24 hours."),
-				"remainingSeconds": int(time.Until(lockUntil).Seconds()),
-			})
-			return
-		}
-
-		_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired verification code"})
 		return
 	}
 
 	// --- CODE EXPIRATION CHECK (2 minutes) ---
 	if time.Since(codeDoc.SentAt) > 2*time.Minute {
-		_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email},
-			bson.M{
-				"$set": bson.M{"lastFailedAt": now},
-				"$inc": bson.M{"failedAttempts": 1},
-			})
 		_, _ = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Verification code expired"})
 		return
 	}
@@ -568,13 +490,6 @@ func (uc *UserController) SignIn(c *gin.Context) {
 	if err != nil {
 		log.Printf("Warning: Failed to delete used code: %v", err)
 	}
-
-	// --- RESET FAILED ATTEMPTS AFTER SUCCESSFUL LOGIN ---
-	_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email},
-		bson.M{
-			"$set":   bson.M{"failedAttempts": 0},
-			"$unset": bson.M{"accountLockUntil": ""},
-		})
 
 	// --- GENERATE JWT ---
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -610,6 +525,199 @@ func (uc *UserController) SignIn(c *gin.Context) {
 		},
 	})
 }
+
+// func (uc *UserController) SignIn(c *gin.Context) {
+// 	var input struct {
+// 		Identifier string `json:"identifier"` // EID or Email
+// 		Password   string `json:"password"`
+// 		Code       string `json:"code"` // verification code
+// 		RememberMe bool   `json:"rememberMe"`
+// 	}
+
+// 	if err := c.BindJSON(&input); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+// 		return
+// 	}
+
+// 	if input.Identifier == "" || input.Password == "" || input.Code == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "EID/Email, password, and code are required"})
+// 		return
+// 	}
+
+// 	ctx := context.TODO()
+// 	var user models.User
+// 	var email string
+
+// 	// --- Resolve identifier to email
+// 	if strings.Contains(input.Identifier, "@") {
+// 		email = strings.TrimSpace(strings.ToLower(input.Identifier))
+// 		err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+// 		if err != nil {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Email not registered"})
+// 			return
+// 		}
+// 	} else {
+// 		err := uc.UserCollection.FindOne(ctx, bson.M{"eid": input.Identifier}).Decode(&user)
+// 		if err != nil {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid EID"})
+// 			return
+// 		}
+// 		email = user.Email
+// 	}
+
+// 	now := time.Now()
+
+// 	// --- ACCOUNT LOCK HANDLING ---
+// 	if !user.AccountLockUntil.IsZero() && now.Before(user.AccountLockUntil) {
+// 		remaining := user.AccountLockUntil.Sub(now)
+// 		h := int(remaining.Hours())
+// 		m := int(remaining.Minutes()) % 60
+// 		s := int(remaining.Seconds()) % 60
+// 		c.JSON(http.StatusLocked, gin.H{
+// 			"error":            fmt.Sprintf("Too many failed attempts. Your account is locked for %02dh:%02dm:%02ds.", h, m, s),
+// 			"remainingSeconds": int(remaining.Seconds()),
+// 		})
+// 		return
+// 	}
+
+// 	// --- Reset attempts if lock expired ---
+// 	if !user.AccountLockUntil.IsZero() && now.After(user.AccountLockUntil) {
+// 		_, _ = uc.UserCollection.UpdateOne(ctx,
+// 			bson.M{"email": email},
+// 			bson.M{
+// 				"$set": bson.M{
+// 					"failedAttempts":   0,
+// 					"accountLockUntil": time.Time{},
+// 				},
+// 			},
+// 		)
+// 		user.FailedAttempts = 0
+// 		user.AccountLockUntil = time.Time{}
+// 	}
+
+// 	// --- PASSWORD VERIFICATION ---
+// 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+// 		// Increment failed attempts
+// 		update := bson.M{
+// 			"$set": bson.M{"lastFailedAt": now},
+// 			"$inc": bson.M{"failedAttempts": 1},
+// 		}
+
+// 		user.FailedAttempts++
+// 		if user.FailedAttempts >= 5 {
+// 			lockUntil := now.Add(24 * time.Hour)
+// 			update["$set"].(bson.M)["accountLockUntil"] = lockUntil
+// 			_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
+
+// 			c.JSON(http.StatusLocked, gin.H{
+// 				"error":            "Account locked for 24 hours due to too many failed attempts",
+// 				"remainingSeconds": int(time.Until(lockUntil).Seconds()),
+// 			})
+// 			return
+// 		}
+
+// 		_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+// 		return
+// 	}
+
+// 	// --- VERIFY EMAIL CODE ---
+// 	if uc.CodeController == nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CodeController not initialized"})
+// 		return
+// 	}
+
+// 	filter := bson.M{
+// 		"email":    email,
+// 		"code":     input.Code,
+// 		"isActive": true,
+// 	}
+
+// 	var codeDoc models.EmailCode
+// 	err := uc.CodeController.EmailCodeCollection.FindOne(ctx, filter).Decode(&codeDoc)
+// 	if err != nil {
+// 		// Increment failedAttempts for invalid code
+// 		update := bson.M{
+// 			"$set": bson.M{"lastFailedAt": now},
+// 			"$inc": bson.M{"failedAttempts": 1},
+// 		}
+// 		user.FailedAttempts++
+// 		if user.FailedAttempts >= 5 {
+// 			lockUntil := now.Add(24 * time.Hour)
+// 			update["$set"].(bson.M)["accountLockUntil"] = lockUntil
+// 			_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
+// 			c.JSON(http.StatusLocked, gin.H{
+// 				"error":            fmt.Sprintf("Too many failed attempts. Your account is locked for 24 hours."),
+// 				"remainingSeconds": int(time.Until(lockUntil).Seconds()),
+// 			})
+// 			return
+// 		}
+
+// 		_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email}, update)
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired verification code"})
+// 		return
+// 	}
+
+// 	// --- CODE EXPIRATION CHECK (2 minutes) ---
+// 	if time.Since(codeDoc.SentAt) > 2*time.Minute {
+// 		_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email},
+// 			bson.M{
+// 				"$set": bson.M{"lastFailedAt": now},
+// 				"$inc": bson.M{"failedAttempts": 1},
+// 			})
+// 		_, _ = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
+
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Verification code expired"})
+// 		return
+// 	}
+
+// 	// --- DELETE USED CODE ---
+// 	_, err = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
+// 	if err != nil {
+// 		log.Printf("Warning: Failed to delete used code: %v", err)
+// 	}
+
+// 	// --- RESET FAILED ATTEMPTS AFTER SUCCESSFUL LOGIN ---
+// 	_, _ = uc.UserCollection.UpdateOne(ctx, bson.M{"email": email},
+// 		bson.M{
+// 			"$set":   bson.M{"failedAttempts": 0},
+// 			"$unset": bson.M{"accountLockUntil": ""},
+// 		})
+
+// 	// --- GENERATE JWT ---
+// 	expirationTime := time.Now().Add(24 * time.Hour)
+// 	if input.RememberMe {
+// 		expirationTime = time.Now().Add(15 * 24 * time.Hour)
+// 	}
+
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+// 		"user_id": fmt.Sprintf("%v", user.ID),
+// 		"eid":     user.EID,
+// 		"email":   user.Email,
+// 		"exp":     expirationTime.Unix(),
+// 	})
+
+// 	secret := os.Getenv("JWT_SECRET")
+// 	tokenString, err := token.SignedString([]byte(secret))
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+// 		return
+// 	}
+
+// 	c.SetCookie("token", tokenString, int(expirationTime.Sub(time.Now()).Seconds()), "/", "", false, true)
+
+// 	c.JSON(http.StatusOK, gin.H{
+// 		"message": "Sign in successful",
+// 		"token":   tokenString,
+// 		"user": gin.H{
+// 			"id":        user.ID,
+// 			"eid":       user.EID,
+// 			"email":     user.Email,
+// 			"firstName": user.FirstName,
+// 			"lastName":  user.LastName,
+// 		},
+// 	})
+// }
 
 func (uc *UserController) ValidateCredentials(c *gin.Context) {
 	var input struct {
