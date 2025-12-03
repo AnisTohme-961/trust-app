@@ -125,20 +125,20 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                 ),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
-              var tween = Tween(
-                begin: begin,
-                end: end,
-              ).chain(CurveTween(curve: curve));
-              var offsetAnimation = animation.drive(tween);
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOut;
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  var offsetAnimation = animation.drive(tween);
 
-              return SlideTransition(
-                position: offsetAnimation,
-                child: child,
-              );
-            },
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  );
+                },
             transitionDuration: const Duration(milliseconds: 300),
           ),
         );
@@ -159,7 +159,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
             Column(
               children: [
                 const SizedBox(height: 20),
-                
+
                 // ===== Top Buttons =====
                 SizedBox(
                   width: 230,
@@ -209,10 +209,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                         top: 9.5,
                         left: 32,
                         right: 40,
-                        child: _ProgressLine(
-                          totalSteps: 5,
-                          completedSteps: 4, 
-                        ),
+                        child: _ProgressLine(totalSteps: 5, completedSteps: 4),
                       ),
                       const _ProgressSteps(),
                     ],
@@ -279,7 +276,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
 
                       // Keypad
                       _Keypad(onKeyTap: _onKeyTap, numbers: _numbers),
-                      
+
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -306,12 +303,12 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // ===== Footer =====
                 FooterWidget(),
-                
+
                 const SizedBox(height: 10),
               ],
             ),
@@ -324,7 +321,6 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
     );
   }
 }
-
 
 class TabletRegisterPinScreen extends StatefulWidget {
   final String title;

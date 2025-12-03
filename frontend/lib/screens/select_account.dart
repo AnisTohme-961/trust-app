@@ -55,127 +55,102 @@ class MobileSelectAccountContent extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final accounts = _getAccounts(userProvider);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B1320),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border.all(color: const Color(0xFF00F0FF), width: 2.0),
-      ),
-      child: Column(
-        children: [
-          // V-line handle
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: onClose,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: CustomPaint(
-                  size: const Size(120, 20),
-                  painter: VLinePainter(),
-                ),
-              ),
-            ),
+    return Column(
+      // Remove Container and return Column directly
+      children: [
+        const SizedBox(height: 50),
+
+        // Title
+        const Text(
+          'Select an Account',
+          style: TextStyle(
+            color: Colors.white,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500,
+            fontSize: 15,
           ),
+        ),
 
-          const SizedBox(height: 50),
+        const SizedBox(height: 40),
 
-          // Title
-          const Text(
-            'Select an Account',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
-            ),
-          ),
-
-          const SizedBox(height: 40),
-
-          // Scrollable area (expanded to prevent bottom overflow)
-          Expanded(
-            child: accounts.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(
-                          Icons.account_circle_outlined,
-                          size: 60,
+        // Scrollable area (expanded to prevent bottom overflow)
+        Expanded(
+          child: accounts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(
+                        Icons.account_circle_outlined,
+                        size: 60,
+                        color: Colors.white38,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'No account found',
+                        style: TextStyle(
                           color: Colors.white38,
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'No account found',
-                          style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Account list
-                      Expanded(
-                        child: SingleChildScrollView(
-                          controller: scrollController,
-                          child: Column(
-                            children: [
-                              for (final account in accounts)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 20),
-                                  child: AccountFrame(
-                                    firstName:
-                                        account['firstName'] ?? 'First Name',
-                                    lastName:
-                                        account['lastName'] ?? 'Last Name',
-                                    eid: account['eid'] ?? 'N/A',
-                                    imagePath: account['image'] ??
-                                        'assets/images/image1.png',
-                                    onTap: () {
-                                      final userProvider =
-                                          Provider.of<UserProvider>(
-                                              context,
-                                              listen: false);
-                                      userProvider.setEID(
-                                          account['eid'] ?? '');
-                                      Navigator.pushNamed(
-                                          context, '/sign-in');
-                                    },
-                                    isTablet: false,
-                                  ),
-                                ),
-                            ],
-                          ),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-
-                      const SizedBox(width: 10),
-
-                      // Scrollbar
-                      VerticalScrollbar(controller: scrollController),
                     ],
                   ),
-          ),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Account list
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: Column(
+                          children: [
+                            for (final account in accounts)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 20),
+                                child: AccountFrame(
+                                  firstName:
+                                      account['firstName'] ?? 'First Name',
+                                  lastName: account['lastName'] ?? 'Last Name',
+                                  eid: account['eid'] ?? 'N/A',
+                                  imagePath:
+                                      account['image'] ??
+                                      'assets/images/image1.png',
+                                  onTap: () {
+                                    final userProvider =
+                                        Provider.of<UserProvider>(
+                                          context,
+                                          listen: false,
+                                        );
+                                    userProvider.setEID(account['eid'] ?? '');
+                                    Navigator.pushNamed(context, '/sign-in');
+                                  },
+                                  isTablet: false,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
 
-          const SizedBox(height: 20),
+                    const SizedBox(width: 10),
 
-          // Show "Add New Profile" only if user has an EID
-          if (userProvider.eid != null && userProvider.eid!.isNotEmpty)
-            _buildAddNewProfileButton(context, false),
-        ],
-      ),
+                    // Scrollbar
+                    VerticalScrollbar(controller: scrollController),
+                  ],
+                ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Show "Add New Profile" only if user has an EID
+        if (userProvider.eid != null && userProvider.eid!.isNotEmpty)
+          _buildAddNewProfileButton(context, false),
+      ],
     );
   }
 }
-
-
 
 class TabletSelectAccountContent extends StatelessWidget {
   final VoidCallback onClose;
@@ -278,7 +253,7 @@ class TabletSelectAccountContent extends StatelessWidget {
                                   account['image'] ??
                                   'assets/images/image1.png',
                               onTap: () {
-                                  userProvider.setEID(account['eid']!);
+                                userProvider.setEID(account['eid']!);
                                 Navigator.pushNamed(context, '/sign-in');
                               },
                               isTablet: true,
@@ -314,7 +289,6 @@ class TabletSelectAccountContent extends StatelessWidget {
 List<Map<String, String>> _getAccounts(UserProvider userProvider) {
   return userProvider.accounts;
 }
-
 
 // List<Map<String, String?>> _getAccounts(UserProvider userProvider) {
 //   return [

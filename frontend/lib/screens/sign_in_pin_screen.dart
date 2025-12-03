@@ -6,15 +6,14 @@ import '../services/auth_service.dart';
 import '../widgets/footer_widgets.dart';
 import '../widgets/error_widgets.dart'; // Make sure you import your ErrorStack file path correctly
 
-class SignInRegisterPinScreen extends StatefulWidget {
-  const SignInRegisterPinScreen({super.key});
+class SignInPinScreen extends StatefulWidget {
+  const SignInPinScreen({super.key});
 
   @override
-  State<SignInRegisterPinScreen> createState() =>
-      _SignInRegisterPinScreenState();
+  State<SignInPinScreen> createState() => _SignInPinScreenState();
 }
 
-class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
+class _SignInPinScreenState extends State<SignInPinScreen> {
   bool showPatternLines = false;
   bool isEyeVisible = true;
   bool _obscurePin = true;
@@ -255,7 +254,7 @@ class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          debugPrint('Use Pattern Instead tapped');
+                          Navigator.pushNamed(context, '/sign-in-pattern');
                         },
                         child: const Text(
                           'Use Pattern Instead',

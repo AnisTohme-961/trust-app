@@ -132,11 +132,6 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                           Clipboard.setData(
                             ClipboardData(text: userProvider.eid),
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('EID copied to clipboard!'),
-                            ),
-                          );
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),

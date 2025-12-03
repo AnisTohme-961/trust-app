@@ -8,6 +8,7 @@ import 'select_account.dart';
 import '../widgets/custom_button.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/language_api_service.dart';
+import '../widgets/slide_up_menu_widget.dart'; // Import the SlideUpMenu
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -19,7 +20,6 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   bool _signUpGlow = false;
   bool _selectAccountOpen = false;
-  final double _dropdownHeight = 730;
   bool _languageDropdownOpen = false;
   List<LanguageModel> _filteredLanguages = [];
 
@@ -79,7 +79,6 @@ class RegisterPageMobile extends StatefulWidget {
 class _RegisterPageMobileState extends State<RegisterPageMobile> {
   bool _signUpGlow = false;
   bool _selectAccountOpen = false;
-  final double _dropdownHeight = 730;
   bool _languageDropdownOpen = false;
   List<LanguageModel> _filteredLanguages = [];
 
@@ -118,7 +117,9 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
     final userProvider = Provider.of<UserProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
 
-    const double dropdownHeight = 550;
+    // Calculate 70% of screen height for both dropdowns
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double dropdownHeight = screenHeight * 0.7;
 
     final filteredLanguages = _languageSearchController.text.isEmpty
         ? languageProvider.languages
@@ -294,164 +295,148 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                 ),
               ),
 
-            // SELECT ACCOUNT POPUP
-            AnimatedPositioned(
+            // SELECT ACCOUNT POPUP - UPDATED WITH SlideUpMenu (70% height)
+            SlideUpMenu(
+              menuHeight: dropdownHeight,
+              isVisible: _selectAccountOpen,
+              onToggle: () {
+                setState(() {
+                  _selectAccountOpen = !_selectAccountOpen;
+                });
+              },
+              backgroundColor: const Color(0xFF0B1320),
+              shadowColor: const Color(0xFF00F0FF),
+              borderRadius: 20.0,
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOut,
-              bottom: _selectAccountOpen ? 0 : -_dropdownHeight,
-              left: 0,
-              right: 0,
-              height: _dropdownHeight,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+              dragHandle: Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: CustomPaint(
+                  size: const Size(120, 20),
+                  painter: VLinePainter(),
                 ),
-                child: Container(
-                  color: const Color(0xFF0B1320),
-                  child: SelectAccountContent(
-                    onClose: () {
-                      setState(() {
-                        _selectAccountOpen = false;
-                      });
-                    },
-                  ),
+              ),
+              child: Container(
+                color: const Color(0xFF0B1320),
+                child: SelectAccountContent(
+                  onClose: () {
+                    setState(() {
+                      _selectAccountOpen = false;
+                    });
+                  },
                 ),
               ),
             ),
 
-            // LANGUAGE DROPDOWN POPUP
-            AnimatedPositioned(
+            // LANGUAGE DROPDOWN POPUP - UPDATED WITH SlideUpMenu (70% height)
+            SlideUpMenu(
+              menuHeight: dropdownHeight,
+              isVisible: _languageDropdownOpen,
+              onToggle: () {
+                setState(() {
+                  _languageDropdownOpen = !_languageDropdownOpen;
+                });
+              },
+              backgroundColor: const Color(0xFF0B1320),
+              shadowColor: const Color(0xFF00F0FF),
+              borderRadius: 20.0,
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOut,
-              bottom: _languageDropdownOpen ? 0 : -dropdownHeight,
-              left: 0,
-              right: 0,
-              height: dropdownHeight,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+              dragHandle: Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: CustomPaint(
+                  size: const Size(120, 20),
+                  painter: VLinePainter(),
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0B1320),
-                    border: const Border(
-                      top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+
+                  // SEARCH FIELD
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 50),
+                    child: TextField(
+                      controller: _languageSearchController,
+                      onChanged: (value) {
+                        final query = value.toLowerCase();
+                        setState(() {
+                          _filteredCountries = _languages
+                              .where(
+                                (c) => c['name']!.toLowerCase().contains(query),
+                              )
+                              .toList();
+                        });
+                      },
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Search Language',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _languageDropdownOpen = false;
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 20),
-                          child: CustomPaint(
-                            size: const Size(120, 20),
-                            painter: VLinePainter(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                  const Divider(color: Colors.white24, thickness: 0.5),
 
-                      // SEARCH FIELD
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 50),
-                        child: TextField(
-                          controller: _languageSearchController,
-                          onChanged: (value) {
-                            final query = value.toLowerCase();
+                  // COUNTRY LIST
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 50,
+                        vertical: 16,
+                      ),
+                      itemCount: _filteredCountries.length,
+                      itemBuilder: (context, index) {
+                        final country = _filteredCountries[index];
+                        return GestureDetector(
+                          onTap: () {
                             setState(() {
-                              _filteredCountries = _languages
-                                  .where(
-                                    (c) => c['name']!.toLowerCase().contains(
-                                      query,
-                                    ),
-                                  )
-                                  .toList();
+                              _languageSearchController.text = country['name']!;
+                              _languageDropdownOpen = false;
                             });
                           },
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search Language',
-                            hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
-                            ),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      const Divider(color: Colors.white24, thickness: 0.5),
-
-                      // COUNTRY LIST
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 50,
-                            vertical: 16,
-                          ),
-                          itemCount: _filteredCountries.length,
-                          itemBuilder: (context, index) {
-                            final country = _filteredCountries[index];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _languageSearchController.text =
-                                      country['name']!;
-                                  _languageDropdownOpen = false;
-                                });
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    SvgPicture.asset(
-                                      country['flag']!,
-                                      width: 30,
-                                      height: 30,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                width: 30,
-                                                height: 30,
-                                                color: Colors.grey,
-                                                child: const Icon(
-                                                  Icons.flag,
-                                                  size: 20,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      country['name']!,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              children: [
+                                SvgPicture.asset(
+                                  country['flag']!,
+                                  width: 30,
+                                  height: 30,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        width: 30,
+                                        height: 30,
+                                        color: Colors.grey,
+                                        child: const Icon(
+                                          Icons.flag,
+                                          size: 20,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                  ],
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                                const SizedBox(width: 10),
+                                Text(
+                                  country['name']!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],

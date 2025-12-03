@@ -110,6 +110,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
       return;
     }
 
+    // Check if terms and conditions are agreed to
     if (!isChecked) {
       _errorStackKey.currentState?.showError(
         "You must agree to the terms before continuing.",
@@ -248,477 +249,646 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
 
-                // Buttons container
-                SizedBox(
-                  width: 240,
-                  height: 40,
-                  child: Stack(
-                    children: [
-                      // Sign In Button
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        child: GestureDetector(
-                          onTap: _validateAndSubmit,
-                          child: Container(
-                            width: 106,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0B1320),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                width: 1,
-                                color: const Color(0xFF00F0FF),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Sign In',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 20,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Sign Up Button
-                      Positioned(
-                        left: 126,
-                        top: 0,
-                        child: GestureDetector(
-                          onTap: _flickSignUpGlow,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 106,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                width: 1,
-                                color: const Color(0xFF00F0FF),
-                              ),
-                              gradient: _signUpGlow
-                                  ? LinearGradient(
-                                      colors: [
-                                        const Color(
-                                          0xFF00F0FF,
-                                        ).withOpacity(0.7),
-                                        const Color(
-                                          0xFF0177B3,
-                                        ).withOpacity(0.7),
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    )
-                                  : const LinearGradient(
-                                      colors: [
-                                        Color(0xFF00F0FF),
-                                        Color(0xFF0177B3),
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                              boxShadow: _signUpGlow
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF00F0FF,
-                                        ).withOpacity(0.5),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                      ),
-                                    ]
-                                  : [],
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Sign Up',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 20,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Title
-                Container(
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Protect Your Access',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 30,
-                      height: 1.0,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Progress Section
-                SizedBox(
-                  width: double.infinity,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Progress Line
-                      Positioned(
-                        top: 9.5,
-                        left: 20,
-                        right: 20,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            const totalSteps = 5;
-                            const completedSteps = 2;
-                            final segmentCount = totalSteps - 1;
-
-                            final totalWidth = constraints.maxWidth;
-                            final filledWidth =
-                                totalWidth * (completedSteps / segmentCount);
-                            final remainingWidth = totalWidth - filledWidth;
-
-                            return Row(
-                              children: [
-                                // Filled part (two steps)
-                                Container(
-                                  width: filledWidth,
-                                  height: 5,
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(100),
-                                      bottomLeft: Radius.circular(100),
-                                    ),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF13D2C7),
-                                        Color(0xFF00259E),
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                  ),
-                                ),
-                                // Remaining part
-                                Container(
-                                  width: remainingWidth,
-                                  height: 5,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: const BorderRadius.only(
-                                      topRight: Radius.circular(100),
-                                      bottomRight: Radius.circular(100),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-
-                      // Progress Steps
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // Buttons container
+                    SizedBox(
+                      width: 240,
+                      height: 40,
+                      child: Stack(
                         children: [
-                          _buildStep("", filled: true),
-                          _buildStep(
-                            "",
-                            filled: true,
-                            filledColor: const Color(0xFF0EA0BB),
+                          // Sign In Button
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: _validateAndSubmit,
+                              child: Container(
+                                width: 106,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0B1320),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    width: 1,
+                                    color: const Color(0xFF00F0FF),
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          _buildStep(
-                            "Security\nBase",
-                            filled: true,
-                            filledColor: const Color(0xFF0764AD),
+                          // Sign Up Button
+                          Positioned(
+                            left: 126,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: _flickSignUpGlow,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 106,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    width: 1,
+                                    color: const Color(0xFF00F0FF),
+                                  ),
+                                  gradient: _signUpGlow
+                                      ? LinearGradient(
+                                          colors: [
+                                            const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.7),
+                                            const Color(
+                                              0xFF0177B3,
+                                            ).withOpacity(0.7),
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        )
+                                      : const LinearGradient(
+                                          colors: [
+                                            Color(0xFF00F0FF),
+                                            Color(0xFF0177B3),
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        ),
+                                  boxShadow: _signUpGlow
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.5),
+                                            blurRadius: 10,
+                                            spreadRadius: 2,
+                                          ),
+                                        ]
+                                      : [],
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Sign Up',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          _buildStep(""),
-                          _buildStep(""),
                         ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
-                // Password Section
-                Column(
-                  children: [
-                    // Title: "Got a Strong Password?"
-                    const Text(
-                      "Got a Strong Password?",
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                        height: 1.0,
-                        color: Colors.white,
+                    // Title
+                    Container(
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'Protect Your Access',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 30,
+                          height: 1.0,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
-                    // Password Input Field
-                    Container(
+                    // Progress Section
+                    SizedBox(
                       width: double.infinity,
-                      height: 70,
-                      child: TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        style: const TextStyle(
-                          color: Color(0xFF00F0FF),
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: "Password",
-                          labelStyle: const TextStyle(
-                            color: Colors.white70,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                          ),
-                          floatingLabelStyle: const TextStyle(
-                            color: Color(0xFF00F0FF),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.only(left: 10, right: 8),
-                            child: Image.asset(
-                              'assets/images/Icon.png',
-                              width: 20,
-                              height: 20,
-                              fit: BoxFit.contain,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Progress Line
+                          Positioned(
+                            top: 9.5,
+                            left: 20,
+                            right: 20,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                const totalSteps = 5;
+                                const completedSteps = 2;
+                                const segmentCount = totalSteps - 1;
+
+                                final totalWidth = constraints.maxWidth;
+                                final filledWidth =
+                                    totalWidth *
+                                    (completedSteps / segmentCount);
+                                final remainingWidth = totalWidth - filledWidth;
+
+                                return Row(
+                                  children: [
+                                    // Filled part (two steps)
+                                    Container(
+                                      width: filledWidth,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(100),
+                                          bottomLeft: Radius.circular(100),
+                                        ),
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF13D2C7),
+                                            Color(0xFF00259E),
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        ),
+                                      ),
+                                    ),
+                                    // Remaining part
+                                    Container(
+                                      width: remainingWidth,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: const BorderRadius.only(
+                                          topRight: Radius.circular(100),
+                                          bottomRight: Radius.circular(100),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
-                          prefixIconConstraints: const BoxConstraints(
-                            minWidth: 35,
-                            minHeight: 20,
-                          ),
-                          suffixIcon: Row(
-                            mainAxisSize: MainAxisSize.min,
+
+                          // Progress Steps
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              GestureDetector(
-                                onTap: () => setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                }),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: Image.asset(
-                                    _obscurePassword
-                                        ? 'assets/images/eyeSlash.png'
-                                        : 'assets/images/eye1.png',
-                                    width: 22,
-                                    height: 22,
-                                    fit: BoxFit.contain,
+                              _buildStep("", filled: true),
+                              _buildStep(
+                                "",
+                                filled: true,
+                                filledColor: const Color(0xFF0EA0BB),
+                              ),
+                              _buildStep(
+                                "Security\nBase",
+                                filled: true,
+                                filledColor: const Color(0xFF0764AD),
+                              ),
+                              _buildStep(""),
+                              _buildStep(""),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Password Section
+                    Column(
+                      children: [
+                        // Title: "Got a Strong Password?"
+                        const Text(
+                          "Got a Strong Password?",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            height: 1.0,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Password Input Field
+                        Container(
+                          width: double.infinity,
+                          height: 70,
+                          child: TextField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            style: const TextStyle(
+                              color: Color(0xFF00F0FF),
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: "Password",
+                              labelStyle: const TextStyle(
+                                color: Colors.white70,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                              ),
+                              floatingLabelStyle: const TextStyle(
+                                color: Color(0xFF00F0FF),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 10,
+                                  right: 8,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/Icon.png',
+                                  width: 20,
+                                  height: 20,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 35,
+                                minHeight: 20,
+                              ),
+                              suffixIcon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    }),
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Image.asset(
+                                        _obscurePassword
+                                            ? 'assets/images/eyeSlash.png'
+                                            : 'assets/images/eye1.png',
+                                        width: 22,
+                                        height: 22,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
                                   ),
+                                ],
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(7.64),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF00F0FF),
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(7.64),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF00F0FF),
+                                  width: 1.5,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 0),
+
+                        // Confirm Password and Generate Row
+                        Row(
+                          children: [
+                            // Confirm Password
+                            Expanded(
+                              flex: 2,
+                              child: Container(
+                                height: 52,
+                                child: TextField(
+                                  controller: _confirmPasswordController,
+                                  obscureText: _obscureConfirmPassword,
+                                  style: const TextStyle(
+                                    color: Color(0xFF00F0FF),
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: "Confirm Password",
+                                    labelStyle: const TextStyle(
+                                      color: Colors.white70,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 15,
+                                    ),
+                                    floatingLabelStyle: const TextStyle(
+                                      color: Color(0xFF00F0FF),
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 10,
+                                        right: 8,
+                                      ),
+                                      child: Image.asset(
+                                        'assets/images/Icon.png',
+                                        width: 20,
+                                        height: 20,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                    prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 35,
+                                      minHeight: 20,
+                                    ),
+                                    suffixIcon: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () => setState(() {
+                                            _obscureConfirmPassword =
+                                                !_obscureConfirmPassword;
+                                          }),
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            child: Image.asset(
+                                              _obscureConfirmPassword
+                                                  ? 'assets/images/eyeSlash.png'
+                                                  : 'assets/images/eye1.png',
+                                              width: 22,
+                                              height: 22,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(7.64),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF00F0FF),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(7.64),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF00F0FF),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.transparent,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                      horizontal: 0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // Generate Button
+                            Container(
+                              width: 126,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: GradientBoxBorder(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Color(0xFF00F0FF),
+                                      Color(0xFFFFFFFF),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  width: 1.5,
+                                ),
+                                color: Colors.transparent,
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: () {
+                                  final newPassword = generatePassword();
+                                  setState(() {
+                                    _passwordController.text = newPassword;
+                                    _confirmPasswordController.text =
+                                        newPassword;
+                                    _validatePassword(); // Validate immediately after generating
+                                  });
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4.0,
+                                        ),
+                                        child: Image.asset(
+                                          'assets/images/stars.png',
+                                          width: 38,
+                                          height: 38,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      "Generate",
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                        color: Colors.white,
+                                        letterSpacing: -0.08 * 20,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Password Requirements
+                    Container(
+                      width: double.infinity,
+                      height: 146,
+                      child: Column(
+                        children: [
+                          const Text(
+                            "Your password should contain at least",
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                              height: 1.0,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Requirements in two columns
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Left Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildRequirement(
+                                      "2 Capital Letters",
+                                      _has2Caps,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    _buildRequirement(
+                                      "2 Lowercase Letters",
+                                      _has2Lower,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    _buildRequirement(
+                                      "2 Numbers",
+                                      _has2Numbers,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Right Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildRequirement(
+                                      "2 Special Characters",
+                                      _has2Special,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    _buildRequirement(
+                                      "Minimum 10 Characters",
+                                      _hasMin10,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    _buildRequirement(
+                                      "Passwords Match",
+                                      _passwordsMatch,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(7.64),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF00F0FF),
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(7.64),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF00F0FF),
-                              width: 1.5,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                            horizontal: 0,
-                          ),
-                        ),
+                        ],
                       ),
                     ),
 
                     const SizedBox(height: 0),
 
-                    // Confirm Password and Generate Row
+                    // Terms and Conditions
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Confirm Password
-                        Expanded(
-                          flex: 2,
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isChecked = !isChecked;
+                            });
+                          },
                           child: Container(
-                            height: 52,
-                            child: TextField(
-                              controller: _confirmPasswordController,
-                              obscureText: _obscureConfirmPassword,
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: isChecked
+                                  ? const Color(0xFF00F0FF)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: const Color(0xFF00F0FF),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: isChecked
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: Colors.black,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
                               style: const TextStyle(
-                                color: Color(0xFF00F0FF),
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w500,
                                 fontSize: 15,
+                                height: 1,
+                                color: Colors.white,
                               ),
-                              decoration: InputDecoration(
-                                labelText: "Confirm Password",
-                                labelStyle: const TextStyle(
-                                  color: Colors.white70,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                ),
-                                floatingLabelStyle: const TextStyle(
-                                  color: Color(0xFF00F0FF),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                prefixIcon: Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 10,
-                                    right: 8,
-                                  ),
-                                  child: Image.asset(
-                                    'assets/images/Icon.png',
-                                    width: 20,
-                                    height: 20,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                prefixIconConstraints: const BoxConstraints(
-                                  minWidth: 35,
-                                  minHeight: 20,
-                                ),
-                                suffixIcon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => setState(() {
-                                        _obscureConfirmPassword =
-                                            !_obscureConfirmPassword;
-                                      }),
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8,
-                                        ),
-                                        child: Image.asset(
-                                          _obscureConfirmPassword
-                                              ? 'assets/images/eyeSlash.png'
-                                              : 'assets/images/eye1.png',
-                                          width: 22,
-                                          height: 22,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(7.64),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF00F0FF),
-                                    width: 1,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(7.64),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF00F0FF),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: Colors.transparent,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 0,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        // Generate Button
-                        Container(
-                          width: 126,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: GradientBoxBorder(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFF00F0FF), Color(0xFFFFFFFF)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              width: 1.5,
-                            ),
-                            color: Colors.transparent,
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () {
-                              final newPassword = generatePassword();
-                              setState(() {
-                                _passwordController.text = newPassword;
-                                _confirmPasswordController.text = newPassword;
-                                _validatePassword(); // Validate immediately after generating
-                              });
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Container(
-                                  width: 38,
-                                  height: 38,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Image.asset(
-                                      'assets/images/stars.png',
-                                      width: 38,
-                                      height: 38,
-                                      fit: BoxFit.contain,
-                                    ),
+                                const TextSpan(
+                                  text:
+                                      "When pressing the signup button I agree to Egety ",
+                                ),
+                                TextSpan(
+                                  text: "Terms & Conditions",
+                                  style: const TextStyle(
+                                    color: Color(0xFF00F0FF),
+                                    decoration: TextDecoration.underline,
+                                    decorationStyle: TextDecorationStyle.solid,
+                                    decorationThickness: 1,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Text(
-                                  "Generate",
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                    color: Colors.white,
-                                    letterSpacing: -0.08 * 20,
+                                const TextSpan(text: " and "),
+                                TextSpan(
+                                  text: "Privacy Policy",
+                                  style: const TextStyle(
+                                    color: Color(0xFF00F0FF),
+                                    decoration: TextDecoration.underline,
+                                    decorationStyle: TextDecorationStyle.solid,
+                                    decorationThickness: 1,
                                   ),
+                                ),
+                                const TextSpan(
+                                  text: " set by Egety Technology",
                                 ),
                               ],
                             ),
@@ -726,297 +896,155 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                         ),
                       ],
                     ),
-                  ],
-                ),
 
-                const SizedBox(height: 40),
+                    const SizedBox(height: 40),
 
-                // Password Requirements
-                Container(
-                  width: double.infinity,
-                  height: 146,
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Your password should contain at least",
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                          height: 1.0,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Requirements in two columns
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // Navigation Buttons
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Left Column
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildRequirement(
-                                  "2 Capital Letters",
-                                  _has2Caps,
-                                ),
-                                const SizedBox(height: 5),
-                                _buildRequirement(
-                                  "2 Lowercase Letters",
-                                  _has2Lower,
-                                ),
-                                const SizedBox(height: 5),
-                                _buildRequirement("2 Numbers", _has2Numbers),
-                              ],
+                          Container(
+                            width: 64,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: const LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                              ),
                             ),
                           ),
 
-                          // Right Column
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildRequirement(
-                                  "2 Special Characters",
-                                  _has2Special,
+                          // Back Button
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                width: 106,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFF00F0FF),
+                                    width: 1,
+                                  ),
                                 ),
-                                const SizedBox(height: 5),
-                                _buildRequirement(
-                                  "Minimum 10 Characters",
-                                  _hasMin10,
+                                child: const Center(
+                                  child: Text(
+                                    "Back",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20,
+                                      height: 1.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 5),
-                                _buildRequirement(
-                                  "Passwords Match",
-                                  _passwordsMatch,
+                              ),
+                            ),
+                          ),
+
+                          // Next Button
+                          MouseRegion(
+                            cursor: isChecked
+                                ? SystemMouseCursors.click
+                                : SystemMouseCursors.basic,
+                            child: GestureDetector(
+                              onTap: _validateAndSubmit,
+                              child: Container(
+                                width: 105,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFF00F0FF),
+                                    width: 1,
+                                  ),
                                 ),
-                              ],
+                                child: Center(
+                                  child: isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        )
+                                      : const Text(
+                                          "Next",
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 20,
+                                            height: 1.0,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          Container(
+                            width: 64,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: const LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 0),
-
-                // Terms and Conditions
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isChecked = !isChecked;
-                        });
-                      },
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: isChecked
-                              ? const Color(0xFF00F0FF)
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: const Color(0xFF00F0FF),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: isChecked
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.black,
-                              )
-                            : null,
-                      ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            height: 1,
-                            color: Colors.white,
-                          ),
-                          children: [
-                            const TextSpan(
-                              text:
-                                  "When pressing the signup button I agree to Egety ",
-                            ),
-                            TextSpan(
-                              text: "Terms & Conditions",
-                              style: const TextStyle(
-                                color: Color(0xFF00F0FF),
-                                decoration: TextDecoration.underline,
-                                decorationStyle: TextDecorationStyle.solid,
-                                decorationThickness: 1,
-                              ),
-                            ),
-                            const TextSpan(text: " and "),
-                            TextSpan(
-                              text: "Privacy Policy",
-                              style: const TextStyle(
-                                color: Color(0xFF00F0FF),
-                                decoration: TextDecoration.underline,
-                                decorationStyle: TextDecorationStyle.solid,
-                                decorationThickness: 1,
-                              ),
-                            ),
-                            const TextSpan(text: " set by Egety Technology"),
-                          ],
+
+                    const SizedBox(height: 30),
+
+                    // Bottom Text
+                    const SizedBox(
+                      width: 291,
+                      child: Text(
+                        "The gate is now built. Only you can open it",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          height: 1.0,
+                          letterSpacing: 0,
+                          color: Colors.white,
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 30),
+
+                    // Footer
+                    FooterWidget(),
+
+                    const SizedBox(height: 20),
                   ],
                 ),
-
-                const SizedBox(height: 40),
-
-                // Navigation Buttons
-                SizedBox(
-                  width: double.infinity,
-                  height: 40,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(11),
-                          gradient: const LinearGradient(
-                            begin: Alignment.centerRight,
-                            end: Alignment.centerLeft,
-                            colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-                          ),
-                        ),
-                      ),
-
-                      // Back Button
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            width: 106,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFF00F0FF),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                "Back",
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 20,
-                                  height: 1.0,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Next Button
-                      MouseRegion(
-                        cursor: isChecked
-                            ? SystemMouseCursors.click
-                            : SystemMouseCursors.basic,
-                        child: GestureDetector(
-                          onTap: _validateAndSubmit,
-                          child: Container(
-                            width: 105,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFF00F0FF),
-                                width: 1,
-                              ),
-                            ),
-                            child: Center(
-                              child: isLoading
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    )
-                                  : const Text(
-                                      "Next",
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 20,
-                                        height: 1.0,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      Container(
-                        width: 64,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(11),
-                          gradient: const LinearGradient(
-                            begin: Alignment.centerRight,
-                            end: Alignment.centerLeft,
-                            colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Bottom Text
-                const SizedBox(
-                  width: 291,
-                  child: Text(
-                    "The gate is now built. Only you can open it",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                      height: 1.0,
-                      letterSpacing: 0,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Footer
-                FooterWidget(),
-
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
-          ),
+
+            // Error Stack Widget
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ErrorStack(key: _errorStackKey),
+            ),
+          ],
         ),
       ),
     );

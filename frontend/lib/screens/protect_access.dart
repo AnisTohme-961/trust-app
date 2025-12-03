@@ -18,6 +18,7 @@ import '../constants/api_constants.dart';
 import '../widgets/custom_button.dart';
 import '../services/country_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_project/widgets/slide_up_menu_widget.dart'; // Import the SlideUpMenu
 
 class ResponsiveProtectAccess extends StatelessWidget {
   const ResponsiveProtectAccess({super.key});
@@ -709,9 +710,6 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 40),
-
                   // Country Input
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -1422,206 +1420,153 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
               color: Colors.black.withOpacity(0.6),
             ),
 
-          // Dropdowns (Country and DOB) - same as original
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOut,
-            bottom: _countryDropdownOpen ? 0 : -_dropdownHeight,
-            left: 0,
-            right: 0,
-            height: _dropdownHeight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xFF0B1320),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
+          // Country Dropdown using SlideUpMenu
+          SlideUpMenu(
+            menuHeight: MediaQuery.of(context).size.height * 0.7,
+            isVisible: _countryDropdownOpen,
+            onToggle: () {
+              setState(() {
+                _countryDropdownOpen = !_countryDropdownOpen;
+              });
+            },
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: Column(
+              children: [
+                SizedBox(height: 12),
+
+                // SEARCH FIELD
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 50),
+                  child: TextField(
+                    controller: _countrySearchController,
+                    onChanged: _filterCountries,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
                     ),
-                    border: Border(
-                      top: BorderSide(
-                        color: Color(0xFF00F0FF), // top border color
-                        width: 2.0,
-                      ),
+                    decoration: InputDecoration(
+                      hintText: 'Search Country',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      border: InputBorder.none,
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 12),
-
-                      // CLOSE HANDLE
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => _countryDropdownOpen = false);
-                        },
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 20),
-                          child: CustomPaint(
-                            size: Size(120, 20),
-                            painter: VLinePainter(),
-                          ),
-                        ),
-                      ),
-
-                      // SEARCH FIELD
-                      Container(
-                        margin: EdgeInsets.symmetric(horizontal: 50),
-                        child: TextField(
-                          controller: _countrySearchController,
-                          onChanged: _filterCountries,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search Country',
-                            hintStyle: TextStyle(color: Colors.white54),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-
-                      Divider(color: Colors.white24, thickness: 0.5),
-
-                      // LIST - Updated to use emoji flags
-                      Expanded(
-                        child: _filteredCountries.isEmpty
-                            ? Center(
-                                child: Text(
-                                  "No countries found",
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 50,
-                                  vertical: 16,
-                                ),
-                                itemCount: _filteredCountries.length,
-                                itemBuilder: (context, index) {
-                                  final country = _filteredCountries[index];
-
-                                  return GestureDetector(
-                                    onTap: () => _selectCountry(country),
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 8.0,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          // Using emoji flags instead of network images
-                                          // In your ListView.builder, update the flag display to:
-                                          SvgPicture.asset(
-                                            country['flag']!,
-                                            width: 30,
-                                            height: 30,
-                                            fit: BoxFit.contain,
-                                          ),
-                                          SizedBox(width: 10),
-                                          Text(
-                                            country['name'] ?? '',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
                   ),
                 ),
-              ),
+
+                Divider(color: Colors.white24, thickness: 0.5),
+
+                // LIST - Updated to use emoji flags
+                Expanded(
+                  child: _filteredCountries.isEmpty
+                      ? Center(
+                          child: Text(
+                            "No countries found",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 50,
+                            vertical: 16,
+                          ),
+                          itemCount: _filteredCountries.length,
+                          itemBuilder: (context, index) {
+                            final country = _filteredCountries[index];
+
+                            return GestureDetector(
+                              onTap: () => _selectCountry(country),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8.0),
+                                child: Row(
+                                  children: [
+                                    // Using emoji flags instead of network images
+                                    // In your ListView.builder, update the flag display to:
+                                    SvgPicture.asset(
+                                      country['flag']!,
+                                      width: 30,
+                                      height: 30,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      country['name'] ?? '',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
           ),
 
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOut,
-            bottom: _dobDropdownOpen ? 0 : -_dropdownAge,
-            left: 0,
-            right: 0,
-            height: _dropdownAge,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20), // top-left and top-right rounded
-              ),
-              child: Container(
-                width: double.infinity, // This makes it take full width
-                height: 286,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0B1320),
-                  border: const Border(
-                    top: BorderSide(
-                      color: Color(0xFF00F0FF), // top border color
-                      width: 2.0,
-                    ),
-                  ),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => _dobDropdownOpen = false),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        child: CustomPaint(
-                          size: const Size(120, 20),
-                          painter: VLinePainter(),
+          // DOB Dropdown using SlideUpMenu
+          SlideUpMenu(
+            menuHeight: 350,
+            isVisible: _dobDropdownOpen,
+            onToggle: () {
+              setState(() {
+                _dobDropdownOpen = !_dobDropdownOpen;
+              });
+            },
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 286,
+                  child: Stack(
+                    children: [
+                      // Background container
+                      Positioned.fill(
+                        child: Container(
+                          width: double.infinity,
+                          height: 286,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0B1320),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(
-                      height: 286,
-                      child: Stack(
+                      // Center highlight
+                      Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: double.infinity,
+                          height: 49,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00BEBF),
+                            border: Border.all(
+                              color: const Color(0xFF007BFF),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      // Date picker columns
+                      Row(
                         children: [
-                          Positioned.fill(
-                            child: Container(
-                              width: double.infinity, // Full width
-                              height: 286,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF0B1320),
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(20),
-                                  topRight: Radius.circular(20),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: double
-                                  .infinity, // Full width or adjust as needed
-                              height: 49,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF00BEBF),
-                                border: Border.all(
-                                  color: const Color(0xFF007BFF),
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
                           // Month List
-                          Positioned(
-                            top: 0,
-                            left: 10,
-                            width: 144,
-                            height: 286,
+                          Expanded(
                             child: NotificationListener<ScrollEndNotification>(
                               onNotification: (notification) {
                                 _snapToItem(_monthController, _selectedMonth);
@@ -1668,11 +1613,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                             ),
                           ),
                           // Day List
-                          Positioned(
-                            top: 0,
-                            left: 154,
-                            width: 144,
-                            height: 286,
+                          Expanded(
                             child: ListView.builder(
                               itemCount: _days.length,
                               padding: EdgeInsets.symmetric(
@@ -1709,11 +1650,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                             ),
                           ),
                           // Year List
-                          Positioned(
-                            top: 0,
-                            left: 298,
-                            width: 144,
-                            height: 286,
+                          Expanded(
                             child: ListView.builder(
                               itemCount: _years.length,
                               padding: EdgeInsets.symmetric(
@@ -1751,10 +1688,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -2812,9 +2749,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                             child: Container(
                               width: double.infinity,
                               height: 49,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                              ),
+                              margin: const EdgeInsets.symmetric(horizontal: 0),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF00BEBF),
                                 border: Border.all(
