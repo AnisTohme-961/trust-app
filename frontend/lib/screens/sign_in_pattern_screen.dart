@@ -74,17 +74,33 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
       overlayEntry.remove();
     });
   }
+void _validatePattern() async {
+  if (selectedDots.length < 4) {
+    _showError("Please draw a pattern of at least 4 dots.");
+    _clearPatternDelayed(1000);
+    return;
+  }
 
-  void _validatePattern() {
-    if (selectedDots.length < 4) {
-      _showError("Please draw a pattern of at least 4 dots.");
-      _clearPatternDelayed(1000);
+  try {
+    bool isValid = await AuthService.validatePattern(selectedDots);
+
+    if (!isValid) {
+      _showError("Incorrect Pattern. Try Again.");
+      _clearPatternDelayed(1200);
       return;
     }
 
-    // TODO: Add your authentication logic
-    _clearPatternDelayed(500);
+    // SUCCESS
+    debugPrint("✅ Correct Pattern!");
+    Navigator.pushNamed(context, '/settings');
+
+  } catch (e) {
+    _showError("Error validating pattern.");
   }
+
+  _clearPatternDelayed(800);
+}
+
 
   @override
   Widget build(BuildContext context) {

@@ -299,15 +299,27 @@ func (uc *UserController) Register(c *gin.Context) {
 	var eid string
 	if err == mongo.ErrNoDocuments {
 		// New user — generate new EID
-		eid = strings.ToLower(utils.GenerateEID())
+		eid, err = utils.GenerateEID()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate EID"})
+			return
+		}
+		eid = strings.ToLower(eid)
+		// eid = strings.ToLower(utils.GenerateEID())
 	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	} else {
 		// Existing user — check if they have an EID
 		if existing.EID == "" {
+			eid, err = utils.GenerateEID()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate EID"})
+				return
+			}
+			eid = strings.ToLower(eid)
 			// No EID exists, generate one
-			eid = strings.ToLower(utils.GenerateEID())
+			// eid = strings.ToLower(utils.GenerateEID())
 		} else {
 			// Keep their existing EID
 			eid = strings.ToLower(existing.EID)
@@ -389,7 +401,14 @@ func (uc *UserController) MigrateUsersEID(c *gin.Context) {
 	// Now update them
 	updated := 0
 	for _, user := range usersToUpdate {
-		newEID := strings.ToLower(utils.GenerateEID())
+		eid, err := utils.GenerateEID()
+		if err != nil {
+			fmt.Printf("Error generating EID for user %s: %v\n", user.Email, err)
+			continue
+		}
+
+		newEID := strings.ToLower(eid)
+
 		result, err := uc.UserCollection.UpdateOne(
 			context.TODO(),
 			bson.M{"_id": user.ID},
@@ -517,11 +536,13 @@ func (uc *UserController) SignIn(c *gin.Context) {
 		"message": "Sign in successful",
 		"token":   tokenString,
 		"user": gin.H{
-			"id":        user.ID,
-			"eid":       user.EID,
-			"email":     user.Email,
-			"firstName": user.FirstName,
-			"lastName":  user.LastName,
+			"id":                user.ID,
+			"eid":               user.EID,
+			"email":             user.Email,
+			"firstName":         user.FirstName,
+			"lastName":          user.LastName,
+			"pinRegistered":     user.Pin != "",
+			"patternRegistered": user.PatternHash != "",
 		},
 	})
 }
@@ -972,6 +993,63 @@ func (uc *UserController) RegisterPattern(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Pattern registered successfully"})
+}
+
+func (uc *UserController) ValidatePattern(c *gin.Context) {
+	// Input struct
+	var input struct {
+		Pattern []int `json:"pattern"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if len(input.Pattern) < 4 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pattern too short"})
+		return
+	}
+
+	// Get email from token
+	emailRaw, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	email := emailRaw.(string)
+
+	// Convert pattern to a string like "1-5-9-8"
+	dotStrings := make([]string, len(input.Pattern))
+	for i, dot := range input.Pattern {
+		dotStrings[i] = fmt.Sprintf("%d", dot+1)
+	}
+	patternStr := strings.Join(dotStrings, "-")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Fetch user
+	var user models.User
+	err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})
+		return
+	}
+
+	if user.PatternHash == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Pattern not registered"})
+		return
+	}
+
+	// Compare hash
+	err = bcrypt.CompareHashAndPassword([]byte(user.PatternHash), []byte(patternStr))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"valid": false, "error": "Pattern does not match"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"valid": true})
 }
 
 func (uc *UserController) Logout(c *gin.Context) {

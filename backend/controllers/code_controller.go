@@ -219,11 +219,11 @@ func (cc *CodeController) VerifyCode(c *gin.Context) {
 	}
 
 	// Check expiration (15 minutes)
-	if time.Since(existing.SentAt) > 15*time.Minute {
-		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
-		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
-		return
-	}
+	// if time.Since(existing.SentAt) > 15*time.Minute {
+	// 	_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+	// 	c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
+	// 	return
+	// }
 
 	// Validate code
 	if req.Code != existing.Code {
@@ -555,14 +555,14 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 	}
 
 	// 2-minute validity for sign-in codes
-	if time.Since(codeDoc.SentAt) > 2*time.Minute {
-		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Code expired, please request a new one",
-			"valid": false,
-		})
-		return
-	}
+	// if time.Since(codeDoc.SentAt) > 15*time.Minute {
+	// 	_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
+	// 	c.JSON(http.StatusBadRequest, gin.H{
+	// 		"error": "Code expired, please request a new one",
+	// 		"valid": false,
+	// 	})
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, gin.H{"valid": true, "message": "Code verified and deleted"})
 	log.Printf("✅ Code for %s verified and deleted from DB", email)
@@ -886,11 +886,11 @@ func (cc *CodeController) VerifyResetCode(c *gin.Context) {
 	}
 
 	// 5-minute validity
-	if time.Since(codeDoc.SentAt) > 2*time.Minute {
-		// _, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code expired"})
-		return
-	}
+	// if time.Since(codeDoc.SentAt) > 15*time.Minute {
+	// 	// _, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Code expired"})
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, gin.H{"verified": true})
 }
@@ -1318,13 +1318,13 @@ func (cc *CodeController) VerifyEIDCode(c *gin.Context) {
 	}
 
 	// Set 2-minute expiration
-	expired := time.Since(existing.SentAt) > 15*time.Minute
-	if expired {
-		// delete the expired code
-		_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
-		c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
-		return
-	}
+	// expired := time.Since(existing.SentAt) > 15*time.Minute
+	// if expired {
+	// 	// delete the expired code
+	// 	_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": existing.ID})
+	// 	c.JSON(http.StatusOK, gin.H{"valid": false, "error": "code expired"})
+	// 	return
+	// }
 
 	if req.Code == existing.Code {
 		c.JSON(http.StatusOK, gin.H{"valid": true})

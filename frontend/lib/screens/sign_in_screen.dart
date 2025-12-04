@@ -947,9 +947,28 @@ class MobileSignInPage extends StatelessWidget {
                 rememberMe: rememberMe,
               );
 
-              if (success) {
-                Navigator.pushReplacementNamed(context, '/register-pin');
-              }
+   if (success) {
+  // 🟢 Give storage time to write values
+  await Future.delayed(const Duration(milliseconds: 100));
+
+  final pinRegistered =
+      (await AuthService.storage.read(key: 'pinRegistered')) == 'true';
+
+  final patternRegistered =
+      (await AuthService.storage.read(key: 'patternRegistered')) == 'true';
+
+  print("PIN: $pinRegistered, PATTERN: $patternRegistered");
+
+  if (!pinRegistered && !patternRegistered) {
+    Navigator.pushReplacementNamed(context, '/register-pin');
+  } else if (pinRegistered && !patternRegistered) {
+    Navigator.pushReplacementNamed(context, '/register-pattern');
+  } else {
+    Navigator.pushReplacementNamed(context, '/sign-in-pin');
+  }
+}
+
+
             } catch (e) {
               print('Sign in error: $e');
               String message = 'Invalid login credentials';

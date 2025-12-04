@@ -5,7 +5,10 @@ import '../constants/api_constants.dart';
 
 class AuthService {
   // Secure storage instance
-  static final _storage = FlutterSecureStorage();
+  static final _storage = const FlutterSecureStorage();
+
+
+static FlutterSecureStorage get storage => _storage;
 
   // Key for storing the token
   static const _tokenKey = 'auth_token';
@@ -55,6 +58,7 @@ class AuthService {
     }
   }
 
+
   // Sign in
   static Future<bool> signIn({
     required String identifier,
@@ -86,6 +90,15 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+
+        final user = data['user'];
+
+  final pinRegistered = user['pinRegistered'] ?? false;
+  final patternRegistered = user['patternRegistered'] ?? false;
+
+  // Save them so the UI can read them
+  await _storage.write(key: 'pinRegistered', value: pinRegistered.toString());
+  await _storage.write(key: 'patternRegistered', value: patternRegistered.toString());
 
       // Save token securely
       final token = data['token']; // Make sure your API returns a 'token'
@@ -183,27 +196,40 @@ class AuthService {
     }
   }
 
-  //   static Future<bool> validatePin(String pin) async {
-  //   final token = await _storage.read(key: _tokenKey);
-  //   if (token == null) throw Exception("User not authenticated");
+ // AuthService.validatePin - add to your existing AuthService class
+static Future<bool> validatePin(String pin) async {
+  try {
+    final token = await _storage.read(key: _tokenKey);
+    if (token == null) {
+      // Not authenticated
+      return false;
+    }
 
-  //   final response = await http.post(
-  //     Uri.parse("${ApiConstants.baseUrl}/validate-pin"),
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'Authorization': 'Bearer $token',
-  //     },
-  //     body: jsonEncode({'pin': pin}),
-  //   );
+    final response = await http.post(
+      Uri.parse("${ApiConstants.baseUrl}/validate-pin"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'pin': pin}),
+    );
 
-  //   if (response.statusCode == 200) {
-  //     return true;
-  //   } else if (response.statusCode == 401) {
-  //     return false;
-  //   } else {
-  //     throw Exception('Failed to validate PIN: ${response.body}');
-  //   }
-  // }
+    // server returns 200 for valid, 401 for invalid
+    if (response.statusCode == 200) {
+      return true;
+    } else if (response.statusCode == 401) {
+      return false;
+    } else {
+      // Unexpected server response — bubble up or return false.
+      print('validatePin unexpected status: ${response.statusCode} ${response.body}');
+      return false;
+    }
+  } catch (e) {
+    print("Error validating PIN: $e");
+    return false;
+  }
+}
+
 
   static Future<void> registerPattern(List<int> pattern) async {
     final token = await _storage.read(key: _tokenKey);
@@ -232,6 +258,26 @@ class AuthService {
       throw Exception('Failed to register pattern: ${response.body}');
     }
   }
+
+  static Future<bool> validatePattern(List<int> pattern) async {
+  final token = await _storage.read(key: _tokenKey);
+  if (token == null) return false;
+
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/validate-pattern"),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({'pattern': pattern}),
+  );
+
+  if (response.statusCode == 200) return true;
+  if (response.statusCode == 401) return false;
+
+  return false;
+}
+
 
 static Future<Map<String, dynamic>> sendResetCode(String identifier) async {
   final response = await http.post(

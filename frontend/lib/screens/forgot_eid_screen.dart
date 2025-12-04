@@ -80,6 +80,8 @@ class _ForgotEidPageState extends State<ForgotEidPage>
     }
   }
 
+
+
   void _startTimer() {
     setState(() {
       _remainingSeconds = 120; // 2 minutes
@@ -755,6 +757,17 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
   }
 
   Widget _buildSendCodeSection() {
+      String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Row(
@@ -785,7 +798,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
               alignment: Alignment.center,
               child: Text(
                 widget.isTimerRunning
-                    ? widget.onFormatTime(widget.remainingSeconds)
+                    ?  formatCooldown(widget.remainingSeconds) 
                     : 'Send Code',
                 style: const TextStyle(
                   color: Color(0xFF0B1320),
