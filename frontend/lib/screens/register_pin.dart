@@ -150,172 +150,201 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== Top Section =====
-            Column(
-              children: [
-                const SizedBox(height: 20),
+    return WillPopScope(
+      // Prevent going back when in confirm PIN mode
+      onWillPop: () async {
+        if (widget.originalPin != null) {
+          // Show error when trying to go back from confirm PIN screen
+          _errorStackKey.currentState?.showError(
+            "Please complete PIN confirmation first",
+          );
+          return false; // Prevent going back
+        }
+        return true; // Allow going back when not in confirm PIN mode
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // ===== Top Section =====
+              Column(
+                children: [
+                  const SizedBox(height: 20),
 
-                // ===== Top Buttons =====
-                SizedBox(
-                  width: 230,
-                  height: 40,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _OutlinedButton(
-                          text: 'Sign In',
-                          onTap: () => Navigator.pushNamed(context, '/sign-in'),
+                  // ===== Top Buttons =====
+                  SizedBox(
+                    width: 230,
+                    height: 40,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _OutlinedButton(
+                            text: 'Sign In',
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/sign-in'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _GradientButton(
-                          text: 'Sign Up',
-                          onTap: () => Navigator.pushNamed(context, '/sign-up'),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _GradientButton(
+                            text: 'Sign Up',
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/sign-up'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // ===== Subtitle =====
-                const Text(
-                  "Protect Your Access",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 30,
-                    color: Colors.white,
+                  // ===== Subtitle =====
+                  const Text(
+                    "Protect Your Access",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 30,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 5),
+                  const SizedBox(height: 5),
 
-                // ===== Progress Steps =====
-                SizedBox(
-                  width: double.infinity,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Positioned(
-                        top: 9.5,
-                        left: 32,
-                        right: 40,
-                        child: _ProgressLine(totalSteps: 5, completedSteps: 4),
-                      ),
-                      const _ProgressSteps(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // ===== PIN Input Section =====
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Title only - eye icon removed
-                      Text(
-                        widget.title,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 30,
-                          color: Colors.white,
+                  // ===== Progress Steps =====
+                  SizedBox(
+                    width: double.infinity,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          top: 9.5,
+                          left: 32,
+                          right: 40,
+                          child: _ProgressLine(
+                            totalSteps: 5,
+                            completedSteps: 4,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 30),
+                        const _ProgressSteps(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
 
-                      // PIN Boxes - always show actual digits
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(4, (index) {
-                          final filled = index < _pin.length;
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 18),
-                            width: 50,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.9),
-                                width: 1,
+              // ===== PIN Input Section =====
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Title only - eye icon removed
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 30,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+
+                        // PIN Boxes - always show actual digits
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (index) {
+                            final filled = index < _pin.length;
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 18,
                               ),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              filled
-                                  ? _pin[index]
-                                  : '', // Always show actual digit
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 24,
-                                color: Colors.white,
+                              width: 50,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.9),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(3),
                               ),
-                            ),
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: 40),
+                              alignment: Alignment.center,
+                              child: Text(
+                                filled
+                                    ? _pin[index]
+                                    : '', // Always show actual digit
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 40),
 
-                      // Keypad
-                      _Keypad(onKeyTap: _onKeyTap, numbers: _numbers),
+                        // Keypad
+                        _Keypad(onKeyTap: _onKeyTap, numbers: _numbers),
 
-                      const SizedBox(height: 20),
-                    ],
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // ===== Bottom Navigation =====
-            Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 40,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _GradientLine(isLeft: true),
-                      _NavButton(
-                        text: "Back",
-                        onTap: () => Navigator.pop(context),
-                      ),
-                      _NavButton(text: "Next", onTap: _onNext),
-                      _GradientLine(isLeft: false),
-                    ],
+              // ===== Bottom Navigation =====
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _GradientLine(isLeft: true),
+                        _NavButton(
+                          text: "Back",
+                          onTap: () {
+                            if (widget.originalPin != null) {
+                              // Prevent manual back button when in confirm PIN mode
+                              _errorStackKey.currentState?.showError(
+                                "Please complete PIN confirmation first",
+                              );
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
+                        ),
+                        _NavButton(text: "Next", onTap: _onNext),
+                        _GradientLine(isLeft: false),
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-                // ===== Footer =====
-                FooterWidget(),
+                  // ===== Footer =====
+                  FooterWidget(),
 
-                const SizedBox(height: 10),
-              ],
-            ),
+                  const SizedBox(height: 10),
+                ],
+              ),
 
-            // ===== Error Stack =====
-            ErrorStack(key: _errorStackKey),
-          ],
+              // ===== Error Stack =====
+              ErrorStack(key: _errorStackKey),
+            ],
+          ),
         ),
       ),
     );
@@ -440,234 +469,268 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B1320),
-      body: Stack(
-        children: [
-          // Main content with image at bottom right
-          Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    // Scrollable content
-                    SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.1,
-                          vertical: screenHeight * 0.05,
-                        ),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: isLandscape ? 450 : 420,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0B1320),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0xFF00F0FF),
-                                    blurRadius: 7,
-                                    spreadRadius: 0,
-                                  ),
-                                ],
-                                borderRadius: BorderRadius.circular(20),
+    return WillPopScope(
+      // Prevent going back when in confirm PIN mode
+      onWillPop: () async {
+        if (widget.originalPin != null) {
+          // Show error when trying to go back from confirm PIN screen
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please complete PIN confirmation first'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false; // Prevent going back
+        }
+        return true; // Allow going back when not in confirm PIN mode
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0B1320),
+        body: Stack(
+          children: [
+            // Main content with image at bottom right
+            Column(
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // Scrollable content
+                      SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.1,
+                            vertical: screenHeight * 0.05,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: isLandscape ? 450 : 420,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const SizedBox(height: 40),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0B1320),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0xFF00F0FF),
+                                      blurRadius: 7,
+                                      spreadRadius: 0,
+                                    ),
+                                  ],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(height: 40),
 
-                                  // ===== Top Buttons =====
-                                  Center(
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SizedBox(
-                                          width: 106,
-                                          height: 40,
-                                          child: _OutlinedButton(
-                                            text: 'Sign In',
-                                            onTap: () => Navigator.pushNamed(
-                                              context,
-                                              '/sign-in',
+                                    // ===== Top Buttons =====
+                                    Center(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 106,
+                                            height: 40,
+                                            child: _OutlinedButton(
+                                              text: 'Sign In',
+                                              onTap: () => Navigator.pushNamed(
+                                                context,
+                                                '/sign-in',
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 20),
-                                        SizedBox(
-                                          width: 106,
-                                          height: 40,
-                                          child: _GradientButton(
-                                            text: 'Sign Up',
-                                            onTap: () => Navigator.pushNamed(
-                                              context,
-                                              '/sign-up',
+                                          const SizedBox(width: 20),
+                                          SizedBox(
+                                            width: 106,
+                                            height: 40,
+                                            child: _GradientButton(
+                                              text: 'Sign Up',
+                                              onTap: () => Navigator.pushNamed(
+                                                context,
+                                                '/sign-up',
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // ===== Subtitle =====
-                                  const Text(
-                                    "Protect Your Access",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 30,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // ===== Progress Steps =====
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: Stack(
-                                      alignment: Alignment.topCenter,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 10,
-                                          ),
-                                          child: _ProgressLine(
-                                            totalSteps: 5,
-                                            completedSteps: 2,
-                                          ),
-                                        ),
-                                        const _ProgressSteps(),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // ===== PIN Input Section =====
-                                  Column(
-                                    children: [
-                                      // Title only - eye icon removed
-                                      Text(
-                                        widget.title,
-                                        style: const TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 30,
-                                          color: Colors.white,
-                                        ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 25),
+                                    ),
 
-                                      // PIN Boxes - Larger for tablet, always show actual digits
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: List.generate(4, (index) {
-                                          final filled = index < _pin.length;
-                                          return Container(
-                                            margin: const EdgeInsets.symmetric(
-                                              horizontal: 15,
+                                    const SizedBox(height: 10),
+
+                                    // ===== Subtitle =====
+                                    const Text(
+                                      "Protect Your Access",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 30,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 10),
+
+                                    // ===== Progress Steps =====
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: Stack(
+                                        alignment: Alignment.topCenter,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 10,
                                             ),
-                                            width: 50,
-                                            height: 60,
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: Colors.white.withOpacity(
-                                                  0.9,
+                                            child: _ProgressLine(
+                                              totalSteps: 5,
+                                              completedSteps: 2,
+                                            ),
+                                          ),
+                                          const _ProgressSteps(),
+                                        ],
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 10),
+
+                                    // ===== PIN Input Section =====
+                                    Column(
+                                      children: [
+                                        // Title only - eye icon removed
+                                        Text(
+                                          widget.title,
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 30,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 25),
+
+                                        // PIN Boxes - Larger for tablet, always show actual digits
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: List.generate(4, (index) {
+                                            final filled = index < _pin.length;
+                                            return Container(
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 15,
+                                                  ),
+                                              width: 50,
+                                              height: 60,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Colors.white
+                                                      .withOpacity(0.9),
+                                                  width: 2,
                                                 ),
-                                                width: 2,
+                                                borderRadius:
+                                                    BorderRadius.circular(5),
                                               ),
-                                              borderRadius:
-                                                  BorderRadius.circular(5),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              filled
-                                                  ? _pin[index]
-                                                  : '', // Always show actual digit
-                                              style: const TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 32,
-                                                color: Colors.white,
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                filled
+                                                    ? _pin[index]
+                                                    : '', // Always show actual digit
+                                                style: const TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 32,
+                                                  color: Colors.white,
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        }),
-                                      ),
-                                      const SizedBox(height: 30),
-
-                                      // Keypad - Larger for tablet
-                                      SizedBox(
-                                        width: 400,
-                                        height: 360,
-                                        child: _TabletKeypad(
-                                          onKeyTap: _onKeyTap,
-                                          numbers: _numbers,
+                                            );
+                                          }),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                        const SizedBox(height: 30),
 
-                                  const SizedBox(height: 20),
-
-                                  // ===== Bottom Navigation =====
-                                  SizedBox(
-                                    width: 380,
-                                    height: 50,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        _GradientLine(isLeft: true),
-                                        _NavButton(
-                                          text: "Back",
-                                          onTap: () => Navigator.pop(context),
+                                        // Keypad - Larger for tablet
+                                        SizedBox(
+                                          width: 400,
+                                          height: 360,
+                                          child: _TabletKeypad(
+                                            onKeyTap: _onKeyTap,
+                                            numbers: _numbers,
+                                          ),
                                         ),
-                                        _NavButton(
-                                          text: "Next",
-                                          onTap: _onNext,
-                                        ),
-                                        _GradientLine(isLeft: false),
                                       ],
                                     ),
-                                  ),
 
-                                  const SizedBox(height: 40),
+                                    const SizedBox(height: 20),
 
-                                  // ===== Footer =====
-                                  FooterWidget(),
-                                ],
+                                    // ===== Bottom Navigation =====
+                                    SizedBox(
+                                      width: 380,
+                                      height: 50,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _GradientLine(isLeft: true),
+                                          _NavButton(
+                                            text: "Back",
+                                            onTap: () {
+                                              if (widget.originalPin != null) {
+                                                // Prevent manual back button when in confirm PIN mode
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Please complete PIN confirmation first',
+                                                    ),
+                                                    duration: Duration(
+                                                      seconds: 2,
+                                                    ),
+                                                  ),
+                                                );
+                                              } else {
+                                                Navigator.pop(context);
+                                              }
+                                            },
+                                          ),
+                                          _NavButton(
+                                            text: "Next",
+                                            onTap: _onNext,
+                                          ),
+                                          _GradientLine(isLeft: false),
+                                        ],
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 40),
+
+                                    // ===== Footer =====
+                                    FooterWidget(),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 0,
-            right: -10,
-            child: Image.asset(
-              'assets/images/Rectangle2.png',
-              width: screenWidth > 600 ? 120 : 450,
-              height: screenWidth > 600 ? 120 : 450,
-              fit: BoxFit.contain,
+              ],
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 0,
+              right: -10,
+              child: Image.asset(
+                'assets/images/Rectangle2.png',
+                width: screenWidth > 600 ? 120 : 450,
+                height: screenWidth > 600 ? 120 : 450,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
