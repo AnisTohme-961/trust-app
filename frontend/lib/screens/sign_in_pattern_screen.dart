@@ -14,7 +14,7 @@ class SignInPatternScreen extends StatefulWidget {
 }
 
 class _SignInPatternScreenState extends State<SignInPatternScreen> {
-  bool isEyeVisible = true; // Controls pattern visibility
+  bool isEyeVisible = true;
   static const int gridCount = 3;
   static const double dotSize = 18.0;
   final GlobalKey _gridKey = GlobalKey();
@@ -58,7 +58,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
 
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        bottom: 0,
+        top: 0,
         left: 0,
         right: 0,
         child: Material(
@@ -70,21 +70,37 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
 
     overlay.insert(overlayEntry);
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 3000), () {
       overlayEntry.remove();
     });
   }
+void _validatePattern() async {
+  if (selectedDots.length < 4) {
+    _showError("Please draw a pattern of at least 4 dots.");
+    _clearPatternDelayed(1000);
+    return;
+  }
 
-  void _validatePattern() {
-    if (selectedDots.length < 4) {
-      _showError("Please draw a pattern of at least 4 dots.");
-      _clearPatternDelayed(1000);
+  try {
+    bool isValid = await AuthService.validatePattern(selectedDots);
+
+    if (!isValid) {
+      _showError("Incorrect Pattern. Try Again.");
+      _clearPatternDelayed(1200);
       return;
     }
 
-    // TODO: Add your authentication logic
-    _clearPatternDelayed(500);
+    // SUCCESS
+    debugPrint("✅ Correct Pattern!");
+    Navigator.pushNamed(context, '/settings');
+
+  } catch (e) {
+    _showError("Error validating pattern.");
   }
+
+  _clearPatternDelayed(800);
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +304,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      debugPrint('Use Pin Instead tapped');
+                      Navigator.pushNamed(context, '/sign-in-pin');
                     },
                     child: const Text(
                       'Use Pin Instead',
@@ -362,7 +378,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
             borderColor: const Color(0xFF00F0FF),
             backgroundColor: const Color(0xFF0B1320),
             onTap: () async {
-              _logout(); // ✅ Use your existing logout logic
+              _logout();
             },
           ),
 

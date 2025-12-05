@@ -83,90 +83,81 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     final signUpData = Provider.of<UserProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
-      body: Stack(
-        children: [
-          // Your existing mobile layout code here...
-          // [Include all the Positioned widgets from your original mobile code]
-          Positioned(
-            width: 430,
-            height: 932,
-            child: Stack(
-              children: [
-                // Sign Up / Sign In buttons
-                Positioned(
-                  top: 100,
-                  left: 99,
-                  width: 230,
-                  height: 40,
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: 126,
-                        child: CustomButton(
-                          text: 'Sign Up',
-                          width: 104,
-                          height: 40,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          onTap: () {},
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF00F0FF).withOpacity(0.5),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        child: CustomButton(
-                          text: 'Sign In',
-                          width: 106,
-                          height: 40,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          onTap: () {
-                            Navigator.pushNamed(context, '/sign-in');
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 40),
 
-                // Title
-                Positioned(
-                  top: 152,
-                  left: 67,
-                  width: 296,
-                  height: 36,
-                  child: Center(
-                    child: Text(
-                      "Let's Start With You",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 30,
-                        height: 1.0,
-                        color: Colors.white,
-                      ),
+                  // Sign Up / Sign In buttons
+                  SizedBox(
+                    width: 230,
+                    height: 40,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 126,
+                          child: CustomButton(
+                            text: 'Sign Up',
+                            width: 104,
+                            height: 40,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            onTap: () {},
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00F0FF).withOpacity(0.5),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          child: CustomButton(
+                            text: 'Sign In',
+                            width: 106,
+                            height: 40,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            onTap: () {
+                              Navigator.pushNamed(context, '/sign-in');
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
 
-                // Progress Steps
-                Positioned(
-                  top: 200,
-                  left: 0,
-                  right: 10,
-                  child: SizedBox(
+                  const SizedBox(height: 12),
+
+                  // Title
+                  const Text(
+                    "Let's Start With You",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 30,
+                      height: 1.0,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Progress Steps
+                  SizedBox(
                     width: double.infinity,
                     child: Stack(
                       alignment: Alignment.center,
@@ -189,55 +180,60 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _buildStep("Profile\nStart", filled: true),
-                              _buildStep("Contact\nand Verify"),
-                              _buildStep("Security\nBase"),
-                              _buildStep("Register\nLive"),
-                              _buildStep("Register\nPattern"),
+                              _buildStep(" "),
+                              _buildStep(" "),
+                              _buildStep(" "),
+                              _buildStep(" "),
                             ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
 
-                // Name section
-                Positioned(
-                  top: 280,
-                  left: 18,
-                  child: SizedBox(
-                    width: 394,
-                    height: 86,
+                  // Name section
+                  SizedBox(
+                    width: double.infinity,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 0),
-                        const SizedBox(
-                          width: double.infinity,
-                          height: 23,
-                          child: Text(
-                            "Your Real Name?",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 20,
-                              color: Colors.white,
-                            ),
+                        const Text(
+                          "Your Real Name?",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(
-                              width: 180,
+                            Expanded(
                               child: TextField(
                                 controller: _firstNameController,
                                 focusNode: _firstFocusNode,
                                 onChanged: (value) {
+                                  // Capitalize the first letter
+                                  String capitalized = value.isNotEmpty
+                                      ? value[0].toUpperCase() +
+                                            value.substring(1)
+                                      : '';
+
+                                  if (capitalized != value) {
+                                    _firstNameController.value =
+                                        TextEditingValue(
+                                          text: capitalized,
+                                          selection: TextSelection.collapsed(
+                                            offset: capitalized.length,
+                                          ),
+                                        );
+                                  }
+
                                   context.read<UserProvider>().setFirstName(
-                                    value,
+                                    capitalized,
                                   );
                                 },
                                 style: const TextStyle(
@@ -281,15 +277,32 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                 ),
                               ),
                             ),
+
                             const SizedBox(width: 14),
-                            SizedBox(
-                              width: 180,
+
+                            Expanded(
                               child: TextField(
                                 controller: _lastNameController,
                                 focusNode: _lastFocusNode,
                                 onChanged: (value) {
+                                  // Capitalize the first letter
+                                  String capitalized = value.isNotEmpty
+                                      ? value[0].toUpperCase() +
+                                            value.substring(1)
+                                      : '';
+
+                                  if (capitalized != value) {
+                                    _lastNameController.value =
+                                        TextEditingValue(
+                                          text: capitalized,
+                                          selection: TextSelection.collapsed(
+                                            offset: capitalized.length,
+                                          ),
+                                        );
+                                  }
+
                                   context.read<UserProvider>().setLastName(
-                                    value,
+                                    capitalized,
                                   );
                                 },
                                 style: const TextStyle(
@@ -338,337 +351,318 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
 
-          // Sponsor section
-          Positioned(
-            top: 385,
-            left: 18,
-            child: SizedBox(
-              width: 394,
-              child: Column(
-                children: [
-                  const SizedBox(
+                  const SizedBox(height: 25),
+
+                  // Sponsor section
+                  SizedBox(
                     width: double.infinity,
-                    height: 24,
-                    child: Text(
-                      "Who Invited You?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                        height: 1.0,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Stack(
-                    children: [
-                      SizedBox(
-                        width: 374,
-                        child: TextField(
-                          controller: _sponsorController,
-                          focusNode: _sponsorFocusNode,
-                          onChanged: (value) {
-                            context.read<UserProvider>().setSponsorCode(value);
-                          },
-                          style: const TextStyle(
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Who Invited You?",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
                             fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: Color(0xFF00F0FF),
-                          ),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 12,
-                            ),
-                            hintText: "Sponsor Code or link (Optional)",
-                            hintStyle: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 15,
-                              color: Colors.white54,
-                            ),
-                            labelText: "Sponsor",
-                            labelStyle: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 15,
-                              color: Colors.white54,
-                            ),
-                            floatingLabelStyle: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                              color: Colors.white,
-                            ),
-                            floatingLabelBehavior: FloatingLabelBehavior.auto,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF00F0FF),
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF00F0FF),
-                                width: 1,
-                              ),
-                            ),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            height: 1.0,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        right: 10,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          onEnter: (_) =>
-                              setState(() => _isButtonHovered = true),
-                          onExit: (_) =>
-                              setState(() => _isButtonHovered = false),
-                          child: GestureDetector(
-                            onTap: () async {
-                              if (_sponsorController.text.isEmpty) {
-                                ClipboardData? clipboardData =
-                                    await Clipboard.getData(
-                                      Clipboard.kTextPlain,
-                                    );
-                                if (clipboardData != null &&
-                                    clipboardData.text != null) {
-                                  setState(() {
-                                    _sponsorController.text =
-                                        clipboardData.text!;
-                                    signUpData.setSponsorCode(
-                                      clipboardData.text!,
-                                    );
-                                  });
-                                }
-                              } else {
-                                setState(() {
-                                  _sponsorController.clear();
-                                  signUpData.setSponsorCode('');
-                                });
-                              }
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 62,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(7),
-                                border: Border.all(
-                                  width: 1,
-                                  color: const Color(0xFF00F0FF),
-                                ),
-                                gradient: _isButtonHovered
-                                    ? const LinearGradient(
-                                        begin: Alignment.bottomCenter,
-                                        end: Alignment.topCenter,
-                                        colors: [
-                                          Color(0xFF0177B3),
-                                          Color(0xFF00F0FF),
-                                        ],
-                                      )
-                                    : null,
-                                color: _isButtonHovered
-                                    ? null
-                                    : Colors.transparent,
+                        const SizedBox(height: 16),
+                        Stack(
+                          children: [
+                            TextField(
+                              controller: _sponsorController,
+                              focusNode: _sponsorFocusNode,
+                              onChanged: (value) {
+                                context.read<UserProvider>().setSponsorCode(
+                                  value,
+                                );
+                              },
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                                color: Color(0xFF00F0FF),
                               ),
-                              child: Center(
-                                child: Text(
-                                  _sponsorController.text.isEmpty
-                                      ? "Paste"
-                                      : "Clear",
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                    color: _isButtonHovered
-                                        ? Colors.black
-                                        : Colors.white,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 15,
+                                  vertical: 12,
+                                ),
+                                hintText: "Sponsor Code or link (Optional)",
+                                hintStyle: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 15,
+                                  color: Colors.white54,
+                                ),
+                                labelText: "Sponsor",
+                                labelStyle: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 15,
+                                  color: Colors.white54,
+                                ),
+                                floatingLabelStyle: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto,
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF00F0FF),
+                                    width: 1,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF00F0FF),
+                                    width: 1,
                                   ),
                                 ),
                               ),
                             ),
+                            Positioned(
+                              top: 8,
+                              right: 10,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                onEnter: (_) =>
+                                    setState(() => _isButtonHovered = true),
+                                onExit: (_) =>
+                                    setState(() => _isButtonHovered = false),
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    if (_sponsorController.text.isEmpty) {
+                                      ClipboardData? clipboardData =
+                                          await Clipboard.getData(
+                                            Clipboard.kTextPlain,
+                                          );
+                                      if (clipboardData != null &&
+                                          clipboardData.text != null) {
+                                        setState(() {
+                                          _sponsorController.text =
+                                              clipboardData.text!;
+                                          signUpData.setSponsorCode(
+                                            clipboardData.text!,
+                                          );
+                                        });
+                                      }
+                                    } else {
+                                      setState(() {
+                                        _sponsorController.clear();
+                                        signUpData.setSponsorCode('');
+                                      });
+                                    }
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: 62,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(
+                                        width: 1,
+                                        color: const Color(0xFF00F0FF),
+                                      ),
+                                      gradient: _isButtonHovered
+                                          ? const LinearGradient(
+                                              begin: Alignment.bottomCenter,
+                                              end: Alignment.topCenter,
+                                              colors: [
+                                                Color(0xFF0177B3),
+                                                Color(0xFF00F0FF),
+                                              ],
+                                            )
+                                          : null,
+                                      color: _isButtonHovered
+                                          ? null
+                                          : Colors.transparent,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        _sponsorController.text.isEmpty
+                                            ? "Paste"
+                                            : "Clear",
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 15,
+                                          color: _isButtonHovered
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // Gender section
+                  SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Your Official Gender?",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            height: 1.0,
+                            letterSpacing: 0,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Gender section
-          Positioned(
-            top: 490,
-            left: 18,
-            child: SizedBox(
-              width: 394,
-              height: 84,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 0),
-                  const SizedBox(
-                    width: 237.27,
-                    height: 24,
-                    child: Text(
-                      "Your Official Gender?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                        height: 1.0,
-                        letterSpacing: 0,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildGenderButton(
-                        "Male",
-                        'assets/images/gender/Male.png',
-                        _isMaleHovered,
-                        _selectedGender == 'Male',
-                        () {
-                          setState(() => _selectedGender = 'Male');
-                          context.read<UserProvider>().setGender('Male');
-                        },
-                        (hovered) => setState(() => _isMaleHovered = hovered),
-                        23,
-                        23,
-                      ),
-                      const SizedBox(width: 18),
-                      _buildGenderButton(
-                        "Female",
-                        'assets/images/gender/Female.png',
-                        _isFemaleHovered,
-                        _selectedGender == 'Female',
-                        () {
-                          setState(() => _selectedGender = 'Female');
-                          context.read<UserProvider>().setGender('Female');
-                        },
-                        (hovered) => setState(() => _isFemaleHovered = hovered),
-                        18,
-                        29,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Next button with gradient lines
-          Positioned(
-            top: 620,
-            left: 28,
-            child: SizedBox(
-              width: 374,
-              height: 40,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Positioned(
-                    top: 14,
-                    left: 0,
-                    child: Container(
-                      width: 125,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(11),
-                        gradient: const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildGenderButton(
+                              "Male",
+                              'assets/images/gender/Male.png',
+                              _isMaleHovered,
+                              _selectedGender == 'Male',
+                              () {
+                                setState(() => _selectedGender = 'Male');
+                                context.read<UserProvider>().setGender('Male');
+                              },
+                              (hovered) =>
+                                  setState(() => _isMaleHovered = hovered),
+                              23,
+                              23,
+                            ),
+                            const SizedBox(width: 18),
+                            _buildGenderButton(
+                              "Female",
+                              'assets/images/gender/Female.png',
+                              _isFemaleHovered,
+                              _selectedGender == 'Female',
+                              () {
+                                setState(() => _selectedGender = 'Female');
+                                context.read<UserProvider>().setGender(
+                                  'Female',
+                                );
+                              },
+                              (hovered) =>
+                                  setState(() => _isFemaleHovered = hovered),
+                              18,
+                              29,
+                            ),
+                          ],
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                  Positioned(
-                    top: 0,
-                    left: 134,
-                    child: MouseRegion(
-                      onEnter: (_) => setState(() => _isNextHovered = true),
-                      onExit: (_) => setState(() => _isNextHovered = false),
-                      cursor: SystemMouseCursors.click,
-                      child: CustomButton(
-                        text: "Next",
-                        width: 106,
-                        height: 40,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        borderRadius: 10,
-                        borderColor: const Color(0xFF00F0FF),
-                        backgroundColor: _isNextHovered
-                            ? const Color(0xFF00F0FF).withOpacity(0.15)
-                            : const Color(0xFF0B1320),
-                        onTap: _handleNextTap,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 14,
-                    right: 0,
-                    child: Container(
-                      width: 125,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(11),
-                        gradient: const LinearGradient(
-                          begin: Alignment.centerRight,
-                          end: Alignment.centerLeft,
-                          colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+
+                  const SizedBox(height: 40),
+
+                  // Next button with gradient lines
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          top: 14,
+                          left: 0,
+                          child: Container(
+                            width: 125,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: const LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        MouseRegion(
+                          onEnter: (_) => setState(() => _isNextHovered = true),
+                          onExit: (_) => setState(() => _isNextHovered = false),
+                          cursor: SystemMouseCursors.click,
+                          child: CustomButton(
+                            text: "Next",
+                            width: 106,
+                            height: 40,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            borderRadius: 10,
+                            borderColor: const Color(0xFF00F0FF),
+                            backgroundColor: _isNextHovered
+                                ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                : const Color(0xFF0B1320),
+                            onTap: _handleNextTap,
+                          ),
+                        ),
+                        Positioned(
+                          top: 14,
+                          right: 0,
+                          child: Container(
+                            width: 125,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: const LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+
+                  const SizedBox(height: 120),
+
+                  // Quote text
+                  const Text(
+                    "Every system starts with its architect\nYou're laying the first stone of yours",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      height: 1.0,
+                      letterSpacing: 0,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  // Footer at the bottom
+                  FooterWidget(),
                 ],
               ),
             ),
-          ),
 
-          // Quote text
-          Positioned(
-            top: 800,
-            left: 28,
-            child: SizedBox(
-              width: 368,
-              height: 47,
-              child: const Text(
-                "Every system starts with its architect\nYou're laying the first stone of yours",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 20,
-                  height: 1.0,
-                  letterSpacing: 0,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-
-          Positioned(bottom: 40, left: 0, right: 0, child: FooterWidget()),
-          ErrorStack(key: widget.errorStackKey),
-        ],
+            ErrorStack(key: widget.errorStackKey),
+          ],
+        ),
       ),
     );
   }
@@ -810,30 +804,33 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     );
   }
 
-  Column _buildStep(String label, {bool filled = false}) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: filled ? const Color(0xFF00F0FF) : Colors.white,
-          child: filled
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
-              : null,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-            height: 1.0,
-            letterSpacing: 0,
-            color: Colors.white,
+  Widget _buildStep(String label, {bool filled = false}) {
+    return SizedBox(
+      height: 66,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: filled ? const Color(0xFF00F0FF) : Colors.white,
+            child: filled
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : null,
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.0,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1614,7 +1611,6 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                       ),
                     ),
 
-                    // Bottom right image - positioned at the bottom right of the screen
                     // Bottom right image - positioned at the bottom right of the screen
                     Positioned(
                       bottom: 0,

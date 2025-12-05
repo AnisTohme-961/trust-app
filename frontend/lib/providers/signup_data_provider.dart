@@ -1,14 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_project/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/language_model.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/language_model.dart';
+
 class UserProvider extends ChangeNotifier {
+  // Current session info
   String selectedLanguage = '';
   String selectedLanguageId = '';
-  String firstName;
-  String lastName;
-  String sponsorCode;
-  String gender;
+  String firstName = '';
+  String lastName = '';
+  String sponsorCode = '';
+  String gender = '';
   String country = '';
   String countryId = '';
   String dob = '';
@@ -16,59 +29,108 @@ class UserProvider extends ChangeNotifier {
   String emailCode = '';
   String password = '';
   String confirmPassword = '';
-  int emailCodeSecondsLeft = 0;
-  bool emailCodeVerified = false;
-
-  bool isReturningUser = false;
-  bool isRegistered = false;  // 
-  bool justRegistered = false;  // new
-
   String eid = '';
 
-  UserProvider({
-    this.selectedLanguage = "",
-    this.selectedLanguageId = "",
+  
+Map<String, int> emailCooldowns = {};        // email -> seconds left
+Map<String, bool> emailVerified = {};        // email -> verified or not
+Map<String, Timer?> emailTimers = {};        // email -> cooldown timer
+Map<String, bool> emailCodeValid = {};       // email -> is code valid (for UI)
+Map<String, int> emailAttempts = {};         // email -> number of attempts
 
-    this.firstName = "",
-    this.lastName = "",
-    this.sponsorCode = "",
-    this.gender = "",
+  // int emailCodeSecondsLeft = 0;
+  // bool emailCodeVerified = false;
+  // bool isCooldownActive = false;
+  bool isCodeCorrect = false;
+  bool isCodeValid = false;
 
-    this.country = "",
-    this.countryId = "",
-    this.dob = "",
-    this.email = "",
-    this.emailCode = "",
+  // Registration info
+  bool isReturningUser = false;
+  bool justRegistered = false;
 
-    this.password = "",
-    this.confirmPassword = "",
 
-    this.eid = "",
-  });
+// Set cooldown for a specific email
+void setEmailCooldown(String email, int seconds) {
+  emailCooldowns[email] = seconds;
+  notifyListeners();
+}
 
+// Get cooldown for a specific email
+int getEmailCooldown(String email) {
+  return emailCooldowns[email] ?? 0;
+}
+
+// Set timer for a specific email
+void setEmailTimer(String email, Timer? timer) {
+  emailTimers[email]?.cancel(); // cancel previous if exists
+  emailTimers[email] = timer;
+}
+
+
+void setEmailVerified(String email, bool verified) {
+  emailVerified[email] = verified;
+  notifyListeners();
+}
+
+bool isEmailVerified(String email) {
+  return emailVerified[email] ?? false;
+}
+
+// Set code validity for UI
+void setEmailCodeValid(String email, bool valid) {
+  emailCodeValid[email] = valid;
+  notifyListeners();
+}
+
+// Get code validity for UI
+bool isEmailCodeValid(String email) {
+  return emailCodeValid[email] ?? true;
+}
+
+// Set attempt count for an email
+void setEmailAttempts(String email, int attempts) {
+  emailAttempts[email] = attempts;
+  notifyListeners();
+}
+
+// Get attempt count for an email
+int getEmailAttempts(String email) {
+  return emailAttempts[email] ?? 0;
+}
+
+  // List of all registered users
+  List<Map<String, String>> registeredUsers = [];
+
+  // final FlutterSecureStorage storage = const FlutterSecureStorage();
+
+  UserProvider();
+
+  // --------------------------
+  // BASIC SETTERS
+  // --------------------------
   void setLanguage(LanguageModel lang) {
     selectedLanguage = lang.name;
     selectedLanguageId = lang.id;
     notifyListeners();
   }
 
-  void setFirstName(String newFirstName) {
-    firstName = newFirstName;
+  void setFirstName(String val) {
+    firstName = val;
     notifyListeners();
   }
 
-  void setLastName(String newLastName) {
-    lastName = newLastName;
+  void setLastName(String val) {
+    lastName = val;
     notifyListeners();
   }
 
-  void setSponsorCode(String newSponsorCode) {
-    sponsorCode = newSponsorCode;
+  void setSponsorCode(String val) {
+    sponsorCode = val;
     notifyListeners();
   }
 
-  void setGender(String newGender) {
-    gender = newGender;
+  void setGender(String val) {
+    gender = val;
     notifyListeners();
   }
 
@@ -93,13 +155,23 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEmailCodeTimer(int seconds) {
-    emailCodeSecondsLeft = seconds;
+  // void setEmailCodeTimer(int seconds) {
+  //   emailCodeSecondsLeft = seconds;
+  //   notifyListeners();
+  // }
+
+  // void setEmailCodeVerified(bool val) {
+  //   emailCodeVerified = val;
+  //   notifyListeners();
+  // }
+
+  void setCodeCorrect(bool val) {
+    isCodeCorrect = val;
     notifyListeners();
   }
 
-  void setEmailCodeVerified(bool value) {
-    emailCodeVerified = value;
+  void setCodeValid(bool val) {
+    isCodeValid = val;
     notifyListeners();
   }
 
@@ -113,48 +185,125 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEID(String newEID) {
-    eid = newEID;
+  void setEID(String val) {
+    eid = val;
     notifyListeners();
   }
 
-  void markAsRegistered() {
-  isRegistered = true;
-  notifyListeners();
-}
+  // --------------------------
+  // REGISTERED USERS LOGIC
+  // --------------------------
+  bool get isRegistered => registeredUsers.isNotEmpty;
 
-  Future<void> loadFromStorage(FlutterSecureStorage storage) async {
-  String? storedEID = await storage.read(key: 'eid');
-  if (storedEID != null) {
-    eid = storedEID;
-    firstName = await storage.read(key: 'firstName') ?? '';
-    lastName = await storage.read(key: 'lastName') ?? '';
-    isRegistered = true;  // new
-    justRegistered = false;  // new
-    notifyListeners();
-  }
-}
-
-  Future <void> registerUser({
+  Future<void> registerUser({
     required String firstName,
     required String lastName,
     required String eid,
-    required FlutterSecureStorage storage,
   }) async {
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.eid = eid;
-    
-  isRegistered = true;      // new
-  justRegistered = true;  // new
-    // isRegistered = true;
-    notifyListeners();
+    final user = {
+      "firstName": firstName,
+      "lastName": lastName,
+      "eid": eid,
+    };
 
-    await storage.write(key: 'firstName', value: firstName);
-    await storage.write(key: 'lastName', value: lastName);
-    await storage.write(key: 'eid', value: eid);
+    registeredUsers.add(user);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("registeredUsers", jsonEncode(registeredUsers));
+
+    this.eid = eid; // set active user
+    notifyListeners();
+  }
+
+  // -------------------------------------------------------------------------
+  // LOAD USERS FROM STORAGE
+  // -------------------------------------------------------------------------
+  Future<void> loadFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString("registeredUsers");
+
+    if (stored != null) {
+      final decoded = jsonDecode(stored);
+      registeredUsers = decoded
+          .map<Map<String, String>>((u) => Map<String, String>.from(u))
+          .toList();
+    }
+
+    notifyListeners();
+  }
+
+// -------------------------------------------------------------------------
+// SYNC LOCAL ACCOUNTS WITH SERVER (remove deleted accounts)
+// -------------------------------------------------------------------------
+Future<void> syncAccountsWithServer() async {
+  if (registeredUsers.isEmpty) return;
+
+  List<Map<String, String>> validAccounts = [];
+
+  for (final user in registeredUsers) {
+    final eid = user["eid"];
+    if (eid == null || eid.isEmpty) continue;
+
+    final exists = await AuthService.checkEidExists(eid);
+
+    if (exists) {
+      validAccounts.add(user);
+    }
+  }
+
+  registeredUsers = validAccounts;
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString("registeredUsers", jsonEncode(registeredUsers));
+
+  notifyListeners();
+}
+
+
+  bool get hasAccounts => registeredUsers.isNotEmpty;
+
+  // -------------------------------------------------------------------------
+  // GET ACCOUNTS FOR SELECT ACCOUNT SCREEN
+  // -------------------------------------------------------------------------
+  List<Map<String, String>> get accounts =>
+      registeredUsers.reversed.toList(); // newest first
+  // --------------------------
+  // COOLDOWN SYSTEM
+  // --------------------------
+// Future<void> setEmailCooldownEndForEmail(String email, DateTime endTime) async {
+//   final key = "cooldown_$email";
+//   await storage.write(key: key, value: endTime.toIso8601String());
+//   final secondsLeft = endTime.difference(DateTime.now()).inSeconds;
+//   setEmailCooldown(email, secondsLeft > 0 ? secondsLeft : 0);
+// }
+
+// Future<void> restoreEmailCooldownForEmail(String email) async {
+//   final key = "cooldown_$email";
+//   final saved = await storage.read(key: key);
+//   if (saved != null) {
+//     final endTime = DateTime.tryParse(saved) ?? DateTime.now();
+//     final secondsLeft = endTime.difference(DateTime.now()).inSeconds;
+//     setEmailCooldown(email, secondsLeft > 0 ? secondsLeft : 0);
+//   } else {
+//     setEmailCooldown(email, 0);
+//   }
+// }
+
+
+  // --------------------------
+  // HELPER
+  // --------------------------
+  Map<String, String>? getUserByEID(String eid) {
+    try {
+      return registeredUsers.firstWhere((u) => u['eid'] == eid);
+    } catch (_) {
+      return null;
+    }
   }
 }
+
+
+
 
 
 

@@ -6,15 +6,14 @@ import '../services/auth_service.dart';
 import '../widgets/footer_widgets.dart';
 import '../widgets/error_widgets.dart'; // Make sure you import your ErrorStack file path correctly
 
-class SignInRegisterPinScreen extends StatefulWidget {
-  const SignInRegisterPinScreen({super.key});
+class SignInPinScreen extends StatefulWidget {
+  const SignInPinScreen({super.key});
 
   @override
-  State<SignInRegisterPinScreen> createState() =>
-      _SignInRegisterPinScreenState();
+  State<SignInPinScreen> createState() => _SignInPinScreenState();
 }
 
-class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
+class _SignInPinScreenState extends State<SignInPinScreen> {
   bool showPatternLines = false;
   bool isEyeVisible = true;
   bool _obscurePin = true;
@@ -24,40 +23,63 @@ class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
 
-  // Example of correct PIN (you can change this or fetch dynamically)
-  final String correctPin = "1234";
-
   // Generate numbers 0–9 and shuffle
   List<String> _numbers = List.generate(10, (i) => i.toString())
     ..shuffle(Random());
 
-  void _onKeyTap(String key) {
+  void _onKeyTap(String key) async {
+  // 1) Handle NEXT (Validate PIN)
+  if (key == 'Next') {
+    if (_pin.isEmpty || _pin.length < 4) {
+      _errorStackKey.currentState?.showError(
+        'Please Enter Your Pin.',
+        duration: Duration(seconds: 3),
+      );
+      return;
+    }
+
+    String enteredPin = _pin.join();
+
+    bool isValid = await AuthService.validatePin(enteredPin);
+
+    if (!isValid) {
+      _errorStackKey.currentState?.showError(
+        'Incorrect Pin. Try Again.',
+        duration: Duration(seconds: 3),
+      );
+
+      // clear pin
+      setState(() {
+        _pin.clear();
+      });
+
+      return;
+    }
+
+    // SUCCESS
+    debugPrint('✅ Correct PIN entered!');
+    Navigator.pushNamed(context, '/settings');
+    return;
+  }
+
+  // 2) For BACKSPACE
+  if (key == 'Back') {
     setState(() {
-      if (key == 'Next') {
-        if (_pin.isEmpty) {
-          _errorStackKey.currentState?.showError(
-            'Please Enter Your Pin.',
-            duration: const Duration(seconds: 3),
-          );
-        } else if (_pin.join() != correctPin) {
-          _errorStackKey.currentState?.showError(
-            'Incorrect Pin. Try Again.',
-            duration: const Duration(seconds: 3),
-          );
-          _pin.clear();
-        } else {
-          debugPrint('✅ Correct PIN entered: ${_pin.join()}');
-          // Continue to next step here...
-        }
-      } else if (key == 'Back') {
-        if (_pin.isNotEmpty) {
-          _pin.removeLast();
-        }
-      } else if (_pin.length < 4) {
-        _pin.add(key);
+      if (_pin.isNotEmpty) {
+        _pin.removeLast();
       }
     });
+    return;
   }
+
+  // 3) For number keys (0–9)
+  if (_pin.length < 4) {
+    setState(() {
+      _pin.add(key);
+    });
+  }
+}
+
 
   Future<void> _logout() async {
     try {
@@ -255,7 +277,7 @@ class _SignInRegisterPinScreenState extends State<SignInRegisterPinScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          debugPrint('Use Pattern Instead tapped');
+                          Navigator.pushNamed(context, '/sign-in-pattern');
                         },
                         child: const Text(
                           'Use Pattern Instead',
