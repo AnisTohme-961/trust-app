@@ -52,7 +52,7 @@ class _FreezeAccountState extends State<FreezeAccount> {
                 text: 'Unfreeze',
                 onTap: () {
                   // Add your unfreeze logic here
-                  print('Unfreeze button tapped');
+                  print('Unfreeze button tappe');
                 },
                 width: 106,
                 height: 40,
