@@ -971,21 +971,16 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                   ),
                                 ),
                                 child: Center(
-                                  child: isLoading
-                                      ? const CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        )
-                                      : const Text(
-                                          "Next",
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 20,
-                                            height: 1.0,
-                                            color: Colors.white,
-                                          ),
-                                        ),
+                                  child: const Text(
+                                    "Next",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20,
+                                      height: 1.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -2201,22 +2196,16 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                 ),
                                               ),
                                               child: Center(
-                                                child: isLoading
-                                                    ? const CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                        strokeWidth: 2,
-                                                      )
-                                                    : const Text(
-                                                        "Next",
-                                                        style: TextStyle(
-                                                          fontFamily: 'Inter',
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          fontSize: 20,
-                                                          height: 1.0,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
+                                                child: const Text(
+                                                  "Next",
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 20,
+                                                    height: 1.0,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
