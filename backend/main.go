@@ -57,6 +57,10 @@ func main() {
 		log.Fatal("Failed to seed countries:", err)
 	}
 
+	if err := seed.InsertCurrencies(db); err != nil {
+		log.Fatal("Failed to seed currencies:", err)
+	}
+
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{

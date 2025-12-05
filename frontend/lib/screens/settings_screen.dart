@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_project/services/binance_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_button.dart';
@@ -317,16 +318,31 @@ class _SettingsScreenState extends State<SettingsScreen>
   String? _selectedFreezeReason;
 
   // Added currency data
-  final List<Map<String, String>> _currencies = [
-    {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
-    {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
-    {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
-    {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
-    {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
-    {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
-    {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
-    {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
-  ];
+ final List<Map<String, String>> _currencies = [
+
+  //{"code": "BTC", "symbol": "₿", "name": "Bitcoin", "symbolapi":"BTCUSDT"},
+  
+  {"code": "ADA", "symbol": "₳", "name": "Cardano"},
+  {"code": "AVAX", "symbol": "A", "name": "Avalanche"},
+  {"code": "BCH", "symbol": "B", "name": "Bitcoin Cash"},
+  {"code": "BNB", "symbol": "Ⓑ", "name": "Binance Coin"},
+  {"code": "BTC", "symbol": "₿", "name": "Bitcoin"},
+  {"code": "DOGE", "symbol": "Ð", "name": "Dogecoin"},
+  {"code": "ETC", "symbol": "ℰ", "name": "Ethereum Classic"},
+  {"code": "ETH", "symbol": "Ξ", "name": "Ethereum"},
+  {"code": "EUR", "symbol": "€", "name": "Euro"},
+  {"code": "LINK", "symbol": "🔗", "name": "Chainlink"},
+  {"code": "LTC", "symbol": "Ł", "name": "Litecoin"},
+  {"code": "PAXG", "symbol": "🥇", "name": "PAX Gold"},
+  {"code": "PLA", "symbol": "P", "name": "PlayDapp"},
+  {"code": "SOL", "symbol": "◎", "name": "Solana"},
+  {"code": "TON", "symbol": "⧉", "name": "Toncoin"},
+  {"code": "TRX", "symbol": "T", "name": "TRON"},
+  {"code": "XMR", "symbol": "ɱ", "name": "Monero"},
+  {"code": "XRP", "symbol": "✕", "name": "XRP"},
+  {"code": "ZEC", "symbol": "Ⓩ", "name": "Zcash"},
+];
+
 
   // New controller and state for freeze account text field
   TextEditingController _freezeTextController = TextEditingController();
@@ -707,13 +723,37 @@ class _SettingsScreenState extends State<SettingsScreen>
     _closeAllMenus();
   }
 
-  void _selectCurrency(String currencyCode, String currencySymbol) {
-    setState(() {
-      _selectedCurrency = '$currencyCode($currencySymbol)';
-    });
-    print('Selected currency: $currencyCode');
-    _closeAllMenus();
-  }
+  final BinanceService _binanceService = BinanceService();
+  double? _selectedPrice;
+
+  void _selectCurrency(String currencyCode, String currencySymbol) async {
+  setState(() {
+    _selectedCurrency = '$currencyCode($currencySymbol)';
+  });
+
+  // Build the Binance symbol (ex: BTC → BTCUSDT)
+  final binanceSymbol = currencyCode + "USDT";
+
+  // Fetch price
+  final priceData = await _binanceService.getPrice(binanceSymbol);
+
+  setState(() {
+    _selectedPrice = priceData?.price;
+  });
+
+  print('Selected currency: $currencyCode');
+  print('Price: $_selectedPrice');
+
+  _closeAllMenus();
+}
+
+  // void _selectCurrency(String currencyCode, String currencySymbol) {
+  //   setState(() {
+  //     _selectedCurrency = '$currencyCode($currencySymbol)';
+  //   });
+  //   print('Selected currency: $currencyCode');
+  //   _closeAllMenus();
+  // }
 
   void _searchLanguages(String query) {
     setState(() {
