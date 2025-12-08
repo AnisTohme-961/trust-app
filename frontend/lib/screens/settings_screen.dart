@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_project/services/binance_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,8 +8,11 @@ import '../widgets/custom_button.dart';
 import '../widgets/footer_widgets.dart';
 import '../widgets/slide_up_menu_widget.dart';
 import '../widgets/add_new_profile_widget.dart';
+import '../widgets/custom_navigation_widget.dart'; // Add this import
 import '../providers/font_size_provider.dart';
 import '../services/language_api_service.dart';
+import '../widgets/error_widgets.dart';
+import '../services/auth_service.dart';
 
 // Custom painter for pattern lines
 class _PatternPainter extends CustomPainter {
@@ -40,229 +43,6 @@ class _PatternPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// Error Stack Widget (Updated version)
-class ErrorBanner extends StatefulWidget {
-  final String message;
-  final Duration duration;
-
-  const ErrorBanner({
-    Key? key,
-    required this.message,
-    this.duration = const Duration(seconds: 3),
-  }) : super(key: key);
-
-  @override
-  State<ErrorBanner> createState() => _ErrorBannerState();
-}
-
-class _ErrorBannerState extends State<ErrorBanner>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _progressController;
-
-  @override
-  void initState() {
-    super.initState();
-    _progressController = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
-    _progressController.forward();
-  }
-
-  @override
-  void dispose() {
-    _progressController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: AnimatedBuilder(
-        animation: _progressController,
-        builder: (context, child) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: double.infinity,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B1320),
-                border: Border(
-                  top: const BorderSide(color: Color(0xFFF42222), width: 2),
-                  left: const BorderSide(color: Color(0xFFF42222), width: 2),
-                  right: const BorderSide(color: Color(0xFFF42222), width: 2),
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0xFFAF2222),
-                    offset: Offset(0, 3),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Content
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(23, 20, 23, 20),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF42222),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.priority_high,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: Text(
-                              widget.message,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                                height: 1.3,
-                                letterSpacing: 0,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Progress bar as bottom border
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: 1 - _progressController.value,
-                      child: Container(
-                        height: 2,
-                        color: const Color(0xFFF42222),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class ErrorStack extends StatefulWidget {
-  const ErrorStack({Key? key}) : super(key: key);
-
-  @override
-  State<ErrorStack> createState() => ErrorStackState();
-}
-
-class ErrorStackState extends State<ErrorStack> {
-  final List<_ErrorItem> _errors = [];
-  OverlayEntry? _overlayEntry;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _createOverlay();
-    });
-  }
-
-  void _createOverlay() {
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: 0,
-        right: 0,
-        top: 0,
-        child: IgnorePointer(
-          ignoring: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (int i = 0; i < _errors.length; i++) ...[
-                if (i != 0) const SizedBox(height: 16),
-                AnimatedSlide(
-                  key: ValueKey(_errors[i]),
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOutCubic,
-                  offset: const Offset(0, 0),
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOut,
-                    opacity: 1.0,
-                    child: ErrorBanner(
-                      message: _errors[i].message,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (mounted) {
-      Overlay.of(context).insert(_overlayEntry!);
-    }
-  }
-
-  void showError(
-    String message, {
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    final item = _ErrorItem(message: message);
-    setState(() => _errors.add(item));
-
-    // Update the overlay
-    _overlayEntry?.markNeedsBuild();
-
-    // Auto-remove after duration
-    item.timer = Timer(duration, () {
-      if (mounted) {
-        setState(() => _errors.remove(item));
-        _overlayEntry?.markNeedsBuild();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    for (var e in _errors) {
-      e.timer?.cancel();
-    }
-    _overlayEntry?.remove();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Return an empty container since we're using Overlay
-    return const SizedBox.shrink();
-  }
-}
-
-class _ErrorItem {
-  final String message;
-  Timer? timer;
-  _ErrorItem({required this.message});
-}
-
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -280,14 +60,14 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showCurrencyMenu = false;
   bool _showFreezeAccountMenu = false;
   bool _showPatternMenu = false;
-  bool _showVerificationMenu = false; // NEW: Verification menu state
+  bool _showVerificationMenu = false;
 
-  // PIN Input State - FIXED: Initialize directly
+  // PIN Input State
   final List<String> _pin = [];
   bool _obscurePin = true;
   List<String> _numbers = List.generate(10, (i) => i.toString());
 
-  // Pattern Grid State (Simplified - no confirm mode)
+  // Pattern Grid State
   final int _patternGridSize = 3;
   List<int> _selectedPatternDots = [];
   bool _patternCompleted = false;
@@ -298,6 +78,52 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showPatternLines = true;
   bool _isPatternEyeVisible = true;
 
+  // Verification State
+  final TextEditingController _verificationEmailController =
+      TextEditingController();
+  bool _showEmailCodeSent = false;
+  bool _showSMSCodeSent = false;
+  bool _showAuthCodeSent = false;
+
+  List<TextEditingController> _emailCodeControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  List<FocusNode> _emailFocusNodes = List.generate(6, (_) => FocusNode());
+  List<String> _emailCode = List.generate(6, (_) => '');
+
+  List<TextEditingController> _smsCodeControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  List<FocusNode> _smsFocusNodes = List.generate(6, (_) => FocusNode());
+  List<String> _smsCode = List.generate(6, (_) => '');
+
+  List<TextEditingController> _authCodeControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  List<FocusNode> _authFocusNodes = List.generate(6, (_) => FocusNode());
+  List<String> _authCode = List.generate(6, (_) => '');
+
+  Map<String, bool> isCodeCorrectMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
+
+  Map<String, int> _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
+  Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
+  String? _activeCodeType;
+  bool _codeDisabled = false;
+
+  // Verification PIN state
+  final List<String> _verificationPin = [];
+  bool _obscureVerificationPin = true;
+  List<String> _verificationNumbers = List.generate(10, (i) => i.toString());
+
   late AnimationController _wiggleController;
   late Animation<double> _wiggleAnimation;
   Timer? _wiggleTimer;
@@ -307,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   String _selectedLanguage = 'English (English)';
   String _selectedCurrency = 'USD(\$)';
 
-  // Added freeze account reasons
+  // Freeze account reasons
   final List<String> _freezeReasons = [
     'Temporarily not using account',
     'Security concerns',
@@ -344,14 +170,9 @@ class _SettingsScreenState extends State<SettingsScreen>
 ];
 
 
-  // New controller and state for freeze account text field
+  // Freeze account controller
   TextEditingController _freezeTextController = TextEditingController();
   bool _showCheckImage = false;
-
-  // NEW: Verification PIN state
-  final List<String> _verificationPin = [];
-  bool _obscureVerificationPin = true;
-  List<String> _verificationNumbers = List.generate(10, (i) => i.toString());
 
   @override
   void initState() {
@@ -359,7 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     // Shuffle numbers for security
     _numbers.shuffle();
-    _verificationNumbers.shuffle(); // NEW: Shuffle verification numbers
+    _verificationNumbers.shuffle();
 
     // Initialize languages
     _filteredLanguages = LanguagesService.getLanguages();
@@ -395,6 +216,208 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
+  // Verification Methods
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
+
+  void _fetchCode(String type) async {
+    // Disable if ANY type is active
+    if (_activeCodeType != null && _activeCodeType != type) return;
+
+    if (_countdowns[type]! > 0) return;
+
+    if (_verificationEmailController.text.isEmpty) {
+      _errorStackKey.currentState?.showError("Please enter your EID / Email");
+      return;
+    }
+
+    final identifier = _verificationEmailController.text.trim();
+
+    try {
+      Map<String, dynamic> data;
+
+      if (type == "auth") {
+        data = await AuthService.generateTOTP(identifier);
+      } else {
+        data = await AuthService.sendResetCode(identifier);
+      }
+
+      final int cooldown = data["cooldown"] ?? 60;
+
+      // Show "Code Sent"
+      _setCodeSentFlag(type, true);
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _setCodeSentFlag(type, false);
+      });
+
+      // Start cooldown + disable ALL buttons
+      setState(() {
+        _activeCodeType = type;
+        _countdowns[type] = cooldown;
+        _codeDisabled = true;
+      });
+
+      _timers[type]?.cancel();
+      _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
+
+        setState(() {
+          if (_countdowns[type]! > 0) {
+            _countdowns[type] = _countdowns[type]! - 1;
+          } else {
+            timer.cancel();
+            _timers[type] = null;
+            _activeCodeType = null;
+            _codeDisabled = false;
+          }
+        });
+      });
+    } catch (e) {
+      _errorStackKey.currentState?.showError(
+        "Failed to send code. Please try again.",
+      );
+    }
+  }
+
+  void _setCodeSentFlag(String type, bool value) {
+    setState(() {
+      if (type == 'email') _showEmailCodeSent = value;
+      if (type == 'sms') _showSMSCodeSent = value;
+      if (type == 'auth') _showAuthCodeSent = value;
+    });
+  }
+
+  void _onVerificationCodeChanged(
+    String value,
+    int index,
+    List<String> codeList,
+    List<FocusNode> focusNodes,
+    String type,
+  ) async {
+    codeList[index] = value.isEmpty ? '' : value[0];
+
+    if (value.isNotEmpty && index < focusNodes.length - 1) {
+      focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      focusNodes[index - 1].requestFocus();
+    }
+
+    // Reset validity while typing
+    setState(() {
+      isCodeValidMap[type] = true;
+      isCodeCorrectMap[type] = false;
+    });
+
+    // Only verify when all digits are filled
+    if (codeList.every((c) => c.isNotEmpty)) {
+      final email = _verificationEmailController.text.trim();
+      bool valid = false;
+
+      try {
+        if (type == 'auth') {
+          valid = await AuthService.verifyTOTP(
+            email: email,
+            code: codeList.join(),
+          );
+        } else {
+          valid = await AuthService.verifyResetCode(
+            identifier: email,
+            code: codeList.join(),
+          );
+        }
+
+        if (valid) {
+          setState(() {
+            isCodeCorrectMap[type] = true;
+            isCodeValidMap[type] = true;
+          });
+          _timers[type]?.cancel();
+          _timers[type] = null;
+          _countdowns[type] = 0;
+        } else {
+          // Show error for 3 seconds, then reset
+          setState(() {
+            isCodeValidMap[type] = false;
+            isCodeCorrectMap[type] = false;
+          });
+
+          Timer(const Duration(seconds: 3), () {
+            if (!mounted) return;
+            setState(() {
+              List<TextEditingController> controllers;
+              switch (type) {
+                case 'email':
+                  controllers = _emailCodeControllers;
+                  break;
+                case 'sms':
+                  controllers = _smsCodeControllers;
+                  break;
+                case 'auth':
+                  controllers = _authCodeControllers;
+                  break;
+                default:
+                  return;
+              }
+
+              for (var i = 0; i < controllers.length; i++) {
+                controllers[i].clear();
+                codeList[i] = '';
+              }
+              isCodeValidMap[type] = true;
+              isCodeCorrectMap[type] = false;
+            });
+            focusNodes[0].requestFocus();
+          });
+        }
+      } catch (e) {
+        // On error, show red for 3 seconds, then reset
+        setState(() {
+          isCodeValidMap[type] = false;
+          isCodeCorrectMap[type] = false;
+        });
+
+        Timer(const Duration(seconds: 3), () {
+          if (!mounted) return;
+          setState(() {
+            List<TextEditingController> controllers;
+            switch (type) {
+              case 'email':
+                controllers = _emailCodeControllers;
+                break;
+              case 'sms':
+                controllers = _smsCodeControllers;
+                break;
+              case 'auth':
+                controllers = _authCodeControllers;
+                break;
+              default:
+                return;
+            }
+
+            for (var i = 0; i < controllers.length; i++) {
+              controllers[i].clear();
+              codeList[i] = '';
+            }
+            isCodeValidMap[type] = true;
+            isCodeCorrectMap[type] = false;
+          });
+          focusNodes[0].requestFocus();
+        });
+      }
+    }
+
+    setState(() {});
+  }
+
   void _toggleNotificationsMenu() {
     setState(() {
       _showNotificationsMenu = !_showNotificationsMenu;
@@ -404,7 +427,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
     });
   }
 
@@ -417,7 +440,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
     });
   }
 
@@ -430,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
     });
   }
 
@@ -443,9 +466,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
 
-      // Reset search when opening menu
       if (_showLanguageMenu) {
         _languageSearchController.clear();
         _filteredLanguages = LanguagesService.getLanguages();
@@ -462,7 +484,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
     });
   }
 
@@ -475,9 +497,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
 
-      // Reset pattern state when opening menu
       if (_showPatternMenu) {
         _selectedPatternDots = [];
         _patternCompleted = false;
@@ -487,7 +508,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
-  // NEW: Toggle verification menu
   void _toggleVerificationMenu() {
     setState(() {
       _showVerificationMenu = !_showVerificationMenu;
@@ -499,15 +519,30 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
 
-      // Reset verification PIN when opening menu
       if (_showVerificationMenu) {
         _verificationPin.clear();
-        _verificationNumbers.shuffle(); // Shuffle numbers for security
+        _verificationNumbers.shuffle();
+        // Reset all verification states
+        _verificationEmailController.clear();
+        _showEmailCodeSent = false;
+        _showSMSCodeSent = false;
+        _showAuthCodeSent = false;
+        for (var c in _emailCodeControllers) c.clear();
+        for (var c in _smsCodeControllers) c.clear();
+        for (var c in _authCodeControllers) c.clear();
+        _emailCode = List.generate(6, (_) => '');
+        _smsCode = List.generate(6, (_) => '');
+        _authCode = List.generate(6, (_) => '');
+        isCodeCorrectMap = {'email': false, 'sms': false, 'auth': false};
+        isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
+        _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
+        _activeCodeType = null;
+        _codeDisabled = false;
       }
     });
   }
 
-  // Pattern Grid Methods (Simplified)
+  // Pattern Grid Methods
   void _onPatternPanStart(DragStartDetails details) {
     setState(() {
       _selectedPatternDots = [];
@@ -542,10 +577,8 @@ class _SettingsScreenState extends State<SettingsScreen>
         _patternCompleted = true;
       });
 
-      // Here you would typically save/verify the pattern
       print("Pattern entered: $_selectedPatternDots");
 
-      // Close menu after a short delay
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _closeAllMenus();
@@ -566,7 +599,6 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (value == 'Clear') {
         _pin.clear();
       } else if (value == 'leftArrow') {
-        // Close the slide-up menu when left arrow is tapped
         _closeAllMenus();
       } else {
         if (_pin.length < 4) _pin.add(value);
@@ -574,13 +606,11 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
-  // NEW: Verification PIN input methods
   void _onVerificationKeyTap(String value) {
     setState(() {
       if (value == 'Clear') {
         _verificationPin.clear();
       } else if (value == 'leftArrow') {
-        // Close the verification menu when left arrow is tapped
         _closeAllMenus();
       } else {
         if (_verificationPin.length < 4) _verificationPin.add(value);
@@ -591,7 +621,6 @@ class _SettingsScreenState extends State<SettingsScreen>
   void _onFreezeConfirm() {
     final enteredPin = _pin.join();
 
-    // FIXED: Check if "FREEZE ACCOUNT" is typed in ALL CAPS exactly
     if (_freezeTextController.text != 'FREEZE ACCOUNT') {
       _errorStackKey.currentState?.showError(
         "Please type 'FREEZE ACCOUNT' in all capital letters",
@@ -599,43 +628,16 @@ class _SettingsScreenState extends State<SettingsScreen>
       return;
     }
 
-    // Check PIN length
     if (enteredPin.length < 4) {
       _errorStackKey.currentState?.showError("Please enter 4 digits");
       return;
     }
 
-    // Here you would typically verify the PIN with your backend
     print("PIN entered: $enteredPin");
-
-    // If PIN is correct, proceed with freezing account
     _closeAllMenus();
     _pin.clear();
     _freezeTextController.clear();
-
-    // Show success message or navigate as needed
     print("Account freeze process initiated");
-  }
-
-  // NEW: Verification confirm method
-  void _onVerificationConfirm() {
-    final enteredPin = _verificationPin.join();
-
-    // Check PIN length
-    if (enteredPin.length < 4) {
-      _errorStackKey.currentState?.showError("Please enter 4 digits");
-      return;
-    }
-
-    // Here you would typically verify the PIN with your backend
-    print("Verification PIN entered: $enteredPin");
-
-    // If PIN is correct, proceed with verification
-    _closeAllMenus();
-    _verificationPin.clear();
-
-    // Show success message or navigate as needed
-    print("Verification process completed");
   }
 
   void _toggleFreezeAccountMenu() {
@@ -647,13 +649,12 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
 
-      // Reset PIN and selection when opening menu
       if (_showFreezeAccountMenu) {
         _selectedFreezeReason = null;
         _pin.clear();
-        _numbers.shuffle(); // Shuffle numbers for security
+        _numbers.shuffle();
         _freezeTextController.clear();
         _showCheckImage = false;
       }
@@ -669,16 +670,13 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
       _showPatternMenu = false;
-      _showVerificationMenu = false; // NEW: Close verification menu
+      _showVerificationMenu = false;
     });
   }
 
   void _openPatternMenu() {
     setState(() {
-      // Close freeze account menu
       _showFreezeAccountMenu = false;
-
-      // Open pattern menu after a short delay for smooth transition
       Future.delayed(const Duration(milliseconds: 100), () {
         setState(() {
           _showPatternMenu = true;
@@ -687,17 +685,12 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
-  // NEW: Method to open verification menu from pattern menu
   void _openVerificationMenuFromPattern() {
     if (_selectedPatternDots.length >= 4) {
-      // Pattern is valid, process it
       print("Pattern entered: $_selectedPatternDots");
 
       setState(() {
-        // Hide pattern menu
         _showPatternMenu = false;
-
-        // Open verification menu after a short delay for smooth transition
         Future.delayed(const Duration(milliseconds: 100), () {
           setState(() {
             _showVerificationMenu = true;
@@ -771,6 +764,13 @@ class _SettingsScreenState extends State<SettingsScreen>
     _wiggleTimer?.cancel();
     _languageSearchController.dispose();
     _freezeTextController.dispose();
+    _verificationEmailController.dispose();
+    for (var c in _emailCodeControllers) c.dispose();
+    for (var f in _emailFocusNodes) f.dispose();
+    for (var c in _smsCodeControllers) c.dispose();
+    for (var f in _smsFocusNodes) f.dispose();
+    for (var c in _authCodeControllers) c.dispose();
+    for (var f in _authFocusNodes) f.dispose();
     super.dispose();
   }
 
@@ -784,21 +784,20 @@ class _SettingsScreenState extends State<SettingsScreen>
     final currencyMenuHeight = screenHeight * 0.5;
     final freezeAccountMenuHeight = screenHeight * 0.9;
     final patternMenuHeight = screenHeight * 0.62;
-    final verificationMenuHeight =
-        705.0; // NEW: Fixed 705 height for verification menu
+    final verificationMenuHeight = screenHeight * 0.7;
     final fontProvider = Provider.of<FontSizeProvider>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
         children: [
-          // Main content - REMOVED extra bottom padding
+          // Main content
           Padding(
             padding: const EdgeInsets.only(
               left: 15,
               right: 15,
               top: 60,
-              bottom: 30, // Removed the extra 62px for bottom nav bar
+              bottom: 30,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1106,7 +1105,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // Overlay - Include all menus in overlay
+          // Overlay
           if (_showNotificationsMenu ||
               _showProfileMenu ||
               _showFontSizeMenu ||
@@ -1339,7 +1338,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Row(
                               children: [
-                                // Language flag
                                 Container(
                                   width: 40,
                                   height: 30,
@@ -1446,7 +1444,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // Freeze Account Menu - UPDATED with PIN Input
+          // Freeze Account Menu - UPDATED with CustomNavigationWidget
           SlideUpMenu(
             menuHeight: freezeAccountMenuHeight,
             isVisible: _showFreezeAccountMenu,
@@ -1461,7 +1459,6 @@ class _SettingsScreenState extends State<SettingsScreen>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Freeze account row with icon and text - centered horizontally
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1484,7 +1481,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Centered confirmation text
                   Text(
                     'All activity will stop until you unfreeze it',
                     textAlign: TextAlign.center,
@@ -1512,7 +1508,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           text: 'FREEZE ACCOUNT',
                           style: TextStyle(
                             fontSize: 20,
-                            color: Color(0xFF00FEFF), // #00FEFF
+                            color: Color(0xFF00FEFF),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1530,7 +1526,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                   const SizedBox(height: 10),
 
-                  // Text field with check image - UPDATED
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10.0),
                     child: Container(
@@ -1562,7 +1557,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                               ),
                             ),
                           ),
-                          // Blue circle check image on the right
                           if (_showCheckImage)
                             Positioned(
                               right: 0,
@@ -1585,7 +1579,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                   // PIN Input Section
                   Column(
                     children: [
-                      // "Enter PIN To Continue" title
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -1613,7 +1606,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       const SizedBox(height: 20),
 
-                      // PIN Boxes
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(4, (index) {
@@ -1644,103 +1636,37 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       const SizedBox(height: 30),
 
-                      // Keypad - UPDATED
                       _buildFreezeAccountKeypad(),
 
                       const SizedBox(height: 20),
 
-                      SizedBox(
-                        width: double.infinity,
-                        height: 40,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(11),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.centerRight,
-                                  end: Alignment.centerLeft,
-                                  colors: [
-                                    Color(0xFF00F0FF),
-                                    Color(0xFF0B1320),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Container(
-                                  width: 106,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: const Color(0xFF00F0FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      CustomButton(
-                                        text: "Back",
-                                        width: 100,
-                                        height: 40,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w600,
-                                        textColor: Colors.white,
-                                        backgroundColor: Colors.transparent,
-                                        borderColor: Colors.transparent,
-                                        onTap: () {
-                                          Navigator.pop(context);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: CustomButton(
-                                text: "Next",
-                                width: 105,
-                                height: 40,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                textColor: Colors.white,
-                                backgroundColor: Colors.transparent,
-                                borderColor: const Color(0xFF00F0FF),
-                                onTap: _openPatternMenu,
-                              ),
-                            ),
-
-                            Container(
-                              width: 64,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(11),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.centerRight,
-                                  end: Alignment.centerLeft,
-                                  colors: [
-                                    Color(0xFF0B1320),
-                                    Color(0xFF00F0FF),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      // UPDATED: Using CustomNavigationWidget for Freeze Account
+                      CustomNavigationWidget(
+                        onCancel: _closeAllMenus,
+                        onNext: _openPatternMenu,
+                        cancelText: "Cancel",
+                        nextText: "Next",
+                        cancelButtonWidth: 106,
+                        cancelButtonHeight: 40,
+                        cancelFontSize: 20,
+                        cancelFontWeight: FontWeight.w600,
+                        cancelTextColor: Colors.white,
+                        cancelBorderColor: const Color(0xFF00F0FF),
+                        cancelBackgroundColor: Colors.transparent,
+                        cancelBorderRadius: 10,
+                        nextButtonWidth: 106,
+                        nextButtonHeight: 40,
+                        nextFontSize: 20,
+                        nextFontWeight: FontWeight.w600,
+                        nextTextColor: Colors.white,
+                        nextBorderColor: const Color(0xFF00F0FF),
+                        nextBackgroundColor: Colors.transparent,
+                        nextBorderRadius: 10,
+                        lineHeight: 4,
+                        lineRadius: 11,
+                        spacing: 16,
+                        startGradientColor: const Color(0xFF00F0FF),
+                        endGradientColor: const Color(0xFF0B1320),
                       ),
                     ],
                   ),
@@ -1749,7 +1675,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // Pattern Menu
+          // Pattern Menu - UPDATED with CustomNavigationWidget
           SlideUpMenu(
             menuHeight: patternMenuHeight,
             isVisible: _showPatternMenu,
@@ -1767,7 +1693,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                 children: [
                   const SizedBox(height: 16),
 
-                  // Pattern Menu Title with Eye Icon
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1801,7 +1726,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                   const SizedBox(height: 10),
 
-                  // Pattern Grid
                   Center(
                     child: AspectRatio(
                       aspectRatio: 1,
@@ -1900,91 +1824,36 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                   const SizedBox(height: 20),
 
-                  // Back & Next Buttons - UPDATED to open verification menu
-                  SizedBox(
-                    width: double.infinity,
-                    height: 40,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(11),
-                            gradient: const LinearGradient(
-                              begin: Alignment.centerRight,
-                              end: Alignment.centerLeft,
-                              colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-                            ),
-                          ),
-                        ),
-
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: CustomButton(
-                            text: "Back",
-                            width: 106,
-                            height: 40,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            textColor: Colors.white,
-                            backgroundColor: Colors.transparent,
-                            borderColor: const Color(0xFF00F0FF),
-                            onTap: _closeAllMenus,
-                          ),
-                        ),
-
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: CustomButton(
-                            text: "Next",
-                            width: 106,
-                            height: 40,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            textColor: Colors.white,
-                            backgroundColor: Colors.transparent,
-                            borderColor: const Color(0xFF00F0FF),
-                            onTap:
-                                _openVerificationMenuFromPattern, // UPDATED: Call new method
-                          ),
-                        ),
-
-                        Container(
-                          width: 64,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(11),
-                            gradient: const LinearGradient(
-                              begin: Alignment.centerRight,
-                              end: Alignment.centerLeft,
-                              colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  // UPDATED: Using CustomNavigationWidget for Pattern Menu
+                  CustomNavigationWidget(
+                    onCancel: _closeAllMenus,
+                    onNext: _openVerificationMenuFromPattern,
+                    cancelText: "Cancel",
+                    nextText: "Next",
+                    cancelButtonWidth: 106,
+                    cancelButtonHeight: 40,
+                    cancelFontSize: 20,
+                    cancelFontWeight: FontWeight.w600,
+                    cancelTextColor: Colors.white,
+                    cancelBorderColor: const Color(0xFF00F0FF),
+                    cancelBackgroundColor: Colors.transparent,
+                    cancelBorderRadius: 10,
+                    nextButtonWidth: 106,
+                    nextButtonHeight: 40,
+                    nextFontSize: 20,
+                    nextFontWeight: FontWeight.w600,
+                    nextTextColor: Colors.white,
+                    nextBorderColor: const Color(0xFF00F0FF),
+                    nextBackgroundColor: Colors.transparent,
+                    nextBorderRadius: 10,
+                    lineHeight: 4,
+                    lineRadius: 11,
+                    spacing: 16,
+                    startGradientColor: const Color(0xFF00F0FF),
+                    endGradientColor: const Color(0xFF0B1320),
                   ),
                 ],
               ),
-            ),
-          ),
-
-          // Verification Menu
-          SlideUpMenu(
-            menuHeight: verificationMenuHeight,
-            isVisible: _showVerificationMenu,
-            onToggle: _toggleVerificationMenu,
-            dragHandle: SvgPicture.asset(
-              'assets/images/vLine.svg',
-              width: 90,
-              height: 9,
-              fit: BoxFit.contain,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(children: [const SizedBox(height: 20)]),
             ),
           ),
 
@@ -1995,9 +1864,339 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
+  // Email Input for Verification Menu
+  Widget _buildVerificationEmailInput() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth * 0.92;
+    bool hasText = _verificationEmailController.text.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: containerWidth,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1320),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF00F0FF)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 5),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Image.asset(
+                    'assets/images/SVGRepo_iconCarrier.png',
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _verificationEmailController,
+                    style: const TextStyle(
+                      color: Color(0xFF00F0FF),
+                      fontSize: 20,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'EID / Email',
+                      hintStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (value) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                CustomButton(
+                  text: hasText ? 'Clear' : 'Paste',
+                  width: 65,
+                  height: 32,
+                  fontSize: 15,
+                  textColor: Colors.white,
+                  backgroundColor: const Color(0xFF0B1320),
+                  borderColor: const Color(0xFF00F0FF),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  onTap: () async {
+                    if (hasText) {
+                      _verificationEmailController.clear();
+                    } else {
+                      final clipboardData = await Clipboard.getData(
+                        'text/plain',
+                      );
+                      final text = clipboardData?.text;
+                      if (text != null) {
+                        _verificationEmailController.text = text;
+                      }
+                    }
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+          ),
+          if (hasText)
+            Positioned(
+              left: 15,
+              top: -12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                color: const Color(0xFF0B1320),
+                child: const Text(
+                  'E-mail',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Verification Section
+  Widget _buildVerificationSection({
+    required String title,
+    required bool showCodeSent,
+    required List<TextEditingController> codeControllers,
+    required List<FocusNode> focusNodes,
+    required List<String> codeList,
+    required String type,
+    required bool codeDisabled,
+  }) {
+    bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
+    bool isCodeValid = isCodeValidMap[type] ?? true;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      child: SizedBox(
+        height: 85,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Title
+            Positioned(
+              top: -4,
+              left: -1,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  height: 1.0,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            // "Code Sent" indicator
+            if (showCodeSent)
+              Positioned(
+                top: 25,
+                left: 50,
+                child: Container(
+                  width: 110,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00F0FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    "Code Sent",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+
+            // OTP Fields
+            if (!showCodeSent)
+              Positioned(
+                top: 12,
+                left: 0,
+                child: Row(
+                  children: [
+                    ...List.generate(6, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 35,
+                              height: 35,
+                              child: TextField(
+                                controller: codeControllers[index],
+                                focusNode: focusNodes[index],
+                                showCursor: !codeDisabled,
+                                enabled: !codeDisabled,
+                                readOnly: codeDisabled,
+                                textAlign: TextAlign.center,
+                                maxLength: 1,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(
+                                  color: codeDisabled
+                                      ? Colors.grey
+                                      : isCodeCorrect
+                                      ? const Color(0xFF00F0FF)
+                                      : (isCodeValid == false
+                                            ? Colors.red
+                                            : Colors.white),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                cursorColor: codeDisabled
+                                    ? Colors.grey
+                                    : isCodeCorrect
+                                    ? const Color(0xFF00F0FF)
+                                    : (isCodeValid == false
+                                          ? Colors.red
+                                          : Colors.white),
+                                decoration: const InputDecoration(
+                                  counterText: "",
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (value) =>
+                                    _onVerificationCodeChanged(
+                                      value,
+                                      index,
+                                      codeList,
+                                      focusNodes,
+                                      type,
+                                    ),
+                              ),
+                            ),
+
+                            // Underline
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 35,
+                              height: isCodeCorrect ? 0 : 2,
+                              color: codeDisabled
+                                  ? Colors.grey
+                                  : isCodeCorrect
+                                  ? Colors.transparent
+                                  : (isCodeValid == false
+                                        ? Colors.red
+                                        : Colors.white),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // ✅ or ❌ icon
+                    if (isCodeCorrect || isCodeValid == false)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6, top: 10),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isCodeCorrect
+                                ? const Color(0xFF00F0FF)
+                                : Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isCodeCorrect ? Icons.check : Icons.close,
+                            color: isCodeCorrect ? Colors.black : Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+            // Get Code button
+            Positioned(
+              top: 21,
+              left: 280,
+              child: GestureDetector(
+                onTap: (_activeCodeType == null || _activeCodeType == type)
+                    ? () {
+                        if (_verificationEmailController.text.isEmpty) {
+                          _errorStackKey.currentState?.showError(
+                            "Please enter your EID / Email",
+                          );
+                          return;
+                        }
+                        _fetchCode(type);
+                      }
+                    : null,
+                child: Container(
+                  width: 94,
+                  height: 23,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00F0FF).withOpacity(1),
+                        blurRadius: 11.5,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: _countdowns[type]! > 0
+                      ? Text(
+                          formatCooldown(_countdowns[type]!),
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text(
+                          "Get Code",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Keypad for Freeze Account Menu
   Widget _buildFreezeAccountKeypad() {
-    // Safety check - ensure _numbers is properly initialized
     if (_numbers.isEmpty) {
       _numbers = List.generate(10, (i) => i.toString())..shuffle();
     }
@@ -2021,6 +2220,93 @@ class _SettingsScreenState extends State<SettingsScreen>
 
               return GestureDetector(
                 onTap: () => _onKeyTap(text),
+                child: Container(
+                  width: 104,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isLeftArrow
+                          ? const Color(0xFF00F0FF)
+                          : (isClear
+                                ? const Color(0xFFFF0000)
+                                : const Color(0xFF00F0FF)),
+                      width: isLeftArrow || isClear ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: isLeftArrow
+                      ? SvgPicture.asset(
+                          'assets/images/leftArrowWhite.svg',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        )
+                      : isClear
+                      ? Text(
+                          'clear',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 20,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          text,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // Keypad for Verification PIN
+  Widget _buildVerificationKeypad() {
+    if (_verificationNumbers.isEmpty) {
+      _verificationNumbers = List.generate(10, (i) => i.toString())..shuffle();
+    }
+
+    final buttons = [
+      [
+        _verificationNumbers[0],
+        _verificationNumbers[1],
+        _verificationNumbers[2],
+      ],
+      [
+        _verificationNumbers[3],
+        _verificationNumbers[4],
+        _verificationNumbers[5],
+      ],
+      [
+        _verificationNumbers[6],
+        _verificationNumbers[7],
+        _verificationNumbers[8],
+      ],
+      ['Clear', _verificationNumbers[9], 'leftArrow'],
+    ];
+
+    return Column(
+      children: buttons.map((row) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: row.map((text) {
+              final isLeftArrow = text == 'leftArrow';
+              final isClear = text == 'Clear';
+
+              return GestureDetector(
+                onTap: () => _onVerificationKeyTap(text),
                 child: Container(
                   width: 104,
                   height: 50,

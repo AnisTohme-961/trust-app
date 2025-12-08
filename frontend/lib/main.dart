@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/screens/sign_in_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
 import './providers/font_size_provider.dart';
@@ -9,10 +10,6 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import 'screens/settings_screen.dart';
-import 'screens/sign_in_screen.dart';
-import 'screens/sign_in_pattern_screen.dart';
-import'screens/forgot_eid_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +51,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: SignInPage(),
+            home: ResponsiveHomePage(),
             routes: appRoutes(),
           );
         },
