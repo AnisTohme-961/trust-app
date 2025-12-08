@@ -1,6 +1,5 @@
 package seed
 
-// imports
 import (
 	"context"
 	"fmt"
@@ -10,38 +9,52 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// InsertCurrencies inserts default currencies only if they don't exist
 func InsertCurrencies(db *mongo.Database) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	coll := db.Collection("currencies")
 
-	docs := []interface{}{
-		bson.M{"code": "ADA", "symbol": "ADA", "name": "Cardano", "symbolapi": "ADAUSDT"},
-		bson.M{"code": "AVAX", "symbol": "AVAX", "name": "Avalanche", "symbolapi": "AVAXUSDT"},
-		bson.M{"code": "BCH", "symbol": "BCH", "name": "Bitcoin Cash", "symbolapi": "BCHUSDT"},
-		bson.M{"code": "BNB", "symbol": "BNB", "name": "Binance Coin", "symbolapi": "BNBUSDT"},
-		bson.M{"code": "BTC", "symbol": "BTC", "name": "Bitcoin", "symbolapi": "BTCUSDT"},
-		bson.M{"code": "DOGE", "symbol": "DOGE", "name": "Dogecoin", "symbolapi": "DOGEUSDT"},
-		bson.M{"code": "ETC", "symbol": "ETC", "name": "Ethereum Classic", "symbolapi": "ETCUSDT"},
-		bson.M{"code": "ETH", "symbol": "ETH", "name": "Ethereum", "symbolapi": "ETHUSDT"},
-		bson.M{"code": "EUR", "symbol": "EUR", "name": "Euro", "symbolapi": "EURUSDT"},
-		bson.M{"code": "LINK", "symbol": "LINK", "name": "Chainlink", "symbolapi": "LINKUSDT"},
-		bson.M{"code": "LTC", "symbol": "LTC", "name": "Litecoin", "symbolapi": "LTCUSDT"},
-		bson.M{"code": "PAXG", "symbol": "PAXG", "name": "PAX Gold", "symbolapi": "PAXGUSDT"},
-		bson.M{"code": "PLA", "symbol": "PLA", "name": "PlayDapp", "symbolapi": "PLAUSDT"},
-		bson.M{"code": "SOL", "symbol": "SOL", "name": "Solana", "symbolapi": "SOLUSDT"},
-		bson.M{"code": "TON", "symbol": "TON", "name": "Toncoin", "symbolapi": "TONUSDT"},
-		bson.M{"code": "TRX", "symbol": "TRX", "name": "Tron", "symbolapi": "TRXUSDT"},
-		bson.M{"code": "XMR", "symbol": "XMR", "name": "Monero", "symbolapi": "XMRUSDT"},
-		bson.M{"code": "XRP", "symbol": "XRP", "name": "XRP", "symbolapi": "XRPUSDT"},
-		bson.M{"code": "ZEC", "symbol": "ZEC", "name": "Zcash", "symbolapi": "ZECUSDT"},
+	currencies := []bson.M{
+		{"code": "ADA", "symbol": "ADA", "name": "Cardano", "symbolapi": "ADAUSDT"},
+		{"code": "AVAX", "symbol": "AVAX", "name": "Avalanche", "symbolapi": "AVAXUSDT"},
+		{"code": "BCH", "symbol": "BCH", "name": "Bitcoin Cash", "symbolapi": "BCHUSDT"},
+		{"code": "BNB", "symbol": "BNB", "name": "Binance Coin", "symbolapi": "BNBUSDT"},
+		{"code": "BTC", "symbol": "BTC", "name": "Bitcoin", "symbolapi": "BTCUSDT"},
+		{"code": "DOGE", "symbol": "DOGE", "name": "Dogecoin", "symbolapi": "DOGEUSDT"},
+		{"code": "ETC", "symbol": "ETC", "name": "Ethereum Classic", "symbolapi": "ETCUSDT"},
+		{"code": "ETH", "symbol": "ETH", "name": "Ethereum", "symbolapi": "ETHUSDT"},
+		{"code": "EUR", "symbol": "EUR", "name": "Euro", "symbolapi": "EURUSDT"},
+		{"code": "LINK", "symbol": "LINK", "name": "Chainlink", "symbolapi": "LINKUSDT"},
+		{"code": "LTC", "symbol": "LTC", "name": "Litecoin", "symbolapi": "LTCUSDT"},
+		{"code": "PAXG", "symbol": "PAXG", "name": "PAX Gold", "symbolapi": "PAXGUSDT"},
+		{"code": "PLA", "symbol": "PLA", "name": "PlayDapp", "symbolapi": "PLAUSDT"},
+		{"code": "SOL", "symbol": "SOL", "name": "Solana", "symbolapi": "SOLUSDT"},
+		{"code": "TON", "symbol": "TON", "name": "Toncoin", "symbolapi": "TONUSDT"},
+		{"code": "TRX", "symbol": "TRX", "name": "Tron", "symbolapi": "TRXUSDT"},
+		{"code": "XMR", "symbol": "XMR", "name": "Monero", "symbolapi": "XMRUSDT"},
+		{"code": "XRP", "symbol": "XRP", "name": "XRP", "symbolapi": "XRPUSDT"},
+		{"code": "ZEC", "symbol": "ZEC", "name": "Zcash", "symbolapi": "ZECUSDT"},
 	}
 
-	_, err := coll.InsertMany(ctx, docs)
-	if err != nil {
-		return err
+	for _, cur := range currencies {
+		filter := bson.M{"symbolapi": cur["symbolapi"]}
+		count, err := coll.CountDocuments(ctx, filter)
+		if err != nil {
+			fmt.Println("Error checking currency:", cur["symbol"], err)
+			continue
+		}
+		if count == 0 {
+			_, err := coll.InsertOne(ctx, cur)
+			if err != nil {
+				fmt.Println("Error inserting currency:", cur["symbol"], err)
+				continue
+			}
+			fmt.Println("Inserted currency:", cur["symbol"])
+		}
 	}
-	fmt.Println("Inserted currencies")
+
+	fmt.Println("Currency seeding completed")
 	return nil
 }

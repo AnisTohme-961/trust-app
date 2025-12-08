@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_project/services/binance_service.dart';
+import 'package:flutter_project/models/currency_price_model.dart';
+import 'package:flutter_project/services/currency_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_button.dart';
@@ -78,6 +79,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showPatternLines = true;
   bool _isPatternEyeVisible = true;
 
+   List<CurrencyPrice> _currencies = [];
+
   // Verification State
   final TextEditingController _verificationEmailController =
       TextEditingController();
@@ -144,31 +147,16 @@ class _SettingsScreenState extends State<SettingsScreen>
   String? _selectedFreezeReason;
 
   // Added currency data
- final List<Map<String, String>> _currencies = [
-
-  //{"code": "BTC", "symbol": "₿", "name": "Bitcoin", "symbolapi":"BTCUSDT"},
-  
-  {"code": "ADA", "symbol": "₳", "name": "Cardano"},
-  {"code": "AVAX", "symbol": "A", "name": "Avalanche"},
-  {"code": "BCH", "symbol": "B", "name": "Bitcoin Cash"},
-  {"code": "BNB", "symbol": "Ⓑ", "name": "Binance Coin"},
-  {"code": "BTC", "symbol": "₿", "name": "Bitcoin"},
-  {"code": "DOGE", "symbol": "Ð", "name": "Dogecoin"},
-  {"code": "ETC", "symbol": "ℰ", "name": "Ethereum Classic"},
-  {"code": "ETH", "symbol": "Ξ", "name": "Ethereum"},
-  {"code": "EUR", "symbol": "€", "name": "Euro"},
-  {"code": "LINK", "symbol": "🔗", "name": "Chainlink"},
-  {"code": "LTC", "symbol": "Ł", "name": "Litecoin"},
-  {"code": "PAXG", "symbol": "🥇", "name": "PAX Gold"},
-  {"code": "PLA", "symbol": "P", "name": "PlayDapp"},
-  {"code": "SOL", "symbol": "◎", "name": "Solana"},
-  {"code": "TON", "symbol": "⧉", "name": "Toncoin"},
-  {"code": "TRX", "symbol": "T", "name": "TRON"},
-  {"code": "XMR", "symbol": "ɱ", "name": "Monero"},
-  {"code": "XRP", "symbol": "✕", "name": "XRP"},
-  {"code": "ZEC", "symbol": "Ⓩ", "name": "Zcash"},
-];
-
+  // final List<Map<String, String>> _currencies = [
+  //   {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
+  //   {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
+  //   {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
+  //   {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
+  //   {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
+  //   {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
+  //   {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
+  //   {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
+  // ];
 
   // Freeze account controller
   TextEditingController _freezeTextController = TextEditingController();
@@ -177,6 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void initState() {
     super.initState();
+    _loadCurrencies();
 
     // Shuffle numbers for security
     _numbers.shuffle();
@@ -207,6 +196,17 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     // Listen to freeze text field changes
     _freezeTextController.addListener(_onFreezeTextChanged);
+  }
+
+    Future<void> _loadCurrencies() async {
+    try {
+      final currencies = await _currencyService.getCurrencies();
+      setState(() {
+        _currencies = currencies;
+      });
+    } catch (e) {
+      print("Failed to load currencies: $e");
+    }
   }
 
   void _onFreezeTextChanged() {
@@ -716,7 +716,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _closeAllMenus();
   }
 
-  final BinanceService _binanceService = BinanceService();
+  final CurrencyService _currencyService = CurrencyService();
   double? _selectedPrice;
 
   void _selectCurrency(String currencyCode, String currencySymbol) async {
@@ -725,13 +725,15 @@ class _SettingsScreenState extends State<SettingsScreen>
   });
 
   // Build the Binance symbol (ex: BTC → BTCUSDT)
-  final binanceSymbol = currencyCode + "USDT";
+  final currencies = await _currencyService.getCurrencies();
 
-  // Fetch price
-  final priceData = await _binanceService.getPrice(binanceSymbol);
+  final selected = currencies.firstWhere(
+    (c) => c.symbol == currencyCode,
+    orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0), 
+  );
 
   setState(() {
-    _selectedPrice = priceData?.price;
+    _selectedPrice = selected.price;
   });
 
   print('Selected currency: $currencyCode');
@@ -1394,55 +1396,51 @@ class _SettingsScreenState extends State<SettingsScreen>
 
           // Currency Menu
           SlideUpMenu(
-            menuHeight: currencyMenuHeight,
-            isVisible: _showCurrencyMenu,
-            onToggle: _toggleCurrencyMenu,
-            dragHandle: SvgPicture.asset(
-              'assets/images/vLine.svg',
-              width: 90,
-              height: 9,
-              fit: BoxFit.contain,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Select Currency',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _currencies.length,
-                      itemBuilder: (context, index) {
-                        final currency = _currencies[index];
-                        final displayText =
-                            '${currency['code']}(${currency['symbol']}) - ${currency['name']}';
-                        final isSelected =
-                            _selectedCurrency ==
-                            '${currency['code']}(${currency['symbol']})';
-
-                        return _buildCurrencyOption(
-                          displayText,
-                          isSelected,
-                          () => _selectCurrency(
-                            currency['code']!,
-                            currency['symbol']!,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  menuHeight: currencyMenuHeight,
+  isVisible: _showCurrencyMenu,
+  onToggle: _toggleCurrencyMenu,
+  dragHandle: SvgPicture.asset(
+    'assets/images/vLine.svg',
+    width: 90,
+    height: 9,
+    fit: BoxFit.contain,
+  ),
+  child: Container(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      children: [
+        const SizedBox(height: 16),
+        const Text(
+          'Select Currency',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _currencies.length,
+            itemBuilder: (context, index) {
+              final currency = _currencies[index]; // CurrencyPrice object
+              final displayText =
+                  '${currency.code}(${currency.symbol}) - ${currency.name}';
+              final isSelected =
+                  _selectedCurrency == '${currency.code}(${currency.symbol})';
+
+              return _buildCurrencyOption(
+                displayText,
+                isSelected,
+                () => _selectCurrency(currency.code, currency.symbol),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  ),
+),
 
           // Freeze Account Menu - UPDATED with CustomNavigationWidget
           SlideUpMenu(

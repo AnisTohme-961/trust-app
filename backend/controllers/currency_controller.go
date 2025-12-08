@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,10 +23,26 @@ func (cc *CurrencyController) GetCurrencies(c *gin.Context) {
 	}
 	defer cursor.Close(ctx)
 
-	var currencies []bson.M
-	if err := cursor.All(ctx, &currencies); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	type SimpleCurrency struct {
+		Symbol string  `json:"symbol"`
+		Price  float64 `json:"price"`
+	}
+
+	var currencies []SimpleCurrency
+
+	for cursor.Next(ctx) {
+		var cur struct {
+			Symbol string  `bson:"symbol"`
+			Price  float64 `bson:"price"`
+		}
+		if err := cursor.Decode(&cur); err != nil {
+			fmt.Println("Decode error:", err)
+			continue
+		}
+		currencies = append(currencies, SimpleCurrency{
+			Symbol: cur.Symbol,
+			Price:  cur.Price,
+		})
 	}
 
 	c.JSON(http.StatusOK, currencies)

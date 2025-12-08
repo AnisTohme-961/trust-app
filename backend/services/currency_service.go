@@ -28,7 +28,7 @@ type TickerPrice struct {
 	Price  string `json:"price"`
 }
 
-func updateCurrencyPrices(client *mongo.Client, dbName string) error {
+func UpdateCurrencyPrices(client *mongo.Client, dbName string) error {
 	collection := client.Database(dbName).Collection("currencies")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

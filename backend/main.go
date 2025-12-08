@@ -15,6 +15,7 @@ import (
 	"flutter_project_backend/controllers"
 	"flutter_project_backend/routes"
 	"flutter_project_backend/seed"
+	"flutter_project_backend/services"
 )
 
 func main() {
@@ -61,6 +62,10 @@ func main() {
 		log.Fatal("Failed to seed currencies:", err)
 	}
 
+	if err := services.UpdateCurrencyPrices(client, mongoDB); err != nil {
+		log.Println("Error updating currency prices:", err)
+	}
+
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -79,11 +84,16 @@ func main() {
 		UserCollection: userCollection,
 	}
 
+	currencyController := &controllers.CurrencyController{
+		Collection: db.Collection("currencies"),
+	}
+
 	routes.LanguageRoutes(r, languageCollection)
 	routes.CountryRoutes(r, countryCollection)
 	routes.CodeRoutes(r, codeController)
 	routes.TOTPRoutes(r, totpController)
 	routes.UserRoutes(r, userCollection, codeController)
+	routes.CurrencyRoutes(r, currencyController)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "API is running"})
