@@ -82,6 +82,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
 
+  // New state variables for button animation effect
+  Map<String, bool> _buttonClickedMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  // Timer for button animation reset
+  Map<String, Timer?> _buttonAnimationTimers = {
+    'email': null,
+    'sms': null,
+    'auth': null,
+  };
+
   @override
   void dispose() {
     _controller.dispose();
@@ -93,6 +107,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     for (var f in _smsFocusNodes) f.dispose();
     for (var c in _authCodeControllers) c.dispose();
     for (var f in _authFocusNodes) f.dispose();
+
+    // Cancel all timers
+    _timer?.cancel();
+    for (var timer in _timers.values) {
+      timer?.cancel();
+    }
+    for (var timer in _buttonAnimationTimers.values) {
+      timer?.cancel();
+    }
     super.dispose();
   }
 
@@ -121,21 +144,55 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() {});
   }
 
-  // Add these state variables at the top of _ForgotPasswordScreenState
+  // Timer management variables
   Map<String, int> _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
   Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
 
-  // Updated _fetchCode to handle timer
-  // Changed the _fetchCode to call the api in auth service
-
+  // Updated _fetchCode to handle timer with animation effect
   void _fetchCode(String type) async {
-    // Disable if ANY type is active
-    if (_activeCodeType != null && _activeCodeType != type) return;
+    // Cancel any existing button animation timer for this type
+    _buttonAnimationTimers[type]?.cancel();
 
-    if (_countdowns[type]! > 0) return;
+    // Show visual feedback
+    setState(() {
+      _buttonClickedMap[type] = true;
+    });
+
+    // Disable if ANY type is active
+    if (_activeCodeType != null && _activeCodeType != type) {
+      // Reset animation after delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
+      return;
+    }
+
+    if (_countdowns[type]! > 0) {
+      // Reset animation after delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
+      return;
+    }
 
     if (_controller.text.isEmpty) {
       _errorStackKey.currentState?.showError("Please enter your EID / Email");
+      // Reset animation after delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
       return;
     }
 
@@ -184,114 +241,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _errorStackKey.currentState?.showError(
         "Failed to send code. Please try again.",
       );
+    } finally {
+      // Reset animation after short delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
     }
   }
-
-  //   void _fetchCode(String type) async {
-
-  //   if (_activeCodeType != null && _activeCodeType != type) {
-  //     return;
-  //   }
-
-  //   if (_countdowns[type]! > 0) return; // already cooling down
-
-  //   if (_controller.text.isEmpty) {
-  //     _errorStackKey.currentState?.showError("Please enter your EID / Email");
-  //     return;
-  //   }
-
-  //   final identifier = _controller.text.trim();
-
-  //   try {
-  //     // 🔵 Step 1 — Call backend based on type
-  //     Map<String, dynamic> data;
-
-  //     if (type == "auth") {
-  //       data = await AuthService.generateTOTP(identifier);
-  //     } else {
-  //       data = await AuthService.sendResetCode(identifier);
-  //     }
-
-  //     // ---- Server returns: code, attempts, cooldown ----
-  //     final int cooldown = data["cooldown"] ?? 60;
-
-  //     // 🔵 Step 2 — Show "Code Sent"
-  //     _setCodeSentFlag(type, true);
-  //     Future.delayed(const Duration(seconds: 2), () {
-  //       if (mounted) _setCodeSentFlag(type, false);
-  //     });
-
-  //     // 🔵 Step 3 — Start cooldown using server cooldown
-  //     setState(() {
-  //       _activeCodeType = type;
-  //       _countdowns[type] = cooldown;
-  //     });
-
-  //     _timers[type]?.cancel();
-  //     _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
-  //       if (!mounted) return;
-  //       setState(() {
-  //         if (_countdowns[type]! > 0) {
-  //           _countdowns[type] = _countdowns[type]! - 1;
-  //         } else {
-  //           timer.cancel();
-  //           _timers[type] = null;
-  //         }
-  //       });
-  //     });
-  //   } catch (e) {
-  //     _errorStackKey.currentState?.showError(
-  //       "Failed to send code. Please try again.",
-  //     );
-  //   }
-  // }
-
-  // void _fetchCode(String type) async {
-  //   if (_countdowns[type]! > 0) return;
-
-  //   if (_controller.text.isEmpty) {
-  //     _errorStackKey.currentState?.showError("Please enter your EID / Email");
-  //     return;
-  //   }
-
-  //   try {
-  //     if (type == 'auth') {
-  //       final totpData = await AuthService.generateTOTP(
-  //         _controller.text.trim(),
-  //       );
-  //       print("Secret: ${totpData['secret']} QR URL: ${totpData['qrUrl']}");
-  //     } else {
-  //       await AuthService.sendResetCode(_controller.text.trim());
-  //     }
-
-  //     // Temporarily show "Code Sent"
-  //     _setCodeSentFlag(type, true);
-
-  //     // Hide "Code Sent" after 2 seconds (does not block input)
-  //     Timer(const Duration(seconds: 2), () {
-  //       _setCodeSentFlag(type, false);
-  //     });
-
-  //     // Start 2-minute cooldown for button
-  //     setState(() {
-  //       _countdowns[type] = 120;
-  //     });
-
-  //     _timers[type]?.cancel();
-  //     _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
-  //       setState(() {
-  //         if (_countdowns[type]! > 0) {
-  //           _countdowns[type] = _countdowns[type]! - 1;
-  //         } else {
-  //           timer.cancel();
-  //           _timers.remove(type);
-  //         }
-  //       });
-  //     });
-  //   } catch (e) {
-  //     _errorStackKey.currentState?.showError(e.toString());
-  //   }
-  // }
 
   void _setCodeSentFlag(String type, bool value) {
     setState(() {
@@ -442,6 +402,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     codeList: _emailCode,
                     type: 'email',
                     codeDisabled: codeDisabled,
+                    isClicked: _buttonClickedMap['email'] ?? false,
                   ),
                   const SizedBox(height: 10),
                   buildVerificationSection(
@@ -452,6 +413,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     codeList: _smsCode,
                     type: 'sms',
                     codeDisabled: codeDisabled,
+                    isClicked: _buttonClickedMap['sms'] ?? false,
                   ),
                   const SizedBox(height: 10),
                   buildVerificationSection(
@@ -462,6 +424,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     codeList: _authCode,
                     type: 'auth',
                     codeDisabled: codeDisabled,
+                    isClicked: _buttonClickedMap['auth'] ?? false,
                   ),
                   const SizedBox(height: 0),
                   buildPasswordRow(
@@ -1047,6 +1010,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required List<String> codeList,
     required String type,
     required bool codeDisabled,
+    required bool isClicked,
   }) {
     bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
     bool isCodeValid = isCodeValidMap[type] ?? true;
@@ -1146,8 +1110,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                 ),
-
-                                // Replace the onChanged callback in buildVerificationSection with this:
                                 onChanged: (value) async {
                                   // Update current field
                                   codeList[index] = value.isEmpty
@@ -1298,59 +1260,88 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
 
-            // 📩 Get Code button
+            // 📩 Get Code button WITH ANIMATION EFFECT
             Positioned(
               top: 21,
               left: 280,
               child: GestureDetector(
                 onTap: (_activeCodeType == null || _activeCodeType == type)
                     ? () {
+                        // Show visual feedback immediately
+                        setState(() {
+                          _buttonClickedMap[type] = true;
+                        });
+
                         if (_controller.text.isEmpty) {
                           _errorStackKey.currentState?.showError(
                             "Please enter your EID / Email",
                           );
+                          // Reset animation after delay
+                          Future.delayed(Duration(milliseconds: 200), () {
+                            if (mounted) {
+                              setState(() {
+                                _buttonClickedMap[type] = false;
+                              });
+                            }
+                          });
                           return;
                         }
                         _fetchCode(type);
                       }
                     : null,
-                child: Container(
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 100),
                   width: 94,
                   height: 23,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
                     borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withOpacity(1),
-                        blurRadius: 11.5,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
+                    boxShadow: _buttonClickedMap[type]!
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.8),
+                              blurRadius: 11.5,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
                   ),
                   alignment: Alignment.center,
                   child: _countdowns[type]! > 0
                       ? Text(
                           formatCooldown(_countdowns[type]!),
-
-                          // "${_countdowns[type]! ~/ 60}m ${_countdowns[type]! % 60}s",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: Colors.black,
+                            color: _countdowns[type]! > 0
+                                ? const Color(0xFF0B1320)
+                                : (_buttonClickedMap[type]!
+                                      ? Colors.white
+                                      : Colors.black),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           "Get Code",
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: Colors.black,
+                            color: _buttonClickedMap[type]!
+                                ? Colors.white
+                                : Colors.black,
                           ),
                         ),
                 ),

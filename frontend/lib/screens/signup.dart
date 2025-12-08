@@ -216,24 +216,9 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                 controller: _firstNameController,
                                 focusNode: _firstFocusNode,
                                 onChanged: (value) {
-                                  // Capitalize the first letter
-                                  String capitalized = value.isNotEmpty
-                                      ? value[0].toUpperCase() +
-                                            value.substring(1)
-                                      : '';
-
-                                  if (capitalized != value) {
-                                    _firstNameController.value =
-                                        TextEditingValue(
-                                          text: capitalized,
-                                          selection: TextSelection.collapsed(
-                                            offset: capitalized.length,
-                                          ),
-                                        );
-                                  }
-
+                                  // No auto-capitalization - preserve user's exact input
                                   context.read<UserProvider>().setFirstName(
-                                    capitalized,
+                                    value,
                                   );
                                 },
                                 style: const TextStyle(
@@ -285,24 +270,9 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                 controller: _lastNameController,
                                 focusNode: _lastFocusNode,
                                 onChanged: (value) {
-                                  // Capitalize the first letter
-                                  String capitalized = value.isNotEmpty
-                                      ? value[0].toUpperCase() +
-                                            value.substring(1)
-                                      : '';
-
-                                  if (capitalized != value) {
-                                    _lastNameController.value =
-                                        TextEditingValue(
-                                          text: capitalized,
-                                          selection: TextSelection.collapsed(
-                                            offset: capitalized.length,
-                                          ),
-                                        );
-                                  }
-
+                                  // No auto-capitalization - preserve user's exact input
                                   context.read<UserProvider>().setLastName(
-                                    capitalized,
+                                    value,
                                   );
                                 },
                                 style: const TextStyle(
@@ -376,6 +346,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                             TextField(
                               controller: _sponsorController,
                               focusNode: _sponsorFocusNode,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               onChanged: (value) {
                                 context.read<UserProvider>().setSponsorCode(
                                   value,
@@ -393,7 +367,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                   horizontal: 15,
                                   vertical: 12,
                                 ),
-                                hintText: "Sponsor Code or link (Optional)",
+                                hintText: "Sponsor Code (Optional)",
                                 hintStyle: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
@@ -449,13 +423,24 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                           );
                                       if (clipboardData != null &&
                                           clipboardData.text != null) {
-                                        setState(() {
-                                          _sponsorController.text =
-                                              clipboardData.text!;
-                                          signUpData.setSponsorCode(
-                                            clipboardData.text!,
-                                          );
-                                        });
+                                        // Filter only digits from clipboard
+                                        final digitsOnly = clipboardData.text!
+                                            .replaceAll(RegExp(r'[^0-9]'), '');
+                                        if (digitsOnly.isNotEmpty) {
+                                          setState(() {
+                                            _sponsorController.text =
+                                                digitsOnly;
+                                            signUpData.setSponsorCode(
+                                              digitsOnly,
+                                            );
+                                          });
+                                        } else {
+                                          // Show error if clipboard doesn't contain digits
+                                          widget.errorStackKey.currentState
+                                              ?.showError(
+                                                "Clipboard doesn't contain valid sponsor code (digits only).",
+                                              );
+                                        }
                                       }
                                     } else {
                                       setState(() {
@@ -1072,6 +1057,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                     _firstNameController,
                                                 focusNode: _firstFocusNode,
                                                 onChanged: (value) {
+                                                  // No auto-capitalization - preserve user's exact input
                                                   context
                                                       .read<UserProvider>()
                                                       .setFirstName(value);
@@ -1140,6 +1126,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                 controller: _lastNameController,
                                                 focusNode: _lastFocusNode,
                                                 onChanged: (value) {
+                                                  // No auto-capitalization - preserve user's exact input
                                                   context
                                                       .read<UserProvider>()
                                                       .setLastName(value);
@@ -1234,6 +1221,12 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                               TextField(
                                                 controller: _sponsorController,
                                                 focusNode: _sponsorFocusNode,
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter
+                                                      .digitsOnly,
+                                                ],
                                                 onChanged: (value) {
                                                   context
                                                       .read<UserProvider>()
@@ -1253,7 +1246,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                         vertical: 16,
                                                       ),
                                                   hintText:
-                                                      "Sponsor Code or link (Optional)",
+                                                      "Sponsor Code (Optional)",
                                                   hintStyle: const TextStyle(
                                                     fontFamily: 'Inter',
                                                     fontWeight: FontWeight.w500,
@@ -1338,17 +1331,36 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                             clipboardData
                                                                     .text !=
                                                                 null) {
-                                                          setState(() {
-                                                            _sponsorController
-                                                                    .text =
-                                                                clipboardData
-                                                                    .text!;
-                                                            signUpData
-                                                                .setSponsorCode(
-                                                                  clipboardData
-                                                                      .text!,
+                                                          // Filter only digits from clipboard
+                                                          final digitsOnly =
+                                                              clipboardData
+                                                                  .text!
+                                                                  .replaceAll(
+                                                                    RegExp(
+                                                                      r'[^0-9]',
+                                                                    ),
+                                                                    '',
+                                                                  );
+                                                          if (digitsOnly
+                                                              .isNotEmpty) {
+                                                            setState(() {
+                                                              _sponsorController
+                                                                      .text =
+                                                                  digitsOnly;
+                                                              signUpData
+                                                                  .setSponsorCode(
+                                                                    digitsOnly,
+                                                                  );
+                                                            });
+                                                          } else {
+                                                            // Show error if clipboard doesn't contain digits
+                                                            widget
+                                                                .errorStackKey
+                                                                .currentState
+                                                                ?.showError(
+                                                                  "Clipboard doesn't contain valid sponsor code (digits only).",
                                                                 );
-                                                          });
+                                                          }
                                                         }
                                                       } else {
                                                         setState(() {
@@ -1637,7 +1649,6 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
     );
   }
 
-  // ... rest of your methods remain exactly the same
   Widget _buildGenderButton(
     String gender,
     String iconPath,

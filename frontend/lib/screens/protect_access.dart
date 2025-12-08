@@ -60,6 +60,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _isTyping = false;
   bool _codeDisabled = false;
 
+  // Add this state variable
+  bool _isClicked = false;
+
   String verifiedCode = "";
 
   late final ScrollController _monthController;
@@ -116,17 +119,16 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   List<Map<String, String>> get countries => CountriesService.getCountries();
 
   String formatCooldown(int secondsLeft) {
-  if (secondsLeft >= 3600) {
-    int hours = secondsLeft ~/ 3600;
-    int minutes = (secondsLeft % 3600) ~/ 60;
-    return "${hours}h ${minutes}m";
-  } else {
-    int minutes = secondsLeft ~/ 60;
-    int seconds = secondsLeft % 60;
-    return "${minutes}m ${seconds}s";
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
   }
-}
-
 
   List<String> generate6DigitCode() {
     final rnd = Random.secure();
@@ -146,83 +148,84 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool? _isCodeValid;
 
   Future<void> fetchCodeFromGo() async {
-  final email = _emailController.text.trim();
-  final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final email = _emailController.text.trim();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-  if (email.isEmpty) {
-    errorStackKey.currentState?.showError("Please enter your email first.");
-    return;
-  }
-
-  final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
-  if (!RegExp(emailPattern).hasMatch(email)) {
-    errorStackKey.currentState?.showError("Please enter a valid email address.");
-    return;
-  }
-
-  // 🔥 stop old timer for that email
-  userProvider.emailTimers[email]?.cancel();
-
-  final response = await http.post(
-    Uri.parse("${ApiConstants.baseUrl}/get-code"),
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({"email": email}),
-  );
-
-  final data = jsonDecode(response.body);
-
-  if (response.statusCode == 200) {
-    serverCode = data['code'];
-    _attempts = data['attempts'] ?? 0;
-    int cooldown = data['cooldown'] ?? 0;
-
-    // save cooldown in provider
-    userProvider.setEmailCooldown(email, cooldown);
-
-    setState(() {
-      _showCodeSent = true;
-      _hideInputFields = false;
-      _codeDisabled = cooldown > 0;
-    });
-
-    // start timer if cooldown exists
-    if (cooldown > 0) {
-      Timer timer = Timer.periodic(const Duration(seconds: 1), (t) {
-        int current = userProvider.getEmailCooldown(email);
-
-        if (current > 0) {
-          userProvider.setEmailCooldown(email, current - 1);
-          if (mounted) setState(() {});
-        } else {
-          t.cancel();
-          userProvider.setEmailTimer(email, null);
-
-          if (mounted) {
-            setState(() {
-              _codeDisabled = false;
-              _hideInputFields = true;
-            });
-          }
-        }
-      });
-
-      // save timer into provider
-      userProvider.setEmailTimer(email, timer);
-    } else {
-      setState(() => _hideInputFields = true);
+    if (email.isEmpty) {
+      errorStackKey.currentState?.showError("Please enter your email first.");
+      return;
     }
 
-    // hide "code sent" message
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _showCodeSent = false);
-    });
-  } else {
-    errorStackKey.currentState?.showError(
-      data['error'] ?? "Failed to send code. Please try again.",
-    );
-  }
-}
+    final emailPattern = r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$';
+    if (!RegExp(emailPattern).hasMatch(email)) {
+      errorStackKey.currentState?.showError(
+        "Please enter a valid email address.",
+      );
+      return;
+    }
 
+    // 🔥 stop old timer for that email
+    userProvider.emailTimers[email]?.cancel();
+
+    final response = await http.post(
+      Uri.parse("${ApiConstants.baseUrl}/get-code"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      serverCode = data['code'];
+      _attempts = data['attempts'] ?? 0;
+      int cooldown = data['cooldown'] ?? 0;
+
+      // save cooldown in provider
+      userProvider.setEmailCooldown(email, cooldown);
+
+      setState(() {
+        _showCodeSent = true;
+        _hideInputFields = false;
+        _codeDisabled = cooldown > 0;
+      });
+
+      // start timer if cooldown exists
+      if (cooldown > 0) {
+        Timer timer = Timer.periodic(const Duration(seconds: 1), (t) {
+          int current = userProvider.getEmailCooldown(email);
+
+          if (current > 0) {
+            userProvider.setEmailCooldown(email, current - 1);
+            if (mounted) setState(() {});
+          } else {
+            t.cancel();
+            userProvider.setEmailTimer(email, null);
+
+            if (mounted) {
+              setState(() {
+                _codeDisabled = false;
+                _hideInputFields = true;
+              });
+            }
+          }
+        });
+
+        // save timer into provider
+        userProvider.setEmailTimer(email, timer);
+      } else {
+        setState(() => _hideInputFields = true);
+      }
+
+      // hide "code sent" message
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _showCodeSent = false);
+      });
+    } else {
+      errorStackKey.currentState?.showError(
+        data['error'] ?? "Failed to send code. Please try again.",
+      );
+    }
+  }
 
   // Future<void> fetchCodeFromGo() async {
   //   final email = _emailController.text.trim();
@@ -310,41 +313,40 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   //   }
   // }
 
-Future<bool> verifyCode(String email, String code) async {
-  final userProvider = Provider.of<UserProvider>(context, listen: false);
+  Future<bool> verifyCode(String email, String code) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-  final response = await http.post(
-    Uri.parse("${ApiConstants.baseUrl}/verify-code"),
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({"email": email.trim(), "code": code.trim()}),
-  );
+    final response = await http.post(
+      Uri.parse("${ApiConstants.baseUrl}/verify-code"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email.trim(), "code": code.trim()}),
+    );
 
-  if (response.statusCode == 200) {
-    final result = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
 
-    if (result['valid'] == true) {
+      if (result['valid'] == true) {
+        // ❗ cancel that email's timer
+        userProvider.emailTimers[email]?.cancel();
+        userProvider.setEmailTimer(email, null);
 
-      // ❗ cancel that email's timer
-      userProvider.emailTimers[email]?.cancel();
-      userProvider.setEmailTimer(email, null);
+        userProvider.setEmailCode(code);
+        // userProvider.setCodeCorrect(true);
 
-      userProvider.setEmailCode(code);
-      // userProvider.setCodeCorrect(true);
+        if (mounted) {
+          setState(() {
+            verifiedCode = code;
+          });
+        }
 
-      if (mounted) {
-        setState(() {
-          verifiedCode = code;
-        });
+        return true;
+      } else {
+        return false;
       }
-
-      return true;
     } else {
       return false;
     }
-  } else {
-    return false;
   }
-}
 
   // Future<bool> verifyCode(String email, String code) async {
   //   final body = {"email": email.trim(), "code": code.trim()};
@@ -391,13 +393,35 @@ Future<bool> verifyCode(String email, String code) async {
   String get _dobText =>
       "${_days[_selectedDay].toString().padLeft(2, '0')} ${_months[_selectedMonth]} ${_years[_selectedYear]}";
 
-  void _snapToItem(ScrollController controller, int selectedIndex) {
-    final targetOffset = selectedIndex * 40.0 - (286 / 2 - 20);
-    controller.animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOut,
-    );
+  void _snapToCenter(ScrollController controller, int selectedIndex) {
+    final itemHeight = 40.0;
+    final containerHeight = 286.0;
+
+    // Calculate the offset to center the selected item
+    // The center highlight container is in the middle of the 286px height
+    // We want to position the selected item at: (containerHeight / 2) - (itemHeight / 2)
+    // Which is: 286/2 - 40/2 = 143 - 20 = 123px from top
+    final centerOffset = (containerHeight / 2) - (itemHeight / 2); // 123px
+
+    // The target offset is the position where this item would be at 123px from top
+    final targetOffset = selectedIndex * itemHeight;
+
+    // The scroll position needed is: targetOffset - centerOffset
+    final scrollPosition = targetOffset - centerOffset;
+
+    // Clamp to valid scroll range
+    final maxScroll = controller.position.maxScrollExtent;
+    final clampedPosition = scrollPosition.clamp(0.0, maxScroll);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.hasClients) {
+        controller.animateTo(
+          clampedPosition,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -414,13 +438,22 @@ Future<bool> verifyCode(String email, String code) async {
       onDobPicked();
     }
 
+    // Initialize controllers to center selected items
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _snapToCenter(_monthController, _selectedMonth);
+      _snapToCenter(_dayController, _selectedDay);
+      _snapToCenter(_yearController, _selectedYear);
+    });
+
     _monthController.addListener(() {
-      final newIndex = (_monthController.offset / 40).round();
-      if (newIndex != _selectedMonth &&
-          newIndex >= 0 &&
-          newIndex < _months.length) {
+      // Calculate which item is currently centered
+      final centerOffset = _monthController.offset + (286 / 2) - 20;
+      final newIndex = (centerOffset / 40).round();
+      final clampedIndex = newIndex.clamp(0, _months.length - 1);
+
+      if (clampedIndex != _selectedMonth) {
         setState(() {
-          _selectedMonth = newIndex;
+          _selectedMonth = clampedIndex;
           _datePicked = true;
           _updateDobController();
         });
@@ -428,12 +461,14 @@ Future<bool> verifyCode(String email, String code) async {
     });
 
     _dayController.addListener(() {
-      final newIndex = (_dayController.offset / 40).round();
-      if (newIndex != _selectedDay &&
-          newIndex >= 0 &&
-          newIndex < _days.length) {
+      // Calculate which item is currently centered
+      final centerOffset = _dayController.offset + (286 / 2) - 20;
+      final newIndex = (centerOffset / 40).round();
+      final clampedIndex = newIndex.clamp(0, _days.length - 1);
+
+      if (clampedIndex != _selectedDay) {
         setState(() {
-          _selectedDay = newIndex;
+          _selectedDay = clampedIndex;
           _datePicked = true;
           _updateDobController();
         });
@@ -441,12 +476,14 @@ Future<bool> verifyCode(String email, String code) async {
     });
 
     _yearController.addListener(() {
-      final newIndex = (_yearController.offset / 40).round();
-      if (newIndex != _selectedYear &&
-          newIndex >= 0 &&
-          newIndex < _years.length) {
+      // Calculate which item is currently centered
+      final centerOffset = _yearController.offset + (286 / 2) - 20;
+      final newIndex = (centerOffset / 40).round();
+      final clampedIndex = newIndex.clamp(0, _years.length - 1);
+
+      if (clampedIndex != _selectedYear) {
         setState(() {
-          _selectedYear = newIndex;
+          _selectedYear = clampedIndex;
           _datePicked = true;
           _updateDobController();
         });
@@ -505,66 +542,65 @@ Future<bool> verifyCode(String email, String code) async {
     super.dispose();
   }
 
-void _onChanged(String value, int index) async {
-  if (value.length > 1) {
-    _codecontrollers[index].text = value[0];
-  }
-
-  setState(() {
-    code[index] = _codecontrollers[index].text;
-    _isTyping = code.any((c) => c.isNotEmpty);
-    _isCodeValid = true;
-  });
-
-  if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
-  if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
-
-  if (code.every((c) => c.isNotEmpty)) {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      errorStackKey.currentState?.showError("Email is required.");
-      return;
+  void _onChanged(String value, int index) async {
+    if (value.length > 1) {
+      _codecontrollers[index].text = value[0];
     }
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    setState(() {
+      code[index] = _codecontrollers[index].text;
+      _isTyping = code.any((c) => c.isNotEmpty);
+      _isCodeValid = true;
+    });
 
-    // Send code verification request
-    bool valid = await verifyCode(email, code.join());
+    if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
+    if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
 
-    if (valid) {
-      // ✅ Code verified
-      userProvider.setCodeCorrect(true);
-      userProvider.setCodeValid(true);
-      setState(() {
-        _tooManyAttempts = false;
-      });
+    if (code.every((c) => c.isNotEmpty)) {
+      final email = _emailController.text.trim();
+      if (email.isEmpty) {
+        errorStackKey.currentState?.showError("Email is required.");
+        return;
+      }
 
-      // Cancel only the timer for this email
-      userProvider.emailTimers[email]?.cancel();
-      userProvider.setEmailTimer(email, null);
-      userProvider.setEmailCooldown(email, 0);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    } else {
-      // ❌ Code invalid
-      _attempts++;
-      userProvider.setCodeCorrect(false);
-      setState(() {
-        _isCodeValid = false;
-      });
+      // Send code verification request
+      bool valid = await verifyCode(email, code.join());
 
-      // Reset the input after 3 seconds
-      Timer(const Duration(seconds: 3), () {
-        if (!mounted) return;
+      if (valid) {
+        // ✅ Code verified
+        userProvider.setCodeCorrect(true);
+        userProvider.setCodeValid(true);
         setState(() {
-          for (var c in _codecontrollers) c.clear();
-          code = ["", "", "", "", "", ""];
-          _isCodeValid = true;
+          _tooManyAttempts = false;
         });
-        _focusNodes[0].requestFocus();
-      });
+
+        // Cancel only the timer for this email
+        userProvider.emailTimers[email]?.cancel();
+        userProvider.setEmailTimer(email, null);
+        userProvider.setEmailCooldown(email, 0);
+      } else {
+        // ❌ Code invalid
+        _attempts++;
+        userProvider.setCodeCorrect(false);
+        setState(() {
+          _isCodeValid = false;
+        });
+
+        // Reset the input after 3 seconds
+        Timer(const Duration(seconds: 3), () {
+          if (!mounted) return;
+          setState(() {
+            for (var c in _codecontrollers) c.clear();
+            code = ["", "", "", "", "", ""];
+            _isCodeValid = true;
+          });
+          _focusNodes[0].requestFocus();
+        });
+      }
     }
   }
-}
 
   // void _onChanged(String value, int index) async {
   //   if (value.length > 1) {
@@ -629,6 +665,10 @@ void _onChanged(String value, int index) async {
       _datePicked = true;
     });
     onDobPicked();
+    // Snap to center after selection
+    _snapToCenter(_monthController, monthIndex);
+    _snapToCenter(_dayController, dayIndex);
+    _snapToCenter(_yearController, yearIndex);
   }
 
   void onDobPicked() {
@@ -650,7 +690,6 @@ void _onChanged(String value, int index) async {
     final year = _years[_selectedYear].toString();
     return "$month $day $year";
   }
-
 
   // void restoreCooldown() async {
   //   final storage = FlutterSecureStorage();
@@ -689,7 +728,6 @@ void _onChanged(String value, int index) async {
   Widget build(BuildContext context) {
     const double dropdownHeight = 650;
 
-
     final userProvider = Provider.of<UserProvider>(context);
 
     // Prefill logic remains the same...
@@ -713,49 +751,55 @@ void _onChanged(String value, int index) async {
       _selectedDay = day - 1;
       _datePicked = true;
       _dobController.text = "${_months[monthIndex]} $day $year";
+
+      // Center the pre-filled values
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _snapToCenter(_monthController, _selectedMonth);
+        _snapToCenter(_dayController, _selectedDay);
+        _snapToCenter(_yearController, _selectedYear);
+      });
     }
 
     final email = _emailController.text.trim();
     final cooldown = userProvider.getEmailCooldown(email);
 
-// 1. AUTO-FILL CODE IF PROVIDER HAS A STORED VERIFIED CODE
-if (userProvider.emailCode.isNotEmpty && code.every((c) => c.isEmpty)) {
-  final saved = userProvider.emailCode;
+    // 1. AUTO-FILL CODE IF PROVIDER HAS A STORED VERIFIED CODE
+    if (userProvider.emailCode.isNotEmpty && code.every((c) => c.isEmpty)) {
+      final saved = userProvider.emailCode;
 
-  for (int i = 0; i < saved.length; i++) {
-    _codecontrollers[i].text = saved[i];
-    code[i] = saved[i];
-  }
+      for (int i = 0; i < saved.length; i++) {
+        _codecontrollers[i].text = saved[i];
+        code[i] = saved[i];
+      }
 
-  // Optionally, if you still track validity
-  userProvider.setEmailCodeValid(email, true);
-}
-// int cooldown = userProvider.getEmailCooldown(email);
-
-if (cooldown > 0 && userProvider.emailTimers[email] == null) {
-  // cancel local timer, we don't use it anymore
-  // _timer?.cancel();
-
-  Timer t = Timer.periodic(const Duration(seconds: 1), (timer) {
-    int left = userProvider.getEmailCooldown(email);
-
-    if (left > 1) {
-      left--;
-      userProvider.setEmailCooldown(email, left);
-    } else {
-      timer.cancel();
-      userProvider.setEmailCooldown(email, 0);
-      userProvider.setEmailTimer(email, null);
-
-      errorStackKey.currentState?.showError(
-        "Code expired. Please request a new one.",
-      );
+      // Optionally, if you still track validity
+      userProvider.setEmailCodeValid(email, true);
     }
-  });
+    // int cooldown = userProvider.getEmailCooldown(email);
 
-  userProvider.setEmailTimer(email, t);
-}
+    if (cooldown > 0 && userProvider.emailTimers[email] == null) {
+      // cancel local timer, we don't use it anymore
+      // _timer?.cancel();
 
+      Timer t = Timer.periodic(const Duration(seconds: 1), (timer) {
+        int left = userProvider.getEmailCooldown(email);
+
+        if (left > 1) {
+          left--;
+          userProvider.setEmailCooldown(email, left);
+        } else {
+          timer.cancel();
+          userProvider.setEmailCooldown(email, 0);
+          userProvider.setEmailTimer(email, null);
+
+          errorStackKey.currentState?.showError(
+            "Code expired. Please request a new one.",
+          );
+        }
+      });
+
+      userProvider.setEmailTimer(email, t);
+    }
 
     // if (userProvider.emailCode.isNotEmpty && code.every((c) => c.isEmpty)) {
     //   final emailCode = userProvider.emailCode;
@@ -1183,8 +1227,10 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                       focusNode: _emailFocusNode,
                                       decoration: const InputDecoration(
                                         border: InputBorder.none,
-                                        isCollapsed: true,
-                                        contentPadding: EdgeInsets.only(top: 0),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 16.0,
+                                        ),
                                       ),
                                       onChanged: (value) {
                                         final userProvider =
@@ -1193,15 +1239,19 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                               listen: false,
                                             );
                                         userProvider.setEmail(value.trim());
-                                        setState(
-                                          () {},
-                                        ); // Update label position
+                                        setState(() {});
                                       },
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Inter',
                                         color: Color(0xFF00F0FF),
+                                        height:
+                                            1.0, // Added to fix text baseline
+                                      ),
+                                      strutStyle: const StrutStyle(
+                                        height: 1.0,
+                                        leading: 0,
                                       ),
                                     ),
                                   ),
@@ -1218,7 +1268,7 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                 (_emailController.text.isNotEmpty ||
                                     _isEmailFocused)
                                 ? -10
-                                : 15,
+                                : 20,
                             child: AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
                               style: TextStyle(
@@ -1235,6 +1285,7 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                         _isEmailFocused)
                                     ? const Color(0xFF0B1320)
                                     : Colors.transparent,
+                                height: 1.0, // Added to fix label position
                               ),
                               child: const Text("Email"),
                             ),
@@ -1294,6 +1345,8 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                         fontWeight: FontWeight.w500,
                                         fontSize: 15,
                                         color: Colors.white,
+                                        height:
+                                            1.0, // Added to center text vertically
                                       ),
                                     ),
                                   ),
@@ -1389,16 +1442,13 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                                 enabled: !_codeDisabled,
                                                 readOnly: _codeDisabled,
                                                 showCursor: !_codeDisabled,
-
                                                 controller:
                                                     _codecontrollers[index],
                                                 focusNode: _focusNodes[index],
-
                                                 textAlign: TextAlign.center,
                                                 maxLength: 1,
                                                 keyboardType:
                                                     TextInputType.number,
-
                                                 style: TextStyle(
                                                   color: _codeDisabled
                                                       ? Colors
@@ -1414,14 +1464,12 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
                                                 ),
-
                                                 cursorColor: Colors.white,
                                                 decoration:
                                                     const InputDecoration(
                                                       counterText: "",
                                                       border: InputBorder.none,
                                                     ),
-
                                                 onChanged: _codeDisabled
                                                     ? null
                                                     : (value) => _onChanged(
@@ -1450,26 +1498,32 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                   if (userProvider.isCodeCorrect ||
                                       _isCodeValid == false) ...[
                                     const SizedBox(width: 10),
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 300,
-                                      ),
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: userProvider.isCodeCorrect
-                                            ? const Color(0xFF00F0FF)
-                                            : Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        userProvider.isCodeCorrect
-                                            ? Icons.check
-                                            : Icons.close,
-                                        color: userProvider.isCodeCorrect
-                                            ? Colors.black
-                                            : Colors.white,
-                                        size: 16,
+                                    Transform.translate(
+                                      offset: const Offset(
+                                        -5,
+                                        0,
+                                      ), // Move 5 pixels to the left
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: userProvider.isCodeCorrect
+                                              ? const Color(0xFF00F0FF)
+                                              : Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          userProvider.isCodeCorrect
+                                              ? Icons.check
+                                              : Icons.close,
+                                          color: userProvider.isCodeCorrect
+                                              ? Colors.black
+                                              : Colors.white,
+                                          size: 16,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1477,18 +1531,40 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                               ),
                             ),
                           ),
-                        
+
                         Positioned(
                           top: 21,
                           right: 0,
                           child: GestureDetector(
                             onTap: (cooldown == 0 && !_isTyping)
-                                ? fetchCodeFromGo
+                                ? () {
+                                    // Show visual feedback
+                                    setState(() {
+                                      _isClicked = true;
+                                    });
+
+                                    // Call your function
+                                    fetchCodeFromGo();
+
+                                    // Reset after short delay (200ms is good for visual feedback)
+                                    Future.delayed(
+                                      Duration(milliseconds: 200),
+                                      () {
+                                        if (mounted) {
+                                          setState(() {
+                                            _isClicked = false;
+                                          });
+                                        }
+                                      },
+                                    );
+                                  }
                                 : null,
-                            child: Container(
-                              height: 27,
+                            child: AnimatedContainer(
+                              duration: Duration(milliseconds: 100),
+                              width: 100,
+                              height: 30,
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
+                                gradient: LinearGradient(
                                   colors: [
                                     Color(0xFF00F0FF),
                                     Color(0xFF0177B3),
@@ -1496,31 +1572,41 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF00F0FF,
-                                    ).withOpacity(0.8),
-                                    blurRadius: 15,
-                                    spreadRadius: 2,
-                                    offset: const Offset(0, 0),
-                                  ),
-                                ],
+                                boxShadow: _isClicked
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.4),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                          offset: const Offset(0, 0),
+                                        ),
+                                      ]
+                                    : [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.8),
+                                          blurRadius: 15,
+                                          spreadRadius: 2,
+                                          offset: const Offset(0, 0),
+                                        ),
+                                      ],
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Center(
                                 child: cooldown > 0
                                     ? Text(
-                                      formatCooldown(cooldown),
-                                        // "${cooldown ~/ 60}m ${cooldown % 60}s",
-                                        style: const TextStyle(
+                                        formatCooldown(cooldown),
+                                        style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w500,
                                           fontSize: 18,
                                           color: Colors.black,
                                         ),
                                       )
-                                    : const Text(
+                                    : Text(
                                         "Get Code",
                                         style: TextStyle(
                                           fontFamily: 'Inter',
@@ -1706,6 +1792,30 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
 
                 Divider(color: Colors.white24, thickness: 0.5),
 
+                // Selected Country Confirmation - NEW ADDITION
+                if (_selectedCountry.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF00F0FF),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Selected: $_selectedCountry',
+                          style: TextStyle(
+                            color: Color(0xFF00F0FF),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // LIST - Updated to use emoji flags
                 Expanded(
                   child: _filteredCountries.isEmpty
@@ -1723,6 +1833,8 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                           itemCount: _filteredCountries.length,
                           itemBuilder: (context, index) {
                             final country = _filteredCountries[index];
+                            final isSelected =
+                                country['name'] == _selectedCountry;
 
                             return GestureDetector(
                               onTap: () => _selectCountry(country),
@@ -1731,7 +1843,6 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                 child: Row(
                                   children: [
                                     // Using emoji flags instead of network images
-                                    // In your ListView.builder, update the flag display to:
                                     SvgPicture.asset(
                                       country['flag']!,
                                       width: 30,
@@ -1739,13 +1850,27 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                       fit: BoxFit.contain,
                                     ),
                                     SizedBox(width: 10),
-                                    Text(
-                                      country['name'] ?? '',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
+                                    Expanded(
+                                      child: Text(
+                                        country['name'] ?? '',
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? Color(0xFF00F0FF)
+                                              : Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                        ),
                                       ),
                                     ),
+                                    // Checkmark for selected country - NEW ADDITION
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check,
+                                        color: Color(0xFF00F0FF),
+                                        size: 20,
+                                      ),
                                   ],
                                 ),
                               ),
@@ -1815,13 +1940,24 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                           Expanded(
                             child: NotificationListener<ScrollEndNotification>(
                               onNotification: (notification) {
-                                _snapToItem(_monthController, _selectedMonth);
+                                // Calculate which item is centered after scroll ends
+                                final centerOffset =
+                                    _monthController.offset + (286 / 2) - 20;
+                                final index = (centerOffset / 40).round();
+                                final clampedIndex = index.clamp(
+                                  0,
+                                  _months.length - 1,
+                                );
+
+                                // Snap to center the item that's closest to center
+                                _snapToCenter(_monthController, clampedIndex);
+
                                 return true;
                               },
                               child: ListView.builder(
                                 itemCount: _months.length,
                                 controller: _monthController,
-                                physics: const BouncingScrollPhysics(),
+                                physics: const ClampingScrollPhysics(),
                                 itemExtent: 40,
                                 padding: EdgeInsets.symmetric(
                                   vertical: (286 - 40) / 2,
@@ -1835,10 +1971,7 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                                         _datePicked = true;
                                       });
                                       onDobPicked();
-                                      _snapToItem(
-                                        _monthController,
-                                        _selectedMonth,
-                                      );
+                                      _snapToCenter(_monthController, index);
                                     },
                                     child: Container(
                                       alignment: Alignment.center,
@@ -1860,76 +1993,112 @@ if (cooldown > 0 && userProvider.emailTimers[email] == null) {
                           ),
                           // Day List
                           Expanded(
-                            child: ListView.builder(
-                              itemCount: _days.length,
-                              padding: EdgeInsets.symmetric(
-                                vertical: (286 - 40) / 2,
-                              ),
-                              itemExtent: 40,
-                              physics: const BouncingScrollPhysics(),
-                              controller: _dayController,
-                              itemBuilder: (context, index) {
-                                final isSelected = index == _selectedDay;
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedDay = index;
-                                      _datePicked = true;
-                                    });
-                                    onDobPicked();
-                                  },
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      _days[index].toString(),
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w500,
-                                        color: isSelected
-                                            ? Colors.black
-                                            : Colors.white,
+                            child: NotificationListener<ScrollEndNotification>(
+                              onNotification: (notification) {
+                                // Calculate which item is centered after scroll ends
+                                final centerOffset =
+                                    _dayController.offset + (286 / 2) - 20;
+                                final index = (centerOffset / 40).round();
+                                final clampedIndex = index.clamp(
+                                  0,
+                                  _days.length - 1,
+                                );
+
+                                // Snap to center the item that's closest to center
+                                _snapToCenter(_dayController, clampedIndex);
+
+                                return true;
+                              },
+                              child: ListView.builder(
+                                itemCount: _days.length,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: (286 - 40) / 2,
+                                ),
+                                itemExtent: 40,
+                                physics: const ClampingScrollPhysics(),
+                                controller: _dayController,
+                                itemBuilder: (context, index) {
+                                  final isSelected = index == _selectedDay;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedDay = index;
+                                        _datePicked = true;
+                                      });
+                                      onDobPicked();
+                                      _snapToCenter(_dayController, index);
+                                    },
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        _days[index].toString(),
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
                           ),
                           // Year List
                           Expanded(
-                            child: ListView.builder(
-                              itemCount: _years.length,
-                              padding: EdgeInsets.symmetric(
-                                vertical: (286 - 40) / 2,
-                              ),
-                              itemExtent: 40,
-                              physics: const BouncingScrollPhysics(),
-                              controller: _yearController,
-                              itemBuilder: (context, index) {
-                                final isSelected = index == _selectedYear;
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedYear = index;
-                                      _datePicked = true;
-                                    });
-                                    onDobPicked();
-                                  },
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      _years[index].toString(),
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w500,
-                                        color: isSelected
-                                            ? Colors.black
-                                            : Colors.white,
+                            child: NotificationListener<ScrollEndNotification>(
+                              onNotification: (notification) {
+                                // Calculate which item is centered after scroll ends
+                                final centerOffset =
+                                    _yearController.offset + (286 / 2) - 20;
+                                final index = (centerOffset / 40).round();
+                                final clampedIndex = index.clamp(
+                                  0,
+                                  _years.length - 1,
+                                );
+
+                                // Snap to center the item that's closest to center
+                                _snapToCenter(_yearController, clampedIndex);
+
+                                return true;
+                              },
+                              child: ListView.builder(
+                                itemCount: _years.length,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: (286 - 40) / 2,
+                                ),
+                                itemExtent: 40,
+                                physics: const ClampingScrollPhysics(),
+                                controller: _yearController,
+                                itemBuilder: (context, index) {
+                                  final isSelected = index == _selectedYear;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedYear = index;
+                                        _datePicked = true;
+                                      });
+                                      onDobPicked();
+                                      _snapToCenter(_yearController, index);
+                                    },
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        _years[index].toString(),
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         ],
