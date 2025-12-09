@@ -23,8 +23,11 @@ func (cc *CurrencyController) GetCurrencies(c *gin.Context) {
 	}
 	defer cursor.Close(ctx)
 
+	// Include code and name for Flutter model
 	type SimpleCurrency struct {
+		Code   string  `json:"code"`
 		Symbol string  `json:"symbol"`
+		Name   string  `json:"name"`
 		Price  float64 `json:"price"`
 	}
 
@@ -32,7 +35,9 @@ func (cc *CurrencyController) GetCurrencies(c *gin.Context) {
 
 	for cursor.Next(ctx) {
 		var cur struct {
+			Code   string  `bson:"code"`
 			Symbol string  `bson:"symbol"`
+			Name   string  `bson:"name"`
 			Price  float64 `bson:"price"`
 		}
 		if err := cursor.Decode(&cur); err != nil {
@@ -40,7 +45,9 @@ func (cc *CurrencyController) GetCurrencies(c *gin.Context) {
 			continue
 		}
 		currencies = append(currencies, SimpleCurrency{
+			Code:   cur.Code,
 			Symbol: cur.Symbol,
+			Name:   cur.Name,
 			Price:  cur.Price,
 		})
 	}

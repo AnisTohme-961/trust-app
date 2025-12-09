@@ -28,6 +28,7 @@ class _SignInPageState extends State<SignInPage> {
   bool _rememberMe = false;
   bool _isClicked = false; // Added for button animation
 
+
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isPasswordNotEmpty => _passwordController.text.isNotEmpty;
 
@@ -111,6 +112,18 @@ class _SignInPageState extends State<SignInPage> {
       _timer?.cancel();
       final data = await AuthService.sendCode(identifier: identifier);
 
+        setState(() {
+      code = List.generate(6, (_) => "");
+      _codecontrollers.forEach((c) => c.clear());
+      _isCodeValid = null;
+      isCodeCorrect = false;
+      _codeDisabled = true;
+    });
+
+    Future.delayed(Duration(milliseconds: 150), () {
+      if (mounted) _focusNodes[0].requestFocus();
+    });
+
       serverCode = data['code'];
       _attempts = data['attempts'] ?? 0;
       int cooldown = data['cooldown'] ?? 0;
@@ -132,6 +145,9 @@ class _SignInPageState extends State<SignInPage> {
         } else {
           timer.cancel();
           if (mounted) setState(() => _codeDisabled = false); // enable fields
+             Future.delayed(const Duration(milliseconds: 20), () {
+        if (mounted) _focusNodes[0].requestFocus();
+      });
         }
       });
     } catch (e) {
@@ -145,6 +161,7 @@ class _SignInPageState extends State<SignInPage> {
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
   void _onChanged(String value, int index) async {
+
     setState(() {
       code[index] = value;
       if (value.isNotEmpty && index < 5) {
@@ -181,6 +198,8 @@ class _SignInPageState extends State<SignInPage> {
               code = List.generate(6, (_) => "");
               _codecontrollers.forEach((c) => c.clear());
               _isCodeValid = null; // hide red container
+                isCodeCorrect = false;     // reset “correct” status
+                _focusNodes.forEach((f) => f.unfocus());
             });
           });
         }
