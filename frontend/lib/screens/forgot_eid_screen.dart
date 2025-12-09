@@ -37,6 +37,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   // New state variables for color management
   Color _otpTextColor = Colors.white;
   Timer? _colorResetTimer;
+  bool _isClicked = false; // Added for button animation
 
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isTimerRunning => _remainingSeconds > 0;
@@ -80,8 +81,6 @@ class _ForgotEidPageState extends State<ForgotEidPage>
     }
   }
 
-
-
   void _startTimer() {
     setState(() {
       _remainingSeconds = 120; // 2 minutes
@@ -104,10 +103,23 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   }
 
   void _handleSendCode() async {
+    // Show visual feedback
+    setState(() {
+      _isClicked = true;
+    });
+
     final email = _controller.text.trim();
 
     if (email.isEmpty) {
       _errorStackKey.currentState?.showError('Please enter your Email');
+      // Reset animation
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _isClicked = false;
+          });
+        }
+      });
       return;
     }
 
@@ -134,65 +146,17 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       });
     } catch (e) {
       _errorStackKey.currentState?.showError('Email not registered');
+    } finally {
+      // Reset animation after short delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _isClicked = false;
+          });
+        }
+      });
     }
   }
-
-  // void _handleSendCode() async {
-
-  //   final email = _controller.text.trim();
-
-  //   if (email.isEmpty) {
-  //     _errorStackKey.currentState?.showError('Please enter your Email');
-  //     return;
-  //   }
-
-  //   try {
-  //     final data = await AuthService.sendEidCode(email);
-
-  //     setState(() {
-  //       _codeSent = true;
-
-  //       attempts = data["attempts"] ?? 0;
-  //       cooldown = data["cooldown"] ?? 0;
-
-  //       // UI timer cooldown
-  //       _remainingSeconds = cooldown;
-  //     });
-
-  //     // Start cooldown timer
-  //     _timer?.cancel();
-  //     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-  //       if (_remainingSeconds > 0) {
-  //         setState(() => _remainingSeconds--);
-  //       } else {
-  //         t.cancel();
-  //       }
-  //     });
-  //   } catch (e) {
-  //     _errorStackKey.currentState?.showError('Email not registered');
-  //   }
-  // }
-
-  // void _handleSendCode() async {
-  //   if (cooldown > 0) return;
-  //   final email = _controller.text.trim();
-  //   if (email.isEmpty) {
-  //     _errorStackKey.currentState?.showError('Please enter your Email');
-  //     return;
-  //   }
-  //   try {
-  //     final data = await AuthService.sendEidCode(email);
-  //     final int cooldown = data['cooldown'] ?? 0;
-  //     attempts = data['attempts'] ?? 0;
-  //     if (!mounted) return;
-  //     setState(() {
-  //       _codeSent = true;
-  //       _startTimer();
-  //     });
-  //   } catch (e) {
-  //     _errorStackKey.currentState?.showError('Email not registered');
-  //   }
-  // }
 
   void _openOverlay() {
     setState(() => _showOverlay = true);
@@ -291,6 +255,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
             slideController: _slideController,
             slideAnimation: _slideAnimation,
             otpTextColor: _otpTextColor,
+            isClicked: _isClicked,
             onVerifyCode: verifyCode,
             onStartTimer: _startTimer,
             onFormatTime: _formatTime,
@@ -322,6 +287,7 @@ class MobileForgotEidPage extends StatefulWidget {
   final AnimationController slideController;
   final Animation<Offset> slideAnimation;
   final Color otpTextColor;
+  final bool isClicked;
   final Future<bool> Function(String, String) onVerifyCode;
   final VoidCallback onStartTimer;
   final String Function(int) onFormatTime;
@@ -348,6 +314,7 @@ class MobileForgotEidPage extends StatefulWidget {
     required this.slideController,
     required this.slideAnimation,
     required this.otpTextColor,
+    required this.isClicked,
     required this.onVerifyCode,
     required this.onStartTimer,
     required this.onFormatTime,
@@ -703,7 +670,6 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 const SizedBox(width: 10),
                 CustomButton(
                   text: widget.controller.text.isNotEmpty ? 'Clear' : 'Paste',
-
                   width: 65,
                   height: 32,
                   fontSize: 15,
@@ -757,17 +723,18 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
   }
 
   Widget _buildSendCodeSection() {
-      String formatCooldown(int secondsLeft) {
-    if (secondsLeft >= 3600) {
-      int hours = secondsLeft ~/ 3600;
-      int minutes = (secondsLeft % 3600) ~/ 60;
-      return "${hours}h ${minutes}m";
-    } else {
-      int minutes = secondsLeft ~/ 60;
-      int seconds = secondsLeft % 60;
-      return "${minutes}m ${seconds}s";
+    String formatCooldown(int secondsLeft) {
+      if (secondsLeft >= 3600) {
+        int hours = secondsLeft ~/ 3600;
+        int minutes = (secondsLeft % 3600) ~/ 60;
+        return "${hours}h ${minutes}m";
+      } else {
+        int minutes = secondsLeft ~/ 60;
+        int seconds = secondsLeft % 60;
+        return "${minutes}m ${seconds}s";
+      }
     }
-  }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Row(
@@ -777,7 +744,8 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
           const SizedBox(width: 10),
           GestureDetector(
             onTap: widget.isTimerRunning ? null : widget.onHandleSendCode,
-            child: Container(
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 100),
               width: 92,
               height: 25,
               decoration: BoxDecoration(
@@ -787,21 +755,33 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                   end: Alignment.centerRight,
                 ),
                 borderRadius: BorderRadius.circular(6),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0xFF00F0FF),
-                    blurRadius: 11.5,
-                    spreadRadius: 0,
-                  ),
-                ],
+                boxShadow: widget.isClicked
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF00F0FF).withOpacity(0.4),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 0),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: const Color(0xFF00F0FF).withOpacity(0.8),
+                          blurRadius: 11.5,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
               ),
               alignment: Alignment.center,
               child: Text(
                 widget.isTimerRunning
-                    ?  formatCooldown(widget.remainingSeconds) 
+                    ? formatCooldown(widget.remainingSeconds)
                     : 'Send Code',
-                style: const TextStyle(
-                  color: Color(0xFF0B1320),
+                style: TextStyle(
+                  color: widget.isTimerRunning
+                      ? const Color(0xFF0B1320)
+                      : (widget.isClicked ? Colors.white : Colors.black),
                   fontSize: 15,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
@@ -903,6 +883,7 @@ class TabletForgotEidPage extends StatefulWidget {
   final AnimationController slideController;
   final Animation<Offset> slideAnimation;
   final Color otpTextColor;
+  final bool isClicked;
   final Future<bool> Function(String, String) onVerifyCode;
   final VoidCallback onStartTimer;
   final String Function(int) onFormatTime;
@@ -929,6 +910,7 @@ class TabletForgotEidPage extends StatefulWidget {
     required this.slideController,
     required this.slideAnimation,
     required this.otpTextColor,
+    required this.isClicked,
     required this.onVerifyCode,
     required this.onStartTimer,
     required this.onFormatTime,
@@ -1377,7 +1359,8 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
           const SizedBox(height: 20),
           GestureDetector(
             onTap: widget.isTimerRunning ? null : widget.onHandleSendCode,
-            child: Container(
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 100),
               width: 94,
               height: 23,
               decoration: BoxDecoration(
@@ -1387,21 +1370,33 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
                   end: Alignment.centerRight,
                 ),
                 borderRadius: BorderRadius.circular(6),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0xFF00F0FF),
-                    blurRadius: 15,
-                    spreadRadius: 0,
-                  ),
-                ],
+                boxShadow: widget.isClicked
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF00F0FF).withOpacity(0.4),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 0),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: const Color(0xFF00F0FF).withOpacity(0.8),
+                          blurRadius: 15,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
               ),
               alignment: Alignment.center,
               child: Text(
                 widget.isTimerRunning
                     ? widget.onFormatTime(widget.remainingSeconds)
                     : 'Send Code',
-                style: const TextStyle(
-                  color: Color(0xFF0B1320),
+                style: TextStyle(
+                  color: widget.isTimerRunning
+                      ? const Color(0xFF0B1320)
+                      : (widget.isClicked ? Colors.white : Colors.black),
                   fontSize: 15,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
