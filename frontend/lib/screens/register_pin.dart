@@ -1549,11 +1549,7 @@ class _ProgressSteps extends StatelessWidget {
             filled: true,
             filledColor: Color(0xFF01259E),
           ),
-          _buildStep(
-            originalPin != null ? "Register\nPattern" : "Register\nPin",
-            filled: originalPin != null,
-            filledColor: originalPin != null ? Color(0xFF001A7A) : null,
-          ),
+          _buildStep(""),
         ],
       ),
     );

@@ -10,12 +10,8 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import '../screens/frozen_screen.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
-import '../screens/protect_access.dart';
-import 'screens/settings_screen.dart';
-import 'screens/password.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
