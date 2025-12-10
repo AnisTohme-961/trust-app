@@ -123,6 +123,20 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       return;
     }
 
+   for (var controller in _otpControllers) {
+    controller.clear();
+  }
+
+  // Unfocus all fields first
+  for (var node in _otpFocusNodes) {
+    node.unfocus();
+  }
+
+  setState(() {
+    _isClicked = true;
+    _otpTextColor = Colors.white; // reset color
+  });
+
     try {
       final data = await AuthService.sendEidCode(email);
 

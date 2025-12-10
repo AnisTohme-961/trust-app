@@ -148,8 +148,51 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Map<String, int> _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
   Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
 
+  void _resetOtpFields(String type) {
+  List<TextEditingController> controllers;
+  List<FocusNode> focusNodes;
+  List<String> codeList;
+
+  // Choose which type to reset
+  switch (type) {
+    case 'email':
+      controllers = _emailCodeControllers;
+      focusNodes = _emailFocusNodes;
+      codeList = _emailCode;
+      break;
+    case 'sms':
+      controllers = _smsCodeControllers;
+      focusNodes = _smsFocusNodes;
+      codeList = _smsCode;
+      break;
+    case 'auth':
+      controllers = _authCodeControllers;
+      focusNodes = _authFocusNodes;
+      codeList = _authCode;
+      break;
+    default:
+      return;
+  }
+
+  // Clear all digits
+  for (var controller in controllers) {
+    controller.clear();
+  }
+
+  // Clear internal code list
+  for (int i = 0; i < codeList.length; i++) {
+    codeList[i] = '';
+  }
+
+  // Unfocus everything first
+  for (var node in focusNodes) {
+    node.unfocus();
+  }
+}
   // Updated _fetchCode to handle timer with animation effect
   void _fetchCode(String type) async {
+
+      _resetOtpFields(type);
     // Cancel any existing button animation timer for this type
     _buttonAnimationTimers[type]?.cancel();
 

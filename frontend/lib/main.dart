@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/screens/forgot_eid_screen.dart';
+import 'package:flutter_project/screens/forgot_password_screen.dart';
 import 'package:flutter_project/screens/sign_in_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
@@ -53,7 +55,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: ResponsiveHomePage(),
+            home: SignInPage(),
             routes: appRoutes(),
           );
         },

@@ -492,6 +492,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         setState(() {
           _isCodeVerified = true;
           _codeValid = true;
+          _codeDisabled = true;
         });
       } else {
         setState(() {
@@ -503,6 +504,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           setState(() {
             for (var c in _codeControllers) c.clear();
             _code = ["", "", "", "", "", ""];
+             _isCodeVerified = null; 
+               _codeDisabled = false;
           });
           _focusNodes[0].requestFocus();
         });
@@ -520,10 +523,20 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       return;
     }
 
-    if (!_emailValid) {
+     if (!_emailValid) {
       _validateEmailAndShowError();
       return;
     }
+
+    for (var controller in _codeControllers) controller.clear();
+
+  for (var node in _focusNodes) node.unfocus();
+
+  setState(() {
+    _code = ["", "", "", "", "", ""];
+    _isCodeVerified = null;
+    _codeValid = false;
+  });
 
     // Show click animation
     setState(() {
@@ -1035,11 +1048,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                     child: TextField(
                                       controller: _emailController,
                                       focusNode: _emailFocusNode,
+                                      textAlignVertical: TextAlignVertical.center, 
                                       decoration: const InputDecoration(
                                         border: InputBorder.none,
                                         isDense: true,
                                         contentPadding: EdgeInsets.symmetric(
-                                          vertical: 16.0,
+                                          vertical: 0.0,
                                         ),
                                       ),
                                       onChanged: (value) {
@@ -1188,6 +1202,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                             ),
                           ),
                         ),
+                        
                         if (_showCodeSent)
                           Positioned(
                             top: 25,
