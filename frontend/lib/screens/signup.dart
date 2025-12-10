@@ -55,6 +55,22 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   final FocusNode _lastFocusNode = FocusNode();
   final FocusNode _sponsorFocusNode = FocusNode();
 
+  // Validation states
+  bool _firstNameValid = false;
+  bool _lastNameValid = false;
+  bool _genderValid = false;
+  String? _firstNameError;
+  String? _lastNameError;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Add focus listeners for validation on field exit
+    _firstFocusNode.addListener(_validateFirstNameOnUnfocus);
+    _lastFocusNode.addListener(_validateLastNameOnUnfocus);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -65,10 +81,19 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     _sponsorController.text = user.sponsorCode;
     _genderController.text = user.gender;
     _selectedGender = user.gender;
+
+    // Validate initial values
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _validateFirstName();
+      _validateLastName();
+      _validateGender();
+    });
   }
 
   @override
   void dispose() {
+    _firstFocusNode.removeListener(_validateFirstNameOnUnfocus);
+    _lastFocusNode.removeListener(_validateLastNameOnUnfocus);
     _firstNameController.dispose();
     _lastNameController.dispose();
     _sponsorController.dispose();
@@ -76,6 +101,202 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     _lastFocusNode.dispose();
     _sponsorFocusNode.dispose();
     super.dispose();
+  }
+
+  // Validation methods that trigger on field exit
+  void _validateFirstNameOnUnfocus() {
+    if (!_firstFocusNode.hasFocus && _firstNameController.text.isNotEmpty) {
+      _validateFirstNameAndShowError();
+    }
+  }
+
+  void _validateLastNameOnUnfocus() {
+    if (!_lastFocusNode.hasFocus && _lastNameController.text.isNotEmpty) {
+      _validateLastNameAndShowError();
+    }
+  }
+
+  // Validation methods
+  void _validateFirstName() {
+    final firstName = _firstNameController.text.trim();
+
+    if (firstName.isEmpty) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = null;
+      });
+      return;
+    }
+
+    if (firstName.length < 3) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = "First name must be at least 3 characters.";
+      });
+      return;
+    }
+
+    final nameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!nameRegex.hasMatch(firstName)) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError =
+            "First name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      return;
+    }
+
+    setState(() {
+      _firstNameValid = true;
+      _firstNameError = null;
+    });
+  }
+
+  void _validateLastName() {
+    final lastName = _lastNameController.text.trim();
+
+    if (lastName.isEmpty) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = null;
+      });
+      return;
+    }
+
+    if (lastName.length < 3) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = "Last name must be at least 3 characters.";
+      });
+      return;
+    }
+
+    final lastNameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!lastNameRegex.hasMatch(lastName)) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError =
+            "Last name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      return;
+    }
+
+    setState(() {
+      _lastNameValid = true;
+      _lastNameError = null;
+    });
+  }
+
+  void _validateGender() {
+    setState(() {
+      _genderValid = _selectedGender.isNotEmpty;
+    });
+  }
+
+  // Validation methods that show errors when field loses focus
+  void _validateFirstNameAndShowError() {
+    final firstName = _firstNameController.text.trim();
+
+    if (firstName.isEmpty) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = null;
+      });
+      return;
+    }
+
+    if (firstName.length < 3) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = "First name must be at least 3 characters.";
+      });
+      widget.errorStackKey.currentState?.showError(_firstNameError!);
+      return;
+    }
+
+    final nameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!nameRegex.hasMatch(firstName)) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError =
+            "First name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      widget.errorStackKey.currentState?.showError(_firstNameError!);
+      return;
+    }
+
+    setState(() {
+      _firstNameValid = true;
+      _firstNameError = null;
+    });
+  }
+
+  void _validateLastNameAndShowError() {
+    final lastName = _lastNameController.text.trim();
+
+    if (lastName.isEmpty) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = null;
+      });
+      return;
+    }
+
+    if (lastName.length < 3) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = "Last name must be at least 3 characters.";
+      });
+      widget.errorStackKey.currentState?.showError(_lastNameError!);
+      return;
+    }
+
+    final lastNameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!lastNameRegex.hasMatch(lastName)) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError =
+            "Last name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      widget.errorStackKey.currentState?.showError(_lastNameError!);
+      return;
+    }
+
+    setState(() {
+      _lastNameValid = true;
+      _lastNameError = null;
+    });
+  }
+
+  // Check if all required fields are valid
+  bool get _allFieldsValid => _firstNameValid && _lastNameValid && _genderValid;
+
+  // Function to validate all fields and show errors if any
+  void _validateAllFieldsAndShowErrors() {
+    bool hasError = false;
+
+    // Validate first name
+    _validateFirstName();
+    if (_firstNameError != null && !_firstNameValid) {
+      widget.errorStackKey.currentState?.showError(_firstNameError!);
+      hasError = true;
+    }
+
+    // Validate last name
+    _validateLastName();
+    if (_lastNameError != null && !_lastNameValid) {
+      widget.errorStackKey.currentState?.showError(_lastNameError!);
+      hasError = true;
+    }
+
+    // Validate gender
+    _validateGender();
+    if (!_genderValid) {
+      widget.errorStackKey.currentState?.showError(
+        "Please select your gender.",
+      );
+      hasError = true;
+    }
   }
 
   @override
@@ -221,6 +442,14 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                     value,
                                   );
                                 },
+                                onEditingComplete: () {
+                                  // Validate when user presses done/next
+                                  _validateFirstNameAndShowError();
+                                  // Move focus to next field
+                                  FocusScope.of(
+                                    context,
+                                  ).requestFocus(_lastFocusNode);
+                                },
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
@@ -274,6 +503,12 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                   context.read<UserProvider>().setLastName(
                                     value,
                                   );
+                                },
+                                onEditingComplete: () {
+                                  // Validate when user presses done/next
+                                  _validateLastNameAndShowError();
+                                  // Remove focus
+                                  FocusScope.of(context).unfocus();
                                 },
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
@@ -530,6 +765,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                               () {
                                 setState(() => _selectedGender = 'Male');
                                 context.read<UserProvider>().setGender('Male');
+                                _validateGender();
                               },
                               (hovered) =>
                                   setState(() => _isMaleHovered = hovered),
@@ -547,6 +783,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                 context.read<UserProvider>().setGender(
                                   'Female',
                                 );
+                                _validateGender();
                               },
                               (hovered) =>
                                   setState(() => _isFemaleHovered = hovered),
@@ -576,18 +813,30 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                             height: 4,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
-                              gradient: const LinearGradient(
+                              gradient: LinearGradient(
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
-                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                                colors: _allFieldsValid
+                                    ? const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF00F0FF),
+                                      ]
+                                    : const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF4A5568),
+                                      ],
                               ),
                             ),
                           ),
                         ),
                         MouseRegion(
-                          onEnter: (_) => setState(() => _isNextHovered = true),
+                          onEnter: (_) => _allFieldsValid
+                              ? setState(() => _isNextHovered = true)
+                              : null,
                           onExit: (_) => setState(() => _isNextHovered = false),
-                          cursor: SystemMouseCursors.click,
+                          cursor: _allFieldsValid
+                              ? SystemMouseCursors.click
+                              : SystemMouseCursors.forbidden,
                           child: CustomButton(
                             text: "Next",
                             width: 106,
@@ -595,11 +844,27 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                             borderRadius: 10,
-                            borderColor: const Color(0xFF00F0FF),
-                            backgroundColor: _isNextHovered
-                                ? const Color(0xFF00F0FF).withOpacity(0.15)
+                            borderColor: _allFieldsValid
+                                ? const Color(0xFF00F0FF)
+                                : const Color(0xFF4A5568),
+                            textColor: _allFieldsValid
+                                ? Colors.white
+                                : const Color(0xFF718096),
+                            backgroundColor: _allFieldsValid
+                                ? (_isNextHovered
+                                      ? const Color(
+                                          0xFF00F0FF,
+                                        ).withOpacity(0.15)
+                                      : const Color(0xFF0B1320))
                                 : const Color(0xFF0B1320),
-                            onTap: _handleNextTap,
+                            onTap: () {
+                              if (_allFieldsValid) {
+                                _handleNextTap();
+                              } else {
+                                // Validate all fields and show errors if any
+                                _validateAllFieldsAndShowErrors();
+                              }
+                            },
                           ),
                         ),
                         Positioned(
@@ -610,10 +875,18 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                             height: 4,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
-                              gradient: const LinearGradient(
+                              gradient: LinearGradient(
                                 begin: Alignment.centerRight,
                                 end: Alignment.centerLeft,
-                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                                colors: _allFieldsValid
+                                    ? const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF00F0FF),
+                                      ]
+                                    : const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF4A5568),
+                                      ],
                               ),
                             ),
                           ),
@@ -645,6 +918,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
               ),
             ),
 
+            // ErrorStack widget (it uses Overlay so it renders separately)
             ErrorStack(key: widget.errorStackKey),
           ],
         ),
@@ -716,59 +990,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   }
 
   void _handleNextTap() {
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final gender = _selectedGender;
-
-    // Validation checks
-    if (firstName.isEmpty) {
-      widget.errorStackKey.currentState?.showError(
-        "Please enter your first name.",
-      );
-      return;
-    }
-    if (firstName.length < 3) {
-      widget.errorStackKey.currentState?.showError(
-        "First name must be at least 3 characters.",
-      );
-      return;
-    }
-    final nameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
-    if (!nameRegex.hasMatch(firstName)) {
-      widget.errorStackKey.currentState?.showError(
-        "First name can only include letters, apostrophes, hyphens, and spaces.",
-      );
-      return;
-    }
-
-    if (lastName.isEmpty) {
-      widget.errorStackKey.currentState?.showError(
-        "Please enter your last name.",
-      );
-      return;
-    }
-    if (lastName.length < 3) {
-      widget.errorStackKey.currentState?.showError(
-        "Last name must be at least 3 characters.",
-      );
-      return;
-    }
-    final lastNameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
-    if (!lastNameRegex.hasMatch(lastName)) {
-      widget.errorStackKey.currentState?.showError(
-        "Last name can only include letters, apostrophes, hyphens, and spaces.",
-      );
-      return;
-    }
-
-    if (gender.isEmpty) {
-      widget.errorStackKey.currentState?.showError(
-        "Please select your gender.",
-      );
-      return;
-    }
-
-    // Navigate to next page
+    // Navigate to next page (validation already done automatically)
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
@@ -845,6 +1067,22 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
   final FocusNode _lastFocusNode = FocusNode();
   final FocusNode _sponsorFocusNode = FocusNode();
 
+  // Validation states
+  bool _firstNameValid = false;
+  bool _lastNameValid = false;
+  bool _genderValid = false;
+  String? _firstNameError;
+  String? _lastNameError;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Add focus listeners for validation on field exit
+    _firstFocusNode.addListener(_validateFirstNameOnUnfocus);
+    _lastFocusNode.addListener(_validateLastNameOnUnfocus);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -855,10 +1093,19 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
     _sponsorController.text = user.sponsorCode;
     _genderController.text = user.gender;
     _selectedGender = user.gender;
+
+    // Validate initial values
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _validateFirstName();
+      _validateLastName();
+      _validateGender();
+    });
   }
 
   @override
   void dispose() {
+    _firstFocusNode.removeListener(_validateFirstNameOnUnfocus);
+    _lastFocusNode.removeListener(_validateLastNameOnUnfocus);
     _firstNameController.dispose();
     _lastNameController.dispose();
     _sponsorController.dispose();
@@ -866,6 +1113,202 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
     _lastFocusNode.dispose();
     _sponsorFocusNode.dispose();
     super.dispose();
+  }
+
+  // Validation methods that trigger on field exit
+  void _validateFirstNameOnUnfocus() {
+    if (!_firstFocusNode.hasFocus && _firstNameController.text.isNotEmpty) {
+      _validateFirstNameAndShowError();
+    }
+  }
+
+  void _validateLastNameOnUnfocus() {
+    if (!_lastFocusNode.hasFocus && _lastNameController.text.isNotEmpty) {
+      _validateLastNameAndShowError();
+    }
+  }
+
+  // Validation methods
+  void _validateFirstName() {
+    final firstName = _firstNameController.text.trim();
+
+    if (firstName.isEmpty) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = null;
+      });
+      return;
+    }
+
+    if (firstName.length < 3) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = "First name must be at least 3 characters.";
+      });
+      return;
+    }
+
+    final nameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!nameRegex.hasMatch(firstName)) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError =
+            "First name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      return;
+    }
+
+    setState(() {
+      _firstNameValid = true;
+      _firstNameError = null;
+    });
+  }
+
+  void _validateLastName() {
+    final lastName = _lastNameController.text.trim();
+
+    if (lastName.isEmpty) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = null;
+      });
+      return;
+    }
+
+    if (lastName.length < 3) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = "Last name must be at least 3 characters.";
+      });
+      return;
+    }
+
+    final lastNameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!lastNameRegex.hasMatch(lastName)) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError =
+            "Last name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      return;
+    }
+
+    setState(() {
+      _lastNameValid = true;
+      _lastNameError = null;
+    });
+  }
+
+  void _validateGender() {
+    setState(() {
+      _genderValid = _selectedGender.isNotEmpty;
+    });
+  }
+
+  // Validation methods that show errors when field loses focus
+  void _validateFirstNameAndShowError() {
+    final firstName = _firstNameController.text.trim();
+
+    if (firstName.isEmpty) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = null;
+      });
+      return;
+    }
+
+    if (firstName.length < 3) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError = "First name must be at least 3 characters.";
+      });
+      widget.errorStackKey.currentState?.showError(_firstNameError!);
+      return;
+    }
+
+    final nameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!nameRegex.hasMatch(firstName)) {
+      setState(() {
+        _firstNameValid = false;
+        _firstNameError =
+            "First name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      widget.errorStackKey.currentState?.showError(_firstNameError!);
+      return;
+    }
+
+    setState(() {
+      _firstNameValid = true;
+      _firstNameError = null;
+    });
+  }
+
+  void _validateLastNameAndShowError() {
+    final lastName = _lastNameController.text.trim();
+
+    if (lastName.isEmpty) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = null;
+      });
+      return;
+    }
+
+    if (lastName.length < 3) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError = "Last name must be at least 3 characters.";
+      });
+      widget.errorStackKey.currentState?.showError(_lastNameError!);
+      return;
+    }
+
+    final lastNameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
+    if (!lastNameRegex.hasMatch(lastName)) {
+      setState(() {
+        _lastNameValid = false;
+        _lastNameError =
+            "Last name can only include letters, apostrophes, hyphens, and spaces.";
+      });
+      widget.errorStackKey.currentState?.showError(_lastNameError!);
+      return;
+    }
+
+    setState(() {
+      _lastNameValid = true;
+      _lastNameError = null;
+    });
+  }
+
+  // Check if all required fields are valid
+  bool get _allFieldsValid => _firstNameValid && _lastNameValid && _genderValid;
+
+  // Function to validate all fields and show errors if any
+  void _validateAllFieldsAndShowErrors() {
+    bool hasError = false;
+
+    // Validate first name
+    _validateFirstName();
+    if (_firstNameError != null && !_firstNameValid) {
+      widget.errorStackKey.currentState?.showError(_firstNameError!);
+      hasError = true;
+    }
+
+    // Validate last name
+    _validateLastName();
+    if (_lastNameError != null && !_lastNameValid) {
+      widget.errorStackKey.currentState?.showError(_lastNameError!);
+      hasError = true;
+    }
+
+    // Validate gender
+    _validateGender();
+    if (!_genderValid) {
+      widget.errorStackKey.currentState?.showError(
+        "Please select your gender.",
+      );
+      hasError = true;
+    }
   }
 
   @override
@@ -1062,6 +1505,16 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                       .read<UserProvider>()
                                                       .setFirstName(value);
                                                 },
+                                                onEditingComplete: () {
+                                                  // Validate when user presses done/next
+                                                  _validateFirstNameAndShowError();
+                                                  // Move focus to next field
+                                                  FocusScope.of(
+                                                    context,
+                                                  ).requestFocus(
+                                                    _lastFocusNode,
+                                                  );
+                                                },
                                                 style: const TextStyle(
                                                   fontFamily: 'Inter',
                                                   fontWeight: FontWeight.w500,
@@ -1130,6 +1583,14 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                   context
                                                       .read<UserProvider>()
                                                       .setLastName(value);
+                                                },
+                                                onEditingComplete: () {
+                                                  // Validate when user presses done/next
+                                                  _validateLastNameAndShowError();
+                                                  // Remove focus
+                                                  FocusScope.of(
+                                                    context,
+                                                  ).unfocus();
                                                 },
                                                 style: const TextStyle(
                                                   fontFamily: 'Inter',
@@ -1479,6 +1940,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                 context
                                                     .read<UserProvider>()
                                                     .setGender('Male');
+                                                _validateGender();
                                               },
                                               (hovered) => setState(
                                                 () => _isMaleHovered = hovered,
@@ -1500,6 +1962,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                                 context
                                                     .read<UserProvider>()
                                                     .setGender('Female');
+                                                _validateGender();
                                               },
                                               (hovered) => setState(
                                                 () =>
@@ -1532,25 +1995,34 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(11),
-                                              gradient: const LinearGradient(
+                                              gradient: LinearGradient(
                                                 begin: Alignment.centerLeft,
                                                 end: Alignment.centerRight,
-                                                colors: [
-                                                  Color(0xFF0B1320),
-                                                  Color(0xFF00F0FF),
-                                                ],
+                                                colors: _allFieldsValid
+                                                    ? const [
+                                                        Color(0xFF0B1320),
+                                                        Color(0xFF00F0FF),
+                                                      ]
+                                                    : const [
+                                                        Color(0xFF0B1320),
+                                                        Color(0xFF4A5568),
+                                                      ],
                                               ),
                                             ),
                                           ),
                                         ),
                                         MouseRegion(
-                                          onEnter: (_) => setState(
-                                            () => _isNextHovered = true,
-                                          ),
+                                          onEnter: (_) => _allFieldsValid
+                                              ? setState(
+                                                  () => _isNextHovered = true,
+                                                )
+                                              : null,
                                           onExit: (_) => setState(
                                             () => _isNextHovered = false,
                                           ),
-                                          cursor: SystemMouseCursors.click,
+                                          cursor: _allFieldsValid
+                                              ? SystemMouseCursors.click
+                                              : SystemMouseCursors.forbidden,
                                           child: CustomButton(
                                             text: "Next",
                                             width: 106,
@@ -1558,15 +2030,27 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                             fontSize: 20,
                                             fontWeight: FontWeight.w600,
                                             borderRadius: 12,
-                                            borderColor: const Color(
-                                              0xFF00F0FF,
-                                            ),
-                                            backgroundColor: _isNextHovered
-                                                ? const Color(
-                                                    0xFF00F0FF,
-                                                  ).withOpacity(0.15)
+                                            borderColor: _allFieldsValid
+                                                ? const Color(0xFF00F0FF)
+                                                : const Color(0xFF4A5568),
+                                            textColor: _allFieldsValid
+                                                ? Colors.white
+                                                : const Color(0xFF718096),
+                                            backgroundColor: _allFieldsValid
+                                                ? (_isNextHovered
+                                                      ? const Color(
+                                                          0xFF00F0FF,
+                                                        ).withOpacity(0.15)
+                                                      : const Color(0xFF0B1320))
                                                 : const Color(0xFF0B1320),
-                                            onTap: _handleNextTap,
+                                            onTap: () {
+                                              if (_allFieldsValid) {
+                                                _handleNextTap();
+                                              } else {
+                                                // Validate all fields and show errors if any
+                                                _validateAllFieldsAndShowErrors();
+                                              }
+                                            },
                                           ),
                                         ),
                                         Positioned(
@@ -1578,13 +2062,18 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(11),
-                                              gradient: const LinearGradient(
+                                              gradient: LinearGradient(
                                                 begin: Alignment.centerRight,
                                                 end: Alignment.centerLeft,
-                                                colors: [
-                                                  Color(0xFF0B1320),
-                                                  Color(0xFF00F0FF),
-                                                ],
+                                                colors: _allFieldsValid
+                                                    ? const [
+                                                        Color(0xFF0B1320),
+                                                        Color(0xFF00F0FF),
+                                                      ]
+                                                    : const [
+                                                        Color(0xFF0B1320),
+                                                        Color(0xFF4A5568),
+                                                      ],
                                               ),
                                             ),
                                           ),
@@ -1643,6 +2132,8 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
               ),
             ],
           ),
+
+          // ErrorStack widget (it uses Overlay so it renders separately)
           ErrorStack(key: widget.errorStackKey),
         ],
       ),
@@ -1713,59 +2204,7 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
   }
 
   void _handleNextTap() {
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final gender = _selectedGender;
-
-    // Validation checks (same as mobile)
-    if (firstName.isEmpty) {
-      widget.errorStackKey.currentState?.showError(
-        "Please enter your first name.",
-      );
-      return;
-    }
-    if (firstName.length < 3) {
-      widget.errorStackKey.currentState?.showError(
-        "First name must be at least 3 characters.",
-      );
-      return;
-    }
-    final nameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
-    if (!nameRegex.hasMatch(firstName)) {
-      widget.errorStackKey.currentState?.showError(
-        "First name can only include letters, apostrophes, hyphens, and spaces.",
-      );
-      return;
-    }
-
-    if (lastName.isEmpty) {
-      widget.errorStackKey.currentState?.showError(
-        "Please enter your last name.",
-      );
-      return;
-    }
-    if (lastName.length < 3) {
-      widget.errorStackKey.currentState?.showError(
-        "Last name must be at least 3 characters.",
-      );
-      return;
-    }
-    final lastNameRegex = RegExp(r"^[a-zA-ZÀ-ÿ'-\s]+$");
-    if (!lastNameRegex.hasMatch(lastName)) {
-      widget.errorStackKey.currentState?.showError(
-        "Last name can only include letters, apostrophes, hyphens, and spaces.",
-      );
-      return;
-    }
-
-    if (gender.isEmpty) {
-      widget.errorStackKey.currentState?.showError(
-        "Please select your gender.",
-      );
-      return;
-    }
-
-    // Navigate to next page
+    // Navigate to next page (validation already done automatically)
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),

@@ -14,6 +14,8 @@ import '../screens/frozen_screen.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
 import '../screens/protect_access.dart';
+import 'screens/settings_screen.dart';
+import 'screens/password.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +57,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: SignInPage(),
+            home: ResponsiveHomePage(),
             routes: appRoutes(),
           );
         },

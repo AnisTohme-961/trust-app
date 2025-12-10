@@ -28,7 +28,6 @@ class _SignInPageState extends State<SignInPage> {
   bool _rememberMe = false;
   bool _isClicked = false; // Added for button animation
 
-
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isPasswordNotEmpty => _passwordController.text.isNotEmpty;
 
@@ -112,17 +111,17 @@ class _SignInPageState extends State<SignInPage> {
       _timer?.cancel();
       final data = await AuthService.sendCode(identifier: identifier);
 
-        setState(() {
-      code = List.generate(6, (_) => "");
-      _codecontrollers.forEach((c) => c.clear());
-      _isCodeValid = null;
-      isCodeCorrect = false;
-      _codeDisabled = true;
-    });
+      setState(() {
+        code = List.generate(6, (_) => "");
+        _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = null;
+        isCodeCorrect = false;
+        _codeDisabled = true;
+      });
 
-    Future.delayed(Duration(milliseconds: 150), () {
-      if (mounted) _focusNodes[0].requestFocus();
-    });
+      Future.delayed(Duration(milliseconds: 150), () {
+        if (mounted) _focusNodes[0].requestFocus();
+      });
 
       serverCode = data['code'];
       _attempts = data['attempts'] ?? 0;
@@ -145,9 +144,9 @@ class _SignInPageState extends State<SignInPage> {
         } else {
           timer.cancel();
           if (mounted) setState(() => _codeDisabled = false); // enable fields
-             Future.delayed(const Duration(milliseconds: 20), () {
-        if (mounted) _focusNodes[0].requestFocus();
-      });
+          Future.delayed(const Duration(milliseconds: 20), () {
+            if (mounted) _focusNodes[0].requestFocus();
+          });
         }
       });
     } catch (e) {
@@ -161,7 +160,6 @@ class _SignInPageState extends State<SignInPage> {
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
   void _onChanged(String value, int index) async {
-
     setState(() {
       code[index] = value;
       if (value.isNotEmpty && index < 5) {
@@ -198,8 +196,8 @@ class _SignInPageState extends State<SignInPage> {
               code = List.generate(6, (_) => "");
               _codecontrollers.forEach((c) => c.clear());
               _isCodeValid = null; // hide red container
-                isCodeCorrect = false;     // reset “correct” status
-                _focusNodes.forEach((f) => f.unfocus());
+              isCodeCorrect = false; // reset "correct" status
+              _focusNodes.forEach((f) => f.unfocus());
             });
           });
         }
@@ -256,6 +254,28 @@ class _SignInPageState extends State<SignInPage> {
                   setState(() => _rememberMe = value),
               onFetchCode: fetchCodeFromGo,
               onCodeChanged: _onChanged,
+              showCodeSent: _showCodeSent,
+              codeDisabled: _codeDisabled,
+              tooManyAttempts: _tooManyAttempts,
+              isClicked: _isClicked,
+              onButtonClick: () {
+                // Show visual feedback
+                setState(() {
+                  _isClicked = true;
+                });
+
+                // Call your function
+                fetchCodeFromGo();
+
+                // Reset after short delay (200ms is good for visual feedback)
+                Future.delayed(Duration(milliseconds: 200), () {
+                  if (mounted) {
+                    setState(() {
+                      _isClicked = false;
+                    });
+                  }
+                });
+              },
             );
           } else {
             return MobileSignInPage(
@@ -1133,7 +1153,12 @@ class TabletSignInPage extends StatelessWidget {
   final ValueChanged<bool> onShowPasswordChanged;
   final ValueChanged<bool> onRememberMeChanged;
   final VoidCallback onFetchCode;
-  final void Function(String, int) onCodeChanged; // Fixed type
+  final void Function(String, int) onCodeChanged;
+  final bool showCodeSent;
+  final bool codeDisabled;
+  final bool tooManyAttempts;
+  final bool isClicked;
+  final VoidCallback onButtonClick;
 
   const TabletSignInPage({
     super.key,
@@ -1155,7 +1180,24 @@ class TabletSignInPage extends StatelessWidget {
     required this.onRememberMeChanged,
     required this.onFetchCode,
     required this.onCodeChanged,
+    required this.showCodeSent,
+    required this.codeDisabled,
+    required this.tooManyAttempts,
+    required this.isClicked,
+    required this.onButtonClick,
   });
+
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1610,7 +1652,7 @@ class TabletSignInPage extends StatelessWidget {
                 ),
               ),
             ),
-            if (hideInputFields)
+            if (showCodeSent)
               Positioned(
                 top: 20,
                 left: 80,
@@ -1636,7 +1678,7 @@ class TabletSignInPage extends StatelessWidget {
                   ),
                 ),
               ),
-            if (!hideInputFields)
+            if (!showCodeSent)
               Positioned(
                 top: 10,
                 left: -5,
@@ -1652,12 +1694,16 @@ class TabletSignInPage extends StatelessWidget {
                             child: TextField(
                               controller: codecontrollers[index],
                               focusNode: focusNodes[index],
-                              showCursor: !(code.every((c) => c.isNotEmpty)),
+                              enabled: !codeDisabled,
+                              readOnly: codeDisabled,
+                              showCursor: !codeDisabled,
                               textAlign: TextAlign.center,
                               maxLength: 1,
                               keyboardType: TextInputType.number,
                               style: TextStyle(
-                                color: isCodeCorrect
+                                color: codeDisabled
+                                    ? Colors.grey
+                                    : isCodeCorrect
                                     ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
@@ -1665,7 +1711,9 @@ class TabletSignInPage extends StatelessWidget {
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                               ),
-                              cursorColor: isCodeCorrect
+                              cursorColor: codeDisabled
+                                  ? Colors.grey
+                                  : isCodeCorrect
                                   ? const Color(0xFF00F0FF)
                                   : (isCodeValid == false
                                         ? Colors.red
@@ -1674,14 +1722,15 @@ class TabletSignInPage extends StatelessWidget {
                                 counterText: "",
                                 border: InputBorder.none,
                               ),
-                              onChanged: (value) =>
-                                  onCodeChanged(value, index), // Fixed
+                              onChanged: (value) => onCodeChanged(value, index),
                             ),
                           ),
                           Container(
                             width: 35,
                             height: 3,
-                            color: code[index].isEmpty
+                            color: codeDisabled
+                                ? Colors.grey
+                                : code[index].isEmpty
                                 ? Colors.white
                                 : Colors.transparent,
                           ),
@@ -1691,22 +1740,34 @@ class TabletSignInPage extends StatelessWidget {
                   }),
                 ),
               ),
-            if (isCodeCorrect)
-              const Positioned(
+            if (isCodeCorrect || isCodeValid == false)
+              Positioned(
                 top: 20,
                 left: 257,
-                child: CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Color(0xFF00F0FF),
-                  child: Icon(Icons.check, color: Colors.white, size: 16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: isCodeCorrect ? const Color(0xFF00F0FF) : Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isCodeCorrect ? Icons.check : Icons.close,
+                    color: isCodeCorrect ? Colors.black : Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             Positioned(
               top: 20,
               left: 285,
               child: GestureDetector(
-                onTap: (secondsLeft == 0) ? onFetchCode : null,
-                child: Container(
+                onTap: (secondsLeft == 0 && !tooManyAttempts)
+                    ? onButtonClick
+                    : null,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 100),
                   width: 94,
                   height: 23,
                   decoration: BoxDecoration(
@@ -1715,20 +1776,29 @@ class TabletSignInPage extends StatelessWidget {
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withOpacity(0.8),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
+                    boxShadow: isClicked
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.8),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Center(
                     child: secondsLeft > 0
                         ? Text(
-                            "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
+                            formatCooldown(secondsLeft),
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -1736,9 +1806,9 @@ class TabletSignInPage extends StatelessWidget {
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
-                            "Get Code",
-                            style: TextStyle(
+                        : Text(
+                            tooManyAttempts ? "Locked" : "Get Code",
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
                               fontSize: 15,

@@ -52,9 +52,15 @@ class MobileRegisterPinScreen extends StatefulWidget {
 class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   final List<String> _pin = [];
   late final List<String> _numbers;
+  bool _isNextHovered = false;
 
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
+
+  // Validation states
+  bool _pinValid = false;
+  bool _pinMatching = false;
+  String? _pinError;
 
   @override
   void initState() {
@@ -66,10 +72,21 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
     setState(() {
       if (value == 'Clear') {
         _pin.clear();
+        _validatePin();
       } else if (value == 'Logout') {
         _logout();
       } else {
-        if (_pin.length < 4) _pin.add(value);
+        if (_pin.length < 4) {
+          _pin.add(value);
+          if (_pin.length == 4) {
+            // Validate automatically when 4 digits are entered
+            _validatePinAutomatically();
+          } else {
+            // Clear validation state if not 4 digits
+            _pinMatching = false;
+            _pinValid = false;
+          }
+        }
       }
     });
   }
@@ -83,12 +100,181 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
     }
   }
 
+  // Validation methods
+  void _validatePin() {
+    final enteredPin = _pin.join();
+
+    if (enteredPin.isEmpty) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = null;
+      });
+      return;
+    }
+
+    if (enteredPin.length < 4) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "Please enter 4 digits";
+      });
+      return;
+    }
+
+    // Validate all digits are numbers (should always be true with keypad, but just in case)
+    final pinRegex = RegExp(r"^[0-9]{4}$");
+    if (!pinRegex.hasMatch(enteredPin)) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "PIN must contain exactly 4 digits";
+      });
+      return;
+    }
+
+    setState(() {
+      _pinValid = true;
+      _pinError = null;
+    });
+  }
+
+  // Special validation for confirm PIN screen - checks if PIN matches original
+  void _validatePinAutomatically() {
+    final enteredPin = _pin.join();
+
+    // Basic validation
+    if (enteredPin.isEmpty || enteredPin.length < 4) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = null;
+      });
+      return;
+    }
+
+    final pinRegex = RegExp(r"^[0-9]{4}$");
+    if (!pinRegex.hasMatch(enteredPin)) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "PIN must contain exactly 4 digits";
+      });
+      return;
+    }
+
+    setState(() {
+      _pinValid = true;
+
+      // Check if we're in confirm PIN mode and validate match
+      if (widget.originalPin != null) {
+        if (enteredPin == widget.originalPin) {
+          _pinMatching = true;
+          _pinError = null;
+          // When PIN matches, we don't need to clear errors since they auto-remove
+        } else {
+          _pinMatching = false;
+          _pinError = "PIN does not match";
+          // Show error immediately when 4 digits are entered and don't match
+          _errorStackKey.currentState?.showError(_pinError!);
+        }
+      } else {
+        // For first PIN entry, just mark as valid
+        _pinMatching = true; // Enable Next button for first PIN entry
+        _pinError = null;
+      }
+    });
+  }
+
+  void _validatePinAndShowError() {
+    final enteredPin = _pin.join();
+
+    if (enteredPin.isEmpty) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = null;
+      });
+      return;
+    }
+
+    if (enteredPin.length < 4) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "Please enter 4 digits";
+      });
+      _errorStackKey.currentState?.showError(_pinError!);
+      return;
+    }
+
+    final pinRegex = RegExp(r"^[0-9]{4}$");
+    if (!pinRegex.hasMatch(enteredPin)) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "PIN must contain exactly 4 digits";
+      });
+      _errorStackKey.currentState?.showError(_pinError!);
+      return;
+    }
+
+    setState(() {
+      _pinValid = true;
+
+      if (widget.originalPin != null) {
+        if (enteredPin == widget.originalPin) {
+          _pinMatching = true;
+          _pinError = null;
+          // No need to clear errors - they auto-remove after duration
+        } else {
+          _pinMatching = false;
+          _pinError = "PIN does not match";
+          _errorStackKey.currentState?.showError(_pinError!);
+        }
+      } else {
+        _pinMatching = true;
+        _pinError = null;
+      }
+    });
+  }
+
+  // Function to validate all fields and show errors if any
+  void _validateAllFieldsAndShowErrors() {
+    bool hasError = false;
+
+    // Validate PIN
+    _validatePin();
+    if (widget.originalPin != null) {
+      // For confirm PIN screen, check if PIN matches
+      if (_pin.isNotEmpty && _pin.length == 4) {
+        if (_pin.join() != widget.originalPin) {
+          _errorStackKey.currentState?.showError(
+            "PIN does not match. Try again.",
+          );
+          hasError = true;
+        }
+      }
+    }
+
+    if (_pinError != null && !_pinValid) {
+      _errorStackKey.currentState?.showError(_pinError!);
+      hasError = true;
+    }
+
+    if (_pin.isEmpty || _pin.length < 4) {
+      _errorStackKey.currentState?.showError("Please enter 4 digits");
+      hasError = true;
+    }
+  }
+
   void _onNext() async {
     final enteredPin = _pin.join();
 
-    // Check PIN length first
-    if (enteredPin.length < 4) {
-      _errorStackKey.currentState?.showError("Please enter 4 digits");
+    // Check if all fields are valid
+    if (!_pinValid || !_pinMatching) {
+      // Validate all fields and show errors if any
+      _validateAllFieldsAndShowErrors();
       return;
     }
 
@@ -145,6 +331,17 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
         _pin.clear();
         setState(() {});
       }
+    }
+  }
+
+  // Check if all required fields are valid
+  bool get _allFieldsValid {
+    if (widget.originalPin != null) {
+      // For confirm PIN screen, need both valid AND matching
+      return _pinValid && _pinMatching;
+    } else {
+      // For first PIN entry, just need valid
+      return _pinValid && _pin.length == 4;
     }
   }
 
@@ -225,10 +422,10 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                           right: 40,
                           child: _ProgressLine(
                             totalSteps: 5,
-                            completedSteps: 4,
+                            completedSteps: widget.originalPin != null ? 4 : 3,
                           ),
                         ),
-                        const _ProgressSteps(),
+                        _ProgressSteps(originalPin: widget.originalPin),
                       ],
                     ),
                   ),
@@ -271,7 +468,11 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                               height: 60,
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: filled
+                                      ? (_allFieldsValid
+                                            ? const Color(0xFF00F0FF)
+                                            : const Color(0xFFFF6B6B))
+                                      : Colors.white.withOpacity(0.9),
                                   width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(3),
@@ -281,11 +482,15 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                                 filled
                                     ? _pin[index]
                                     : '', // Always show actual digit
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
                                   fontSize: 24,
-                                  color: Colors.white,
+                                  color: filled
+                                      ? (_allFieldsValid
+                                            ? Colors.white
+                                            : const Color(0xFFFF6B6B))
+                                      : Colors.white,
                                 ),
                               ),
                             );
@@ -309,25 +514,108 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 40,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        _GradientLine(isLeft: true),
-                        _NavButton(
-                          text: "Back",
-                          onTap: () {
-                            if (widget.originalPin != null) {
-                              // Prevent manual back button when in confirm PIN mode
-                              _errorStackKey.currentState?.showError(
-                                "Please complete PIN confirmation first",
-                              );
-                            } else {
-                              Navigator.pop(context);
-                            }
-                          },
+                        Positioned(
+                          top: 14,
+                          left: 0,
+                          child: Container(
+                            width: 125,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: _allFieldsValid
+                                    ? const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF00F0FF),
+                                      ]
+                                    : const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF4A5568),
+                                      ],
+                              ),
+                            ),
+                          ),
                         ),
-                        _NavButton(text: "Next", onTap: _onNext),
-                        _GradientLine(isLeft: false),
+                        MouseRegion(
+                          onEnter: (_) => _allFieldsValid
+                              ? setState(() => _isNextHovered = true)
+                              : null,
+                          onExit: (_) => setState(() => _isNextHovered = false),
+                          cursor: _allFieldsValid
+                              ? SystemMouseCursors.click
+                              : SystemMouseCursors.forbidden,
+                          child: GestureDetector(
+                            onTap: () {
+                              if (_allFieldsValid) {
+                                _onNext();
+                              } else {
+                                // Validate all fields and show errors if any
+                                _validateAllFieldsAndShowErrors();
+                              }
+                            },
+                            child: Container(
+                              width: 106,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: _allFieldsValid
+                                      ? const Color(0xFF00F0FF)
+                                      : const Color(0xFF4A5568),
+                                  width: 1,
+                                ),
+                                color: _allFieldsValid
+                                    ? (_isNextHovered
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.15)
+                                          : Colors.transparent)
+                                    : Colors.transparent,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "Next",
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 20,
+                                  color: _allFieldsValid
+                                      ? Colors.white
+                                      : const Color(0xFF718096),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 14,
+                          right: 0,
+                          child: Container(
+                            width: 125,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: _allFieldsValid
+                                    ? const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF00F0FF),
+                                      ]
+                                    : const [
+                                        Color(0xFF0B1320),
+                                        Color(0xFF4A5568),
+                                      ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -369,6 +657,15 @@ class TabletRegisterPinScreen extends StatefulWidget {
 class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
   final List<String> _pin = [];
   late final List<String> _numbers;
+  bool _isNextHovered = false;
+
+  final GlobalKey<ErrorStackState> _errorStackKey =
+      GlobalKey<ErrorStackState>();
+
+  // Validation states
+  bool _pinValid = false;
+  bool _pinMatching = false;
+  String? _pinError;
 
   @override
   void initState() {
@@ -380,10 +677,21 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
     setState(() {
       if (value == 'Clear') {
         _pin.clear();
+        _validatePin();
       } else if (value == 'Logout') {
         _logout();
       } else {
-        if (_pin.length < 4) _pin.add(value);
+        if (_pin.length < 4) {
+          _pin.add(value);
+          if (_pin.length == 4) {
+            // Validate automatically when 4 digits are entered
+            _validatePinAutomatically();
+          } else {
+            // Clear validation state if not 4 digits
+            _pinMatching = false;
+            _pinValid = false;
+          }
+        }
       }
     });
   }
@@ -397,36 +705,218 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
     }
   }
 
+  // Validation methods
+  void _validatePin() {
+    final enteredPin = _pin.join();
+
+    if (enteredPin.isEmpty) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = null;
+      });
+      return;
+    }
+
+    if (enteredPin.length < 4) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "Please enter 4 digits";
+      });
+      return;
+    }
+
+    // Validate all digits are numbers
+    final pinRegex = RegExp(r"^[0-9]{4}$");
+    if (!pinRegex.hasMatch(enteredPin)) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "PIN must contain exactly 4 digits";
+      });
+      return;
+    }
+
+    setState(() {
+      _pinValid = true;
+      _pinError = null;
+    });
+  }
+
+  // Special validation for confirm PIN screen - checks if PIN matches original
+  void _validatePinAutomatically() {
+    final enteredPin = _pin.join();
+
+    // Basic validation
+    if (enteredPin.isEmpty || enteredPin.length < 4) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = null;
+      });
+      return;
+    }
+
+    final pinRegex = RegExp(r"^[0-9]{4}$");
+    if (!pinRegex.hasMatch(enteredPin)) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "PIN must contain exactly 4 digits";
+      });
+      return;
+    }
+
+    setState(() {
+      _pinValid = true;
+
+      // Check if we're in confirm PIN mode and validate match
+      if (widget.originalPin != null) {
+        if (enteredPin == widget.originalPin) {
+          _pinMatching = true;
+          _pinError = null;
+          // When PIN matches, we don't need to clear errors since they auto-remove
+        } else {
+          _pinMatching = false;
+          _pinError = "PIN does not match";
+          // Show error immediately when 4 digits are entered and don't match
+          _errorStackKey.currentState?.showError(_pinError!);
+        }
+      } else {
+        // For first PIN entry, just mark as valid
+        _pinMatching = true; // Enable Next button for first PIN entry
+        _pinError = null;
+      }
+    });
+  }
+
+  void _validatePinAndShowError() {
+    final enteredPin = _pin.join();
+
+    if (enteredPin.isEmpty) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = null;
+      });
+      return;
+    }
+
+    if (enteredPin.length < 4) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "Please enter 4 digits";
+      });
+      _errorStackKey.currentState?.showError(_pinError!);
+      return;
+    }
+
+    final pinRegex = RegExp(r"^[0-9]{4}$");
+    if (!pinRegex.hasMatch(enteredPin)) {
+      setState(() {
+        _pinValid = false;
+        _pinMatching = false;
+        _pinError = "PIN must contain exactly 4 digits";
+      });
+      _errorStackKey.currentState?.showError(_pinError!);
+      return;
+    }
+
+    setState(() {
+      _pinValid = true;
+
+      if (widget.originalPin != null) {
+        if (enteredPin == widget.originalPin) {
+          _pinMatching = true;
+          _pinError = null;
+          // No need to clear errors - they auto-remove after duration
+        } else {
+          _pinMatching = false;
+          _pinError = "PIN does not match";
+          _errorStackKey.currentState?.showError(_pinError!);
+        }
+      } else {
+        _pinMatching = true;
+        _pinError = null;
+      }
+    });
+  }
+
+  // Function to validate all fields and show errors if any
+  void _validateAllFieldsAndShowErrors() {
+    bool hasError = false;
+
+    // Validate PIN
+    _validatePin();
+    if (widget.originalPin != null) {
+      // For confirm PIN screen, check if PIN matches
+      if (_pin.isNotEmpty && _pin.length == 4) {
+        if (_pin.join() != widget.originalPin) {
+          _errorStackKey.currentState?.showError(
+            "PIN does not match. Try again.",
+          );
+          hasError = true;
+        }
+      }
+    }
+
+    if (_pinError != null && !_pinValid) {
+      _errorStackKey.currentState?.showError(_pinError!);
+      hasError = true;
+    }
+
+    if (_pin.isEmpty || _pin.length < 4) {
+      _errorStackKey.currentState?.showError("Please enter 4 digits");
+      hasError = true;
+    }
+  }
+
+  // Check if all required fields are valid
+  bool get _allFieldsValid {
+    if (widget.originalPin != null) {
+      // For confirm PIN screen, need both valid AND matching
+      return _pinValid && _pinMatching;
+    } else {
+      // For first PIN entry, just need valid
+      return _pinValid && _pin.length == 4;
+    }
+  }
+
   void _onNext() async {
     final enteredPin = _pin.join();
 
+    // Check if all fields are valid
+    if (!_pinValid || !_pinMatching) {
+      // Validate all fields and show errors if any
+      _validateAllFieldsAndShowErrors();
+      return;
+    }
+
+    // If confirming PIN
     if (widget.originalPin != null) {
       if (enteredPin == widget.originalPin) {
         try {
           await AuthService.registerPin(enteredPin);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("PIN registered successfully!")),
-          );
-
-          Navigator.pushReplacementNamed(context, '/register-pattern');
-        } catch (e) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Error: $e")));
           _pin.clear();
           setState(() {});
+          Navigator.pushReplacementNamed(context, '/register-pattern');
+        } catch (e) {
+          _pin.clear();
+          setState(() {});
+          _errorStackKey.currentState?.showError("Error: $e");
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("PIN does not match. Try again.")),
-        );
         _pin.clear();
         setState(() {});
+        _errorStackKey.currentState?.showError(
+          "PIN does not match. Try again.",
+        );
       }
     } else {
+      // Enter original PIN - UPDATED WITH SLIDE ANIMATION
       if (_pin.length == 4) {
-        // UPDATED WITH SLIDE ANIMATION FOR TABLET
         Navigator.push(
           context,
           PageRouteBuilder(
@@ -455,10 +945,7 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
           ),
         );
         _pin.clear();
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Enter 4 digits.")));
+        setState(() {});
       }
     }
   }
@@ -474,11 +961,8 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
       onWillPop: () async {
         if (widget.originalPin != null) {
           // Show error when trying to go back from confirm PIN screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please complete PIN confirmation first'),
-              duration: Duration(seconds: 2),
-            ),
+          _errorStackKey.currentState?.showError(
+            "Please complete PIN confirmation first",
           );
           return false; // Prevent going back
         }
@@ -585,10 +1069,15 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                             ),
                                             child: _ProgressLine(
                                               totalSteps: 5,
-                                              completedSteps: 2,
+                                              completedSteps:
+                                                  widget.originalPin != null
+                                                  ? 4
+                                                  : 3,
                                             ),
                                           ),
-                                          const _ProgressSteps(),
+                                          _ProgressSteps(
+                                            originalPin: widget.originalPin,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -625,8 +1114,16 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                               height: 60,
                                               decoration: BoxDecoration(
                                                 border: Border.all(
-                                                  color: Colors.white
-                                                      .withOpacity(0.9),
+                                                  color: filled
+                                                      ? (_allFieldsValid
+                                                            ? const Color(
+                                                                0xFF00F0FF,
+                                                              )
+                                                            : const Color(
+                                                                0xFFFF6B6B,
+                                                              ))
+                                                      : Colors.white
+                                                            .withOpacity(0.9),
                                                   width: 2,
                                                 ),
                                                 borderRadius:
@@ -637,11 +1134,17 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                                 filled
                                                     ? _pin[index]
                                                     : '', // Always show actual digit
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontFamily: 'Inter',
                                                   fontWeight: FontWeight.w500,
                                                   fontSize: 32,
-                                                  color: Colors.white,
+                                                  color: filled
+                                                      ? (_allFieldsValid
+                                                            ? Colors.white
+                                                            : const Color(
+                                                                0xFFFF6B6B,
+                                                              ))
+                                                      : Colors.white,
                                                 ),
                                               ),
                                             );
@@ -665,40 +1168,126 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
 
                                     // ===== Bottom Navigation =====
                                     SizedBox(
-                                      width: 380,
-                                      height: 50,
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                      width: isLandscape ? 450 : 380,
+                                      height: 40,
+                                      child: Stack(
+                                        alignment: Alignment.center,
                                         children: [
-                                          _GradientLine(isLeft: true),
-                                          _NavButton(
-                                            text: "Back",
-                                            onTap: () {
-                                              if (widget.originalPin != null) {
-                                                // Prevent manual back button when in confirm PIN mode
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      'Please complete PIN confirmation first',
-                                                    ),
-                                                    duration: Duration(
-                                                      seconds: 2,
-                                                    ),
+                                          Positioned(
+                                            top: 14,
+                                            left: 0,
+                                            child: Container(
+                                              width: 125,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(11),
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                  colors: _allFieldsValid
+                                                      ? const [
+                                                          Color(0xFF0B1320),
+                                                          Color(0xFF00F0FF),
+                                                        ]
+                                                      : const [
+                                                          Color(0xFF0B1320),
+                                                          Color(0xFF4A5568),
+                                                        ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          MouseRegion(
+                                            onEnter: (_) => _allFieldsValid
+                                                ? setState(
+                                                    () => _isNextHovered = true,
+                                                  )
+                                                : null,
+                                            onExit: (_) => setState(
+                                              () => _isNextHovered = false,
+                                            ),
+                                            cursor: _allFieldsValid
+                                                ? SystemMouseCursors.click
+                                                : SystemMouseCursors.forbidden,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                if (_allFieldsValid) {
+                                                  _onNext();
+                                                } else {
+                                                  // Validate all fields and show errors if any
+                                                  _validateAllFieldsAndShowErrors();
+                                                }
+                                              },
+                                              child: Container(
+                                                width: 106,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  border: Border.all(
+                                                    color: _allFieldsValid
+                                                        ? const Color(
+                                                            0xFF00F0FF,
+                                                          )
+                                                        : const Color(
+                                                            0xFF4A5568,
+                                                          ),
+                                                    width: 1,
                                                   ),
-                                                );
-                                              } else {
-                                                Navigator.pop(context);
-                                              }
-                                            },
+                                                  color: _allFieldsValid
+                                                      ? (_isNextHovered
+                                                            ? const Color(
+                                                                0xFF00F0FF,
+                                                              ).withOpacity(
+                                                                0.15,
+                                                              )
+                                                            : Colors
+                                                                  .transparent)
+                                                      : Colors.transparent,
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  "Next",
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 20,
+                                                    color: _allFieldsValid
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF718096,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                          _NavButton(
-                                            text: "Next",
-                                            onTap: _onNext,
+                                          Positioned(
+                                            top: 14,
+                                            right: 0,
+                                            child: Container(
+                                              width: 125,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(11),
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.centerRight,
+                                                  end: Alignment.centerLeft,
+                                                  colors: _allFieldsValid
+                                                      ? const [
+                                                          Color(0xFF0B1320),
+                                                          Color(0xFF00F0FF),
+                                                        ]
+                                                      : const [
+                                                          Color(0xFF0B1320),
+                                                          Color(0xFF4A5568),
+                                                        ],
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                          _GradientLine(isLeft: false),
                                         ],
                                       ),
                                     ),
@@ -707,6 +1296,10 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
 
                                     // ===== Footer =====
                                     FooterWidget(),
+
+                                    // Add bottom spacing for landscape
+                                    if (isLandscape)
+                                      SizedBox(height: screenHeight * 0.1),
                                   ],
                                 ),
                               ),
@@ -729,6 +1322,9 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                 fit: BoxFit.contain,
               ),
             ),
+
+            // ErrorStack widget (it uses Overlay so it renders separately)
+            ErrorStack(key: _errorStackKey),
           ],
         ),
       ),
@@ -933,7 +1529,9 @@ class _ProgressLine extends StatelessWidget {
 }
 
 class _ProgressSteps extends StatelessWidget {
-  const _ProgressSteps({super.key});
+  final String? originalPin;
+
+  const _ProgressSteps({super.key, this.originalPin});
 
   @override
   Widget build(BuildContext context) {
@@ -951,7 +1549,11 @@ class _ProgressSteps extends StatelessWidget {
             filled: true,
             filledColor: Color(0xFF01259E),
           ),
-          _buildStep(""),
+          _buildStep(
+            originalPin != null ? "Register\nPattern" : "Register\nPin",
+            filled: originalPin != null,
+            filledColor: originalPin != null ? Color(0xFF001A7A) : null,
+          ),
         ],
       ),
     );
@@ -1051,54 +1653,4 @@ class _Keypad extends StatelessWidget {
       }).toList(),
     );
   }
-}
-
-class _NavButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onTap;
-  const _NavButton({required this.text, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 106,
-      height: 40,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF00F0FF), width: 1),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 20,
-          color: Colors.white,
-        ),
-      ),
-    ),
-  );
-}
-
-class _GradientLine extends StatelessWidget {
-  final bool isLeft;
-  const _GradientLine({required this.isLeft});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 64,
-    height: 4,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(11),
-      gradient: LinearGradient(
-        begin: Alignment.centerRight,
-        end: Alignment.centerLeft,
-        colors: isLeft
-            ? const [Color(0xFF00F0FF), Color(0xFF0B1320)]
-            : const [Color(0xFF0B1320), Color(0xFF00F0FF)],
-      ),
-    ),
-  );
 }

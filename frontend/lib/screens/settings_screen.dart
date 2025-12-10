@@ -79,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showPatternLines = true;
   bool _isPatternEyeVisible = true;
 
-   List<CurrencyPrice> _currencies = [];
+  List<CurrencyPrice> _currencies = [];
 
   // Verification State
   final TextEditingController _verificationEmailController =
@@ -198,7 +198,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _freezeTextController.addListener(_onFreezeTextChanged);
   }
 
-    Future<void> _loadCurrencies() async {
+  Future<void> _loadCurrencies() async {
     try {
       final currencies = await _currencyService.getCurrencies();
       setState(() {
@@ -720,27 +720,27 @@ class _SettingsScreenState extends State<SettingsScreen>
   double? _selectedPrice;
 
   void _selectCurrency(String currencyCode, String currencySymbol) async {
-  setState(() {
-    _selectedCurrency = '$currencyCode($currencySymbol)';
-  });
+    setState(() {
+      _selectedCurrency = '$currencyCode($currencySymbol)';
+    });
 
-  // Build the Binance symbol (ex: BTC → BTCUSDT)
-  final currencies = await _currencyService.getCurrencies();
+    // Build the Binance symbol (ex: BTC → BTCUSDT)
+    final currencies = await _currencyService.getCurrencies();
 
-  final selected = currencies.firstWhere(
-    (c) => c.symbol == currencyCode,
-    orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0), 
-  );
+    final selected = currencies.firstWhere(
+      (c) => c.symbol == currencyCode,
+      orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0),
+    );
 
-  setState(() {
-    _selectedPrice = selected.price;
-  });
+    setState(() {
+      _selectedPrice = selected.price;
+    });
 
-  print('Selected currency: $currencyCode');
-  print('Price: $_selectedPrice');
+    print('Selected currency: $currencyCode');
+    print('Price: $_selectedPrice');
 
-  _closeAllMenus();
-}
+    _closeAllMenus();
+  }
 
   // void _selectCurrency(String currencyCode, String currencySymbol) {
   //   setState(() {
@@ -1396,51 +1396,53 @@ class _SettingsScreenState extends State<SettingsScreen>
 
           // Currency Menu
           SlideUpMenu(
-  menuHeight: currencyMenuHeight,
-  isVisible: _showCurrencyMenu,
-  onToggle: _toggleCurrencyMenu,
-  dragHandle: SvgPicture.asset(
-    'assets/images/vLine.svg',
-    width: 90,
-    height: 9,
-    fit: BoxFit.contain,
-  ),
-  child: Container(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'Select Currency',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _currencies.length,
-            itemBuilder: (context, index) {
-              final currency = _currencies[index]; // CurrencyPrice object
-              final displayText =
-                  '${currency.code}(${currency.symbol}) - ${currency.name}';
-              final isSelected =
-                  _selectedCurrency == '${currency.code}(${currency.symbol})';
+            menuHeight: currencyMenuHeight,
+            isVisible: _showCurrencyMenu,
+            onToggle: _toggleCurrencyMenu,
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Select Currency',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _currencies.length,
+                      itemBuilder: (context, index) {
+                        final currency =
+                            _currencies[index]; // CurrencyPrice object
+                        final displayText =
+                            '${currency.code}(${currency.symbol}) - ${currency.name}';
+                        final isSelected =
+                            _selectedCurrency ==
+                            '${currency.code}(${currency.symbol})';
 
-              return _buildCurrencyOption(
-                displayText,
-                isSelected,
-                () => _selectCurrency(currency.code, currency.symbol),
-              );
-            },
+                        return _buildCurrencyOption(
+                          displayText,
+                          isSelected,
+                          () => _selectCurrency(currency.code, currency.symbol),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
-    ),
-  ),
-),
 
           // Freeze Account Menu - UPDATED with CustomNavigationWidget
           SlideUpMenu(
