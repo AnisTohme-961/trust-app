@@ -19,12 +19,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(const MyApp());
-
-  // final userProvider = UserProvider();
-  // final storage = FlutterSecureStorage();
-
-  // // Load saved user info
-  // await userProvider.loadFromStorage(storage);
 }
 
 class MyApp extends StatelessWidget {
@@ -41,7 +35,6 @@ class MyApp extends StatelessWidget {
       ],
       child: Builder(
         builder: (context) {
-          // Load user data after provider is available
           final userProvider = Provider.of<UserProvider>(
             context,
             listen: false,
@@ -95,7 +88,6 @@ class _MobileHomePageState extends State<MobileHomePage> {
   final TextEditingController _languageSearchController =
       TextEditingController();
 
-  // dynamic list from language_api_service.dart:
   List<Map<String, String>> get _languages => LanguagesService.getLanguages();
 
   @override
@@ -289,7 +281,6 @@ class _MobileHomePageState extends State<MobileHomePage> {
                               height: 179,
                               child: Stack(
                                 children: [
-                                  // Position the glowing oval arrow
                                   Positioned(
                                     left: 175.0,
                                     child: GlowingVerticalOvalArrow(
@@ -297,7 +288,6 @@ class _MobileHomePageState extends State<MobileHomePage> {
                                       swipeUp: _swipeUp,
                                     ),
                                   ),
-                                  // Position the animated SVG
                                   Positioned(
                                     top: 70,
                                     left:
@@ -326,7 +316,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                     ],
                   ),
 
-                  // Bottom-right rectangle (positioned element)
+                  // Bottom-right rectangle
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -337,7 +327,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                     ),
                   ),
 
-                  // 🔥 BACKGROUND OVERLAY WHEN LANGUAGE POPUP IS OPEN
+                  // BACKGROUND OVERLAY WHEN LANGUAGE POPUP IS OPEN
                   if (_languageDropdownOpen)
                     Positioned.fill(
                       child: GestureDetector(
@@ -350,7 +340,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                       ),
                     ),
 
-                  // LANGUAGE DROPDOWN POPUP - UPDATED WITH SlideUpMenu (70% height)
+                  // LANGUAGE DROPDOWN POPUP WITH FIXED LAYOUT
                   SlideUpMenu(
                     menuHeight: dropdownHeight,
                     isVisible: _languageDropdownOpen,
@@ -359,11 +349,18 @@ class _MobileHomePageState extends State<MobileHomePage> {
                         _languageDropdownOpen = !_languageDropdownOpen;
                       });
                     },
+                    onClose: () {
+                      setState(() {
+                        _languageDropdownOpen = false;
+                      });
+                    },
                     backgroundColor: const Color(0xFF0B1320),
                     shadowColor: const Color(0xFF00F0FF),
                     borderRadius: 20.0,
                     duration: const Duration(milliseconds: 400),
                     curve: Curves.easeOut,
+                    minHeight: 100,
+                    maxHeight: MediaQuery.of(context).size.height * 0.9,
                     dragHandle: Padding(
                       padding: const EdgeInsets.only(left: 20),
                       child: CustomPaint(
@@ -371,100 +368,122 @@ class _MobileHomePageState extends State<MobileHomePage> {
                         painter: VLinePainter(),
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 16),
-
-                        // SEARCH FIELD
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 50),
-                          child: TextField(
-                            controller: _languageSearchController,
-                            onChanged: (value) {
-                              final query = value.toLowerCase();
-                              setState(() {
-                                _filteredLanguages = _languages
-                                    .where(
-                                      (c) => c['name']!.toLowerCase().contains(
-                                        query,
-                                      ),
-                                    )
-                                    .toList();
-                              });
-                            },
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Search Language',
-                              hintStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.5),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Use LayoutBuilder to get available space
+                        return Column(
+                          children: [
+                            // SEARCH FIELD - Fixed height
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 50,
+                                vertical: 5,
                               ),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        const Divider(color: Colors.white24, thickness: 0.5),
-
-                        // COUNTRY LIST
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 50,
-                              vertical: 16,
-                            ),
-                            itemCount: _filteredLanguages.length,
-                            itemBuilder: (context, index) {
-                              final country = _filteredLanguages[index];
-                              return GestureDetector(
-                                onTap: () {
+                              child: TextField(
+                                controller: _languageSearchController,
+                                onChanged: (value) {
+                                  final query = value.toLowerCase();
                                   setState(() {
-                                    _languageSearchController.text =
-                                        country['name']!;
-                                    _languageDropdownOpen = false;
+                                    _filteredLanguages = _languages
+                                        .where(
+                                          (c) => c['name']!
+                                              .toLowerCase()
+                                              .contains(query),
+                                        )
+                                        .toList();
                                   });
                                 },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      SvgPicture.asset(
-                                        country['flag']!,
-                                        width: 30,
-                                        height: 30,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                                  width: 30,
-                                                  height: 30,
-                                                  color: Colors.grey,
-                                                  child: const Icon(
-                                                    Icons.flag,
-                                                    size: 20,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        country['name']!,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+                                decoration: InputDecoration(
+                                  hintText: 'Search Language',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ),
+
+                            // DIVIDER - Fixed height
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 50),
+                              child: Divider(
+                                color: Colors.white24,
+                                thickness: 0.5,
+                                height: 1,
+                              ),
+                            ),
+
+                            const SizedBox(height: 0),
+
+                            // LANGUAGE LIST - Takes remaining space
+                            Expanded(
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 50,
+                                  vertical: 8,
+                                ),
+                                itemCount: _filteredLanguages.length,
+                                physics: const ClampingScrollPhysics(),
+                                itemBuilder: (context, index) {
+                                  final country = _filteredLanguages[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _languageSearchController.text =
+                                            country['name']!;
+                                        _languageDropdownOpen = false;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            country['flag']!,
+                                            width: 30,
+                                            height: 30,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                                      width: 30,
+                                                      height: 30,
+                                                      color: Colors.grey,
+                                                      child: const Icon(
+                                                        Icons.flag,
+                                                        size: 20,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              country['name']!,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],

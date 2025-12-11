@@ -268,7 +268,7 @@ class _MobileRegisterPatternScreenState
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 0,
-                    vertical: 40,
+                    vertical: 10,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
