@@ -55,99 +55,131 @@ class MobileSelectAccountContent extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final accounts = _getAccounts(userProvider);
 
-    return Column(
-      // Remove Container and return Column directly
-      children: [
-        const SizedBox(height: 50),
-
-        // Title
-        const Text(
-          'Select an Account',
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-          ),
-        ),
-
-        const SizedBox(height: 40),
-
-        // Scrollable area (expanded to prevent bottom overflow)
-        Expanded(
-          child: accounts.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(
-                        Icons.account_circle_outlined,
-                        size: 60,
-                        color: Colors.white38,
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'No account found',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+    return Container(
+      color: const Color(0xFF0B1320),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header with centered title - FIXED HEIGHT
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: Stack(
+              children: [
+                // Centered title
+                Center(
+                  child: Text(
+                    'Select an Account',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 19,
+                    ),
                   ),
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Account list
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: scrollController,
-                        child: Column(
-                          children: [
-                            for (final account in accounts)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 20),
-                                child: AccountFrame(
-                                  firstName:
-                                      account['firstName'] ?? 'First Name',
-                                  lastName: account['lastName'] ?? 'Last Name',
-                                  eid: account['eid'] ?? 'N/A',
-                                  imagePath:
-                                      account['image'] ??
-                                      'assets/images/image1.png',
-                                  onTap: () {
-                                    final userProvider =
-                                        Provider.of<UserProvider>(
-                                          context,
-                                          listen: false,
-                                        );
-                                    userProvider.setEID(account['eid'] ?? '');
-                                    Navigator.pushNamed(context, '/sign-in');
-                                  },
-                                  isTablet: false,
+                ),
+              ],
+            ),
+          ),
+
+          // MAIN CONTENT AREA - Scrollable
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: accounts.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.account_circle_outlined,
+                            size: 50,
+                            color: Colors.white38,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'No account found',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        // Account list in a scrollable container
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  controller: scrollController,
+                                  physics: const ClampingScrollPhysics(),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(height: 5),
+                                      for (final account in accounts)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: AccountFrame(
+                                            firstName:
+                                                account['firstName'] ??
+                                                'First Name',
+                                            lastName:
+                                                account['lastName'] ??
+                                                'Last Name',
+                                            eid: account['eid'] ?? 'N/A',
+                                            imagePath:
+                                                account['image'] ??
+                                                'assets/images/image1.png',
+                                            onTap: () {
+                                              final userProvider =
+                                                  Provider.of<UserProvider>(
+                                                    context,
+                                                    listen: false,
+                                                  );
+                                              userProvider.setEID(
+                                                account['eid'] ?? '',
+                                              );
+                                              Navigator.pushNamed(
+                                                context,
+                                                '/sign-in',
+                                              );
+                                            },
+                                            isTablet: false,
+                                          ),
+                                        ),
+                                      const SizedBox(height: 10),
+                                    ],
+                                  ),
                                 ),
                               ),
-                          ],
+                              const SizedBox(width: 8),
+                              // Scrollbar
+                              VerticalScrollbar(controller: scrollController),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
+            ),
+          ),
 
-                    const SizedBox(width: 10),
-
-                    // Scrollbar
-                    VerticalScrollbar(controller: scrollController),
-                  ],
-                ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Show "Add New Profile" only if user has an EID
-        if (userProvider.eid != null && userProvider.eid!.isNotEmpty)
-          _buildAddNewProfileButton(context, false),
-      ],
+          // BOTTOM SECTION - Fixed height
+          if (userProvider.eid != null && userProvider.eid!.isNotEmpty)
+            Container(
+              height: 70,
+              padding: const EdgeInsets.only(bottom: 15, left: 10, right: 10),
+              child: _buildAddNewProfileButton(context, false),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -167,119 +199,95 @@ class TabletSelectAccountContent extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final accounts = _getAccounts(userProvider);
 
-    // Get the actual device orientation
-    final orientation = MediaQuery.of(context).orientation;
-
     return Container(
-      height: 476.0, // Fixed total height
-      padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
+      color: const Color(0xFF0B1320),
       child: Column(
         children: [
-          // V-line handle (centered for tablet)
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
+          // V-line handle (centered)
+          Center(
             child: GestureDetector(
               onTap: onClose,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 15.0),
+                padding: const EdgeInsets.only(top: 10.0, bottom: 10.0),
                 child: CustomPaint(
-                  size: const Size(120.0, 20.0),
+                  size: const Size(100.0, 18.0),
                   painter: VLinePainter(),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 20.0),
-
-          // Title with larger font for tablet
-          const Text(
-            'Select an Account',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              fontSize: 24.0,
+          // Title (centered)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'Select an Account',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 22.0,
+                ),
+              ),
             ),
           ),
 
-          const SizedBox(height: 30.0),
-
-          // Fixed height account grid for tablet with 2x3 layout
-          Builder(
-            builder: (context) {
-              // Get orientation inside Builder to ensure fresh context
-              final currentOrientation = MediaQuery.of(context).orientation;
-
-              // Set height based on orientation
-              final containerHeight =
-                  currentOrientation == Orientation.landscape
-                  ? 280.0 // Horizontal/landscape mode
-                  : 240.0; // Vertical/portrait mode
-
-              final gridHeight = currentOrientation == Orientation.landscape
-                  ? 280.0 // Match container height for landscape
-                  : 240.0; // Match container height for portrait
-
-              print('Current Orientation: $currentOrientation'); // Debug print
-
-              return Container(
-                height: containerHeight,
-                width: 644.0, // Fixed width as requested
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Account grid with 2 columns and 3 rows
-                    Expanded(
-                      child: Container(
-                        height: gridHeight,
-                        child: GridView.builder(
-                          controller: scrollController,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2, // 2 columns
-                                mainAxisSpacing: 15.0,
-                                crossAxisSpacing: 20.0,
-                                childAspectRatio: 350 / 85,
-                              ),
-                          itemCount: accounts.length,
-                          itemBuilder: (context, index) {
-                            final account = accounts[index];
-                            return AccountFrame(
-                              firstName: account['firstName'] ?? 'First Name',
-                              lastName: account['lastName'] ?? 'Last Name',
-                              eid: account['eid'] ?? 'N/A',
-                              imagePath:
-                                  account['image'] ??
-                                  'assets/images/image1.png',
-                              onTap: () {
-                                userProvider.setEID(account['eid']!);
-                                Navigator.pushNamed(context, '/sign-in');
-                              },
-                              isTablet: true,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 15.0),
-
-                    // Custom scrollbar - height matches grid height
-                    VerticalScrollbar(
+          // Account grid area
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 30.0,
+                vertical: 10.0,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Account grid with 2 columns
+                  Expanded(
+                    child: GridView.builder(
                       controller: scrollController,
-                      height: gridHeight,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12.0,
+                            crossAxisSpacing: 15.0,
+                            childAspectRatio: 300 / 75,
+                          ),
+                      itemCount: accounts.length,
+                      itemBuilder: (context, index) {
+                        final account = accounts[index];
+                        return AccountFrame(
+                          firstName: account['firstName'] ?? 'First Name',
+                          lastName: account['lastName'] ?? 'Last Name',
+                          eid: account['eid'] ?? 'N/A',
+                          imagePath:
+                              account['image'] ?? 'assets/images/image1.png',
+                          onTap: () {
+                            userProvider.setEID(account['eid']!);
+                            Navigator.pushNamed(context, '/sign-in');
+                          },
+                          isTablet: true,
+                        );
+                      },
                     ),
-                  ],
-                ),
-              );
-            },
+                  ),
+
+                  const SizedBox(width: 12.0),
+
+                  // Custom scrollbar with smaller height
+                  VerticalScrollbar(controller: scrollController, height: 300),
+                ],
+              ),
+            ),
           ),
 
-          const SizedBox(height: 25.0),
-
           // Add New Profile Button for tablet
-          _buildAddNewProfileButton(context, true),
+          Container(
+            height: 60,
+            padding: const EdgeInsets.only(bottom: 15.0, top: 10.0),
+            child: _buildAddNewProfileButton(context, true),
+          ),
         ],
       ),
     );
@@ -290,23 +298,12 @@ List<Map<String, String>> _getAccounts(UserProvider userProvider) {
   return userProvider.accounts;
 }
 
-// List<Map<String, String?>> _getAccounts(UserProvider userProvider) {
-//   return [
-//     {
-//       'firstName': userProvider.firstName,
-//       'lastName': userProvider.lastName,
-//       'eid': userProvider.eid,
-//       'image': 'assets/images/image1.png',
-//     },
-//   ];
-// }
-
 // Updated VerticalScrollbar Widget with customizable height
 class VerticalScrollbar extends StatefulWidget {
   final ScrollController? controller;
   final double height;
 
-  const VerticalScrollbar({super.key, this.controller, this.height = 530});
+  const VerticalScrollbar({super.key, this.controller, this.height = 300});
 
   @override
   State<VerticalScrollbar> createState() => _VerticalScrollbarState();
@@ -327,7 +324,6 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   }
 
   void _initializeController() {
-    // Wait for the next frame to ensure the controller has clients
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -337,7 +333,6 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
           _scrollController.addListener(_updateScrollThumb);
           _updateScrollThumb();
         } else {
-          // If still no clients, try again after a short delay
           Future.delayed(const Duration(milliseconds: 50), () {
             if (mounted) {
               setState(() {
@@ -373,7 +368,6 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
         final maxScrollExtent = position.maxScrollExtent;
         final viewportDimension = position.viewportDimension;
 
-        // Check if scrolling is needed
         if (maxScrollExtent <= 0) {
           setState(() {
             _scrollThumbHeight = widget.height;
@@ -387,7 +381,7 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
         if (totalContentHeight > 0) {
           final visibleRatio = viewportDimension / totalContentHeight;
           _scrollThumbHeight = (widget.height * visibleRatio).clamp(
-            30.0,
+            25.0,
             widget.height,
           );
 
@@ -498,7 +492,7 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   }
 }
 
-// Updated AccountFrame with tablet support
+// Updated AccountFrame with tablet support - COMPACT VERSION
 class AccountFrame extends StatelessWidget {
   final String firstName;
   final String lastName;
@@ -519,17 +513,14 @@ class AccountFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = isTablet ? 312.0 : 312.0;
-    final height = isTablet ? 69.0 : 69.0;
-    final imageSize = isTablet ? 50.0 : 50.0;
-    final nameFontSize = isTablet ? 22.0 : 20.0;
-    final eidFontSize = isTablet ? 15.0 : 15.0;
-    final leftPadding = isTablet ? 90.0 : 95.0;
+    final width = isTablet ? 280.0 : 280.0;
+    final height = isTablet ? 65.0 : 65.0;
+    final imageSize = isTablet ? 45.0 : 45.0;
+    final nameFontSize = isTablet ? 20.0 : 18.0;
+    final eidFontSize = isTablet ? 14.0 : 14.0;
+    final leftPadding = isTablet ? 80.0 : 85.0;
 
-    // Different divider calculations for tablet vs mobile
-    final topDivider = isTablet
-        ? (height - imageSize) / 3.8
-        : (height - imageSize) / 2;
+    final topDivider = (height - imageSize) / 2.5;
 
     return Container(
       width: width,
@@ -542,15 +533,15 @@ class AccountFrame extends StatelessWidget {
         onTap: onTap,
         child: Stack(
           children: [
-            // Profile Image with different dividers
+            // Profile Image
             Positioned(
-              top: topDivider, // Use the calculated divider
-              left: 15,
+              top: topDivider,
+              left: 12,
               child: _buildProfileImage(imageSize),
             ),
             // User Full Name
             Positioned(
-              top: isTablet ? 8 : 12,
+              top: isTablet ? 8 : 10,
               left: leftPadding,
               child: Text(
                 '$firstName $lastName',
@@ -565,7 +556,7 @@ class AccountFrame extends StatelessWidget {
             ),
             // EID
             Positioned(
-              top: isTablet ? 34 : 38,
+              top: isTablet ? 32 : 34,
               left: leftPadding,
               child: Text(
                 'EID: $eid',
@@ -633,18 +624,18 @@ class VLinePainter extends CustomPainter {
 }
 
 Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
-  final buttonWidth = isTablet ? 220.0 : 180.0;
-  final buttonHeight = isTablet ? 50.0 : 40.0;
-  final fontSize = isTablet ? 22.0 : 20.0;
+  final buttonWidth = isTablet ? 200.0 : 160.0;
+  final buttonHeight = isTablet ? 45.0 : 35.0;
+  final fontSize = isTablet ? 20.0 : 18.0;
 
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Expanded(
         child: Padding(
-          padding: EdgeInsets.only(left: isTablet ? 50 : 10),
+          padding: EdgeInsets.only(left: isTablet ? 30 : 8),
           child: Container(
-            height: 4,
+            height: 3,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
@@ -655,7 +646,7 @@ Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
           ),
         ),
       ),
-      SizedBox(width: isTablet ? 30 : 20),
+      SizedBox(width: isTablet ? 20 : 15),
       CustomButton(
         text: 'Add New Profile',
         width: buttonWidth,
@@ -669,12 +660,12 @@ Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
           Navigator.pushNamed(context, '/sign-in');
         },
       ),
-      SizedBox(width: isTablet ? 30 : 20),
+      SizedBox(width: isTablet ? 20 : 15),
       Expanded(
         child: Padding(
-          padding: EdgeInsets.only(right: isTablet ? 50 : 10),
+          padding: EdgeInsets.only(right: isTablet ? 30 : 8),
           child: Container(
-            height: 4,
+            height: 3,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],

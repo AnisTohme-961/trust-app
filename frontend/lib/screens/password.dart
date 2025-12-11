@@ -455,10 +455,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 18.0),
                 child: Column(
                   children: [
-                    const SizedBox(height: 40),
-                    ErrorStack(key: _errorStackKey),
                     const SizedBox(height: 20),
-
+                    ErrorStack(key: _errorStackKey),
                     // Sign In/Sign Up Buttons
                     SizedBox(
                       width: 230,
@@ -1014,7 +1012,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 0),
 
                     // Terms and Conditions
                     Row(

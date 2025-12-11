@@ -312,8 +312,6 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 40),
-
                   // Sign Up / Sign In buttons
                   SizedBox(
                     width: 230,
