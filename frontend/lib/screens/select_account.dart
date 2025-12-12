@@ -24,18 +24,221 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
-          return TabletSelectAccountContent(
-            onClose: widget.onClose,
-            scrollController: _scrollController,
-          );
-        } else {
-          return MobileSelectAccountContent(
-            onClose: widget.onClose,
-            scrollController: _scrollController,
-          );
+        // Get the actual available height
+        final availableHeight = constraints.maxHeight;
+
+        // If height is too small, use a scrollable single column
+        if (availableHeight < 200) {
+          return _buildCompactLayout(context, availableHeight);
         }
+
+        return _buildNormalLayout(context, availableHeight);
       },
+    );
+  }
+
+  Widget _buildNormalLayout(BuildContext context, double availableHeight) {
+    return Container(
+      color: const Color(0xFF0B1320),
+      height: availableHeight,
+      child: Column(
+        children: [
+          // Header - Fixed height
+          Container(
+            height: 60,
+            padding: const EdgeInsets.all(16),
+            alignment: Alignment.center,
+            child: Text(
+              'Select an Account',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+                fontSize: 19,
+              ),
+            ),
+          ),
+
+          // Content area - Takes remaining space
+          Expanded(child: _buildContent(context)),
+
+          // Bottom button - Fixed height
+          Container(
+            height: 70,
+            padding: const EdgeInsets.all(16),
+            child: _buildAddNewProfileButton(context, false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactLayout(BuildContext context, double availableHeight) {
+    return SingleChildScrollView(
+      child: Container(
+        color: const Color(0xFF0B1320),
+        constraints: BoxConstraints(minHeight: availableHeight),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Select an Account',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 19,
+                ),
+              ),
+            ),
+
+            // Content
+            _buildContent(context),
+
+            // Bottom button
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: _buildAddNewProfileButton(context, false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final accounts = _getAccounts(userProvider);
+
+    if (accounts.isEmpty) {
+      return Container(
+        height: 150,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.account_circle_outlined,
+                size: 50,
+                color: Colors.white38,
+              ),
+              SizedBox(height: 8),
+              Text(
+                'No account found',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Accounts list
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              shrinkWrap: true, // Important for nested ListView
+              physics: const ClampingScrollPhysics(),
+              itemCount: accounts.length,
+              itemBuilder: (context, index) {
+                final account = accounts[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: AccountFrame(
+                    firstName: account['firstName'] ?? 'First Name',
+                    lastName: account['lastName'] ?? 'Last Name',
+                    eid: account['eid'] ?? 'N/A',
+                    imagePath: account['image'] ?? '',
+                    onTap: () {
+                      userProvider.setEID(account['eid'] ?? '');
+                      Navigator.pushNamed(context, '/sign-in');
+                    },
+                    isTablet: false,
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Scrollbar
+          VerticalScrollbar(controller: _scrollController, height: 200),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, String>> _getAccounts(UserProvider userProvider) {
+    return userProvider.accounts;
+  }
+
+  Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
+    final buttonWidth = isTablet ? 200.0 : 160.0;
+    final buttonHeight = isTablet ? 45.0 : 35.0;
+    final fontSize = isTablet ? 20.0 : 18.0;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(left: isTablet ? 30 : 8),
+            child: Container(
+              height: 3,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: isTablet ? 20 : 15),
+        CustomButton(
+          text: 'Add New Profile',
+          width: buttonWidth,
+          height: buttonHeight,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          textColor: Colors.white,
+          borderColor: const Color(0xFF00F0FF),
+          backgroundColor: const Color(0xFF0B1320),
+          onTap: () {
+            Navigator.pushNamed(context, '/sign-in');
+          },
+        ),
+        SizedBox(width: isTablet ? 20 : 15),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: isTablet ? 30 : 8),
+            child: Container(
+              height: 3,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -58,128 +261,112 @@ class MobileSelectAccountContent extends StatelessWidget {
     return Container(
       color: const Color(0xFF0B1320),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Header with centered title - FIXED HEIGHT
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            child: Stack(
-              children: [
-                // Centered title
-                Center(
-                  child: Text(
-                    'Select an Account',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 19,
-                    ),
-                  ),
+          // Header - Fixed height
+          SizedBox(
+            height: 50,
+            child: Center(
+              child: Text(
+                'Select an Account',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 19,
                 ),
-              ],
+              ),
             ),
           ),
 
-          // MAIN CONTENT AREA - Scrollable
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: accounts.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
-                            Icons.account_circle_outlined,
-                            size: 50,
-                            color: Colors.white38,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'No account found',
-                            style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        // Account list in a scrollable container
-                        Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  controller: scrollController,
-                                  physics: const ClampingScrollPhysics(),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const SizedBox(height: 5),
-                                      for (final account in accounts)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
-                                          ),
-                                          child: AccountFrame(
-                                            firstName:
-                                                account['firstName'] ??
-                                                'First Name',
-                                            lastName:
-                                                account['lastName'] ??
-                                                'Last Name',
-                                            eid: account['eid'] ?? 'N/A',
-                                            imagePath:
-                                                account['image'] ??
-                                                'assets/images/image1.png',
-                                            onTap: () {
-                                              final userProvider =
-                                                  Provider.of<UserProvider>(
-                                                    context,
-                                                    listen: false,
-                                                  );
-                                              userProvider.setEID(
-                                                account['eid'] ?? '',
-                                              );
-                                              Navigator.pushNamed(
-                                                context,
-                                                '/sign-in',
-                                              );
-                                            },
-                                            isTablet: false,
-                                          ),
-                                        ),
-                                      const SizedBox(height: 10),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Scrollbar
-                              VerticalScrollbar(controller: scrollController),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
+          // Divider
+          Container(height: 1, color: Colors.white24),
 
-          // BOTTOM SECTION - Fixed height
-          if (userProvider.eid != null && userProvider.eid!.isNotEmpty)
+          // Accounts List - Takes remaining space
+          Expanded(child: _buildAccountsList(context, accounts, userProvider)),
+
+          // Bottom button - Fixed height
+          if (accounts.isNotEmpty &&
+              userProvider.eid != null &&
+              userProvider.eid!.isNotEmpty)
             Container(
               height: 70,
-              padding: const EdgeInsets.only(bottom: 15, left: 10, right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               child: _buildAddNewProfileButton(context, false),
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAccountsList(
+    BuildContext context,
+    List<Map<String, String>> accounts,
+    UserProvider userProvider,
+  ) {
+    if (accounts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(
+              Icons.account_circle_outlined,
+              size: 50,
+              color: Colors.white38,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'No account found',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Accounts list
+        Expanded(
+          child: ListView.builder(
+            controller: scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            itemCount: accounts.length,
+            itemBuilder: (context, index) {
+              final account = accounts[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: AccountFrame(
+                  firstName: account['firstName'] ?? 'First Name',
+                  lastName: account['lastName'] ?? 'Last Name',
+                  eid: account['eid'] ?? 'N/A',
+                  imagePath: account['image'] ?? '',
+                  onTap: () {
+                    userProvider.setEID(account['eid'] ?? '');
+                    Navigator.pushNamed(context, '/sign-in');
+                  },
+                  isTablet: false,
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Scrollbar
+        Container(
+          width: 6,
+          margin: const EdgeInsets.only(top: 10, bottom: 10, right: 5),
+          child: VerticalScrollbar(
+            controller: scrollController,
+            height:
+                MediaQuery.of(context).size.height * 0.5, // Conservative height
+          ),
+        ),
+      ],
     );
   }
 }
@@ -261,8 +448,7 @@ class TabletSelectAccountContent extends StatelessWidget {
                           firstName: account['firstName'] ?? 'First Name',
                           lastName: account['lastName'] ?? 'Last Name',
                           eid: account['eid'] ?? 'N/A',
-                          imagePath:
-                              account['image'] ?? 'assets/images/image1.png',
+                          imagePath: account['image'] ?? '',
                           onTap: () {
                             userProvider.setEID(account['eid']!);
                             Navigator.pushNamed(context, '/sign-in');
@@ -315,6 +501,7 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   double _scrollThumbHeight = 50;
   bool _isDragging = false;
   bool _controllerReady = false;
+  double _trackHeight = 300; // Default height
 
   @override
   void initState() {
@@ -326,6 +513,15 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   void _initializeController() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // Try to get height from context if available
+        final context = this.context;
+        if (context != null) {
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            _trackHeight = renderBox.size.height;
+          }
+        }
+
         setState(() {
           _controllerReady = _scrollController.hasClients;
         });
@@ -576,6 +772,24 @@ class AccountFrame extends StatelessWidget {
   }
 
   Widget _buildProfileImage(double size) {
+    // If imagePath is empty or null, use the icon
+    if (imagePath.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white12,
+        ),
+        child: Icon(
+          Icons.account_circle_outlined,
+          color: Colors.white,
+          size: size * 0.8,
+        ),
+      );
+    }
+
+    // Otherwise, try to load the image
     return Container(
       width: size,
       height: size,
@@ -590,7 +804,11 @@ class AccountFrame extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: Colors.white12,
               ),
-              child: Icon(Icons.person, color: Colors.white, size: size * 0.6),
+              child: Icon(
+                Icons.account_circle_outlined,
+                color: Colors.white,
+                size: size * 0.8,
+              ),
             );
           },
         ),

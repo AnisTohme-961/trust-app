@@ -284,6 +284,10 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
               ),
 
             // SELECT ACCOUNT POPUP - USING SlideUpMenu
+            // In RegisterPageMobile build method, UPDATE the SlideUpMenu for select account:
+            // Update the SlideUpMenu in register.dart:
+            // In RegisterPageMobile build method, FIX the SlideUpMenu:
+            // In RegisterPageMobile build method, update the SlideUpMenu:
             SlideUpMenu(
               menuHeight: dropdownHeight,
               isVisible: _selectAccountOpen,
@@ -302,9 +306,8 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
               borderRadius: 20.0,
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOut,
-              minHeight: 100,
-              maxHeight:
-                  MediaQuery.of(context).size.height * 0.8, // Reduced to 0.8
+              minHeight: 300, // Increased minimum height to ensure enough space
+              maxHeight: dropdownHeight,
               dragHandle: Padding(
                 padding: const EdgeInsets.only(left: 20),
                 child: CustomPaint(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_project/main.dart';
 import 'package:flutter_project/screens/register.dart';
@@ -32,6 +33,35 @@ class MobileRegisterLivePage extends StatefulWidget {
 }
 
 class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
+  bool _showCopiedFeedback = false;
+  Timer? _feedbackTimer;
+
+  @override
+  void dispose() {
+    _feedbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _copyToClipboard(String eid) {
+    Clipboard.setData(ClipboardData(text: eid));
+
+    setState(() {
+      _showCopiedFeedback = true;
+    });
+
+    // Cancel any existing timer
+    _feedbackTimer?.cancel();
+
+    // Start new timer to hide the feedback after 3 seconds
+    _feedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showCopiedFeedback = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
@@ -118,42 +148,54 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                       ),
                     ),
 
-                    // EID + Icon
+                    // EID + Icon OR "EID COPIED" feedback
                     GestureDetector(
                       onTap: () {
-                        Clipboard.setData(
-                          ClipboardData(text: userProvider.eid),
-                        );
+                        _copyToClipboard(userProvider.eid);
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "EID: ${userProvider.eid}",
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize:
-                                    MediaQuery.of(context).size.width > 350
-                                    ? 25
-                                    : 20,
-                                color: const Color(0xFF0B1320),
+                        child: _showCopiedFeedback
+                            ? Text(
+                                "EID COPIED",
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize:
+                                      MediaQuery.of(context).size.width > 350
+                                      ? 25
+                                      : 20,
+                                  color: const Color(0xFF0B1320),
+                                ),
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    "EID: ${userProvider.eid}",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize:
+                                          MediaQuery.of(context).size.width >
+                                              350
+                                          ? 25
+                                          : 20,
+                                      color: const Color(0xFF0B1320),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: Image.asset(
+                                      'assets/images/DoubleSquare.png',
+                                      width: 18,
+                                      height: 18,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 5),
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: Image.asset(
-                                'assets/images/DoubleSquare.png',
-                                width: 18,
-                                height: 18,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ],
@@ -295,6 +337,35 @@ class TabletRegisterLivePage extends StatefulWidget {
 }
 
 class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
+  bool _showCopiedFeedback = false;
+  Timer? _feedbackTimer;
+
+  @override
+  void dispose() {
+    _feedbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _copyToClipboard(String eid) {
+    Clipboard.setData(ClipboardData(text: eid));
+
+    setState(() {
+      _showCopiedFeedback = true;
+    });
+
+    // Cancel any existing timer
+    _feedbackTimer?.cancel();
+
+    // Start new timer to hide the feedback after 3 seconds
+    _feedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showCopiedFeedback = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
@@ -375,26 +446,41 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
 
                         const SizedBox(height: 8),
 
-                        // EID + Icon
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "EID: ${userProvider.eid}",
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 25,
-                                color: Color(0xFF0B1320),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Image.asset(
-                              'assets/images/DoubleSquare.png',
-                              width: 16,
-                              height: 16,
-                            ),
-                          ],
+                        // EID + Icon OR "EID COPIED" feedback
+                        GestureDetector(
+                          onTap: () {
+                            _copyToClipboard(userProvider.eid);
+                          },
+                          child: _showCopiedFeedback
+                              ? Text(
+                                  "EID COPIED",
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 25,
+                                    color: Color(0xFF0B1320),
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "EID: ${userProvider.eid}",
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 25,
+                                        color: Color(0xFF0B1320),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Image.asset(
+                                      'assets/images/DoubleSquare.png',
+                                      width: 16,
+                                      height: 16,
+                                    ),
+                                  ],
+                                ),
                         ),
                       ],
                     ),

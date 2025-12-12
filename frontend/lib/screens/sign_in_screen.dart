@@ -403,73 +403,70 @@ class MobileSignInPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 50),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              Image.asset(
-                'assets/images/egetyPerfectStar.png',
-                width: 111,
-                height: 126,
-                fit: BoxFit.contain,
+        Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const SizedBox(height: 60),
+            Image.asset(
+              'assets/images/egetyPerfectStar.png',
+              width: 111,
+              height: 126,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 0),
+            const Text(
+              'Egety Trust',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Colors.white,
+                fontSize: 50,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 0),
-              const Text(
-                'Egety Trust',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                  fontSize: 50,
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+            const SizedBox(height: 10),
+            _buildSignInAndSignUpButtons(context),
+            const SizedBox(height: 10),
+            const Text(
+              'Welcome back!',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 10),
-              _buildSignInAndSignUpButtons(context),
-              const SizedBox(height: 10),
-              const Text(
-                'Welcome back!',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+            const Text(
+              'Please enter your credentials to continue',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
               ),
-              const Text(
-                'Please enter your credentials to continue',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+            const SizedBox(height: 15),
+            _buildEmailInput(),
+            const SizedBox(height: 15),
+            _buildPasswordInput(),
+            _buildForgotRow(context),
+            _buildRememberMe(),
+            const SizedBox(height: 10),
+            _buildEmailVerification(),
+            _buildSignInButton(context),
+            const SizedBox(height: 20),
+            const Text(
+              'You built your vault \nNow unlock it',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 15),
-              _buildEmailInput(),
-              const SizedBox(height: 15),
-              _buildPasswordInput(),
-              _buildForgotRow(context),
-              _buildRememberMe(),
-              const SizedBox(height: 10),
-              _buildEmailVerification(),
-              _buildSignInButton(context),
-              const SizedBox(height: 20),
-              const Text(
-                'You built your vault \nNow unlock it',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              FooterWidget(),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+            FooterWidget(),
+          ],
         ),
         ErrorStack(key: errorStackKey),
       ],
@@ -1215,9 +1212,8 @@ class TabletSignInPage extends StatelessWidget {
               Expanded(
                 child: Stack(
                   children: [
-                    // Scrollable content
-                    SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
+                    // Non-scrollable content
+                    Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: screenWidth * 0.1,
@@ -1474,7 +1470,7 @@ class TabletSignInPage extends StatelessWidget {
                     textAlignVertical:
                         TextAlignVertical.center, // ✅ aligns text with icon
                     style: const TextStyle(
-                      color: Color(0xFF00F0FF),
+                      color: const Color(0xFF00F0FF),
                       fontSize: 18,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,

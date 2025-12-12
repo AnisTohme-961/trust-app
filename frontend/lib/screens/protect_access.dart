@@ -131,6 +131,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   final List<int> _days = List.generate(31, (i) => i + 1);
   final List<int> _years = List.generate(56, (i) => 1970 + i);
 
+  // Cache to save scroll positions when menu closes
+  double _cachedMonthScrollOffset = 0.0;
+  double _cachedDayScrollOffset = 0.0;
+  double _cachedYearScrollOffset = 0.0;
+  bool _shouldRestoreScrollPosition = false;
+
   @override
   void initState() {
     super.initState();
@@ -161,9 +167,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   void _initializeDatePickerPositions() {
     // Only snap to center if we have pre-filled data
     if (_datePicked) {
-      _snapToCenter(_monthController, _selectedMonth);
-      _snapToCenter(_dayController, _selectedDay);
-      _snapToCenter(_yearController, _selectedYear);
+      _scrollToSelectedDate();
     }
   }
 
@@ -175,11 +179,18 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     _monthController.addListener(() {
       if (!_monthController.hasClients) return;
-      final itemHeight = 20.0;
+
+      // Fixed calculation - account for the padding
+      final itemHeight = 40.0;
       final containerHeight = 286.0;
       final centerOffset = (containerHeight / 2) - (itemHeight / 2);
       final scrollOffset = _monthController.offset + centerOffset;
-      final newIndex = (scrollOffset / itemHeight).round();
+
+      // Subtract the padding to get correct index
+      final padding = (containerHeight - itemHeight) / 2;
+      final adjustedOffset = scrollOffset - padding;
+      final newIndex = (adjustedOffset / itemHeight).round();
+
       final clampedIndex = newIndex.clamp(0, _months.length - 1);
       if (clampedIndex != _selectedMonth) {
         setState(() {
@@ -193,11 +204,17 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     _dayController.addListener(() {
       if (!_dayController.hasClients) return;
+
       final itemHeight = 40.0;
       final containerHeight = 286.0;
       final centerOffset = (containerHeight / 2) - (itemHeight / 2);
       final scrollOffset = _dayController.offset + centerOffset;
-      final newIndex = (scrollOffset / itemHeight).round();
+
+      // Subtract the padding to get correct index
+      final padding = (containerHeight - itemHeight) / 2;
+      final adjustedOffset = scrollOffset - padding;
+      final newIndex = (adjustedOffset / itemHeight).round();
+
       final clampedIndex = newIndex.clamp(0, _days.length - 1);
       if (clampedIndex != _selectedDay) {
         setState(() {
@@ -211,11 +228,17 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     _yearController.addListener(() {
       if (!_yearController.hasClients) return;
+
       final itemHeight = 40.0;
       final containerHeight = 286.0;
       final centerOffset = (containerHeight / 2) - (itemHeight / 2);
       final scrollOffset = _yearController.offset + centerOffset;
-      final newIndex = (scrollOffset / itemHeight).round();
+
+      // Subtract the padding to get correct index
+      final padding = (containerHeight - itemHeight) / 2;
+      final adjustedOffset = scrollOffset - padding;
+      final newIndex = (adjustedOffset / itemHeight).round();
+
       final clampedIndex = newIndex.clamp(0, _years.length - 1);
       if (clampedIndex != _selectedYear) {
         setState(() {
@@ -224,6 +247,60 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           _updateDobController();
           _validateDob();
         });
+      }
+    });
+  }
+
+  void _scrollToSelectedDate() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_datePicked) {
+        // Ensure controllers are attached before scrolling
+        if (_monthController.hasClients) {
+          _snapToCenter(_monthController, _selectedMonth);
+        }
+        if (_dayController.hasClients) {
+          _snapToCenter(_dayController, _selectedDay);
+        }
+        if (_yearController.hasClients) {
+          _snapToCenter(_yearController, _selectedYear);
+        }
+      }
+    });
+  }
+
+  // NEW METHOD: Save scroll positions before closing the menu
+  void _saveScrollPositions() {
+    if (_monthController.hasClients) {
+      _cachedMonthScrollOffset = _monthController.offset;
+    }
+    if (_dayController.hasClients) {
+      _cachedDayScrollOffset = _dayController.offset;
+    }
+    if (_yearController.hasClients) {
+      _cachedYearScrollOffset = _yearController.offset;
+    }
+    _shouldRestoreScrollPosition = true;
+  }
+
+  // NEW METHOD: Restore scroll positions when opening the menu
+  void _restoreScrollPositions() {
+    if (!_shouldRestoreScrollPosition) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_monthController.hasClients && _cachedMonthScrollOffset > 0) {
+        _monthController.jumpTo(_cachedMonthScrollOffset);
+      }
+      if (_dayController.hasClients && _cachedDayScrollOffset > 0) {
+        _dayController.jumpTo(_cachedDayScrollOffset);
+      }
+      if (_yearController.hasClients && _cachedYearScrollOffset > 0) {
+        _yearController.jumpTo(_cachedYearScrollOffset);
+      }
+      // Optionally snap to center after restoring
+      if (_datePicked) {
+        _snapToCenter(_monthController, _selectedMonth);
+        _snapToCenter(_dayController, _selectedDay);
+        _snapToCenter(_yearController, _selectedYear);
       }
     });
   }
@@ -544,7 +621,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       return;
     }
 
-     if (!_emailValid) {
+    if (!_emailValid) {
       _validateEmailAndShowError();
       return;
     }
@@ -679,6 +756,11 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   // Helper method to close all dropdowns
   void _closeAllDropdowns() {
+    // Save scroll positions before closing the date picker
+    if (_dobDropdownOpen) {
+      _saveScrollPositions();
+    }
+
     setState(() {
       _countryDropdownOpen = false;
       _dobDropdownOpen = false;
@@ -975,9 +1057,17 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                       const SizedBox(height: 8),
                       GestureDetector(
                         onTap: () {
+                          final willOpen = !_dobDropdownOpen;
                           setState(() {
                             _dobDropdownOpen = !_dobDropdownOpen;
                           });
+
+                          // When opening, restore the saved scroll positions
+                          if (willOpen) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _restoreScrollPositions();
+                            });
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -1746,11 +1836,21 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
             maxHeight: 500,
             isVisible: _dobDropdownOpen,
             onToggle: () {
+              final willOpen = !_dobDropdownOpen;
               setState(() {
                 _dobDropdownOpen = !_dobDropdownOpen;
               });
+
+              // When opening, restore the saved scroll positions
+              if (willOpen) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _restoreScrollPositions();
+                });
+              }
             },
             onClose: () {
+              // Save scroll positions before closing
+              _saveScrollPositions();
               setState(() {
                 _dobDropdownOpen = false;
               });
@@ -1795,212 +1895,209 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                         // Month column
                         Row(
                           children: [
+                            // Month column
                             Expanded(
-                              child:
-                                  NotificationListener<ScrollEndNotification>(
-                                    onNotification: (notification) {
-                                      if (!_monthController.hasClients)
-                                        return true;
-                                      final itemHeight = 40.0;
-                                      final containerHeight = 286.0;
-                                      final centerOffset =
-                                          (containerHeight / 2) -
-                                          (itemHeight / 2);
-                                      final scrollOffset =
-                                          _monthController.offset +
-                                          centerOffset;
-                                      final index = (scrollOffset / itemHeight)
-                                          .round();
-                                      final clampedIndex = index.clamp(
-                                        0,
-                                        _months.length - 1,
-                                      );
-                                      _snapToCenter(
-                                        _monthController,
-                                        clampedIndex,
-                                      );
-                                      return true;
-                                    },
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: _months.length,
-                                      controller: _monthController,
-                                      physics: const ClampingScrollPhysics(),
-                                      itemExtent: 40,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: (286 - 40) / 2,
-                                      ),
-                                      itemBuilder: (context, index) {
-                                        final isSelected =
-                                            index == _selectedMonth;
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedMonth = index;
-                                              _datePicked = true;
-                                              _validateDob();
-                                            });
-                                            onDobPicked();
-                                            _snapToCenter(
-                                              _monthController,
-                                              index,
-                                            );
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              _months[index],
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isSelected
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                              child: NotificationListener<ScrollEndNotification>(
+                                onNotification: (notification) {
+                                  if (!_monthController.hasClients) return true;
+                                  final itemHeight = 40.0;
+                                  final containerHeight = 286.0;
+                                  final centerOffset =
+                                      (containerHeight / 2) - (itemHeight / 2);
+                                  final scrollOffset =
+                                      _monthController.offset + centerOffset;
+
+                                  // FIX: Subtract padding to get correct index
+                                  final padding =
+                                      (containerHeight - itemHeight) / 2;
+                                  final adjustedOffset = scrollOffset - padding;
+                                  final index = (adjustedOffset / itemHeight)
+                                      .round();
+
+                                  final clampedIndex = index.clamp(
+                                    0,
+                                    _months.length - 1,
+                                  );
+                                  _snapToCenter(_monthController, clampedIndex);
+                                  return true;
+                                },
+                                child: ListView.builder(
+                                  key: const PageStorageKey<String>(
+                                    'month_list',
                                   ),
+                                  shrinkWrap: true,
+                                  itemCount: _months.length,
+                                  controller: _monthController,
+                                  physics: const ClampingScrollPhysics(),
+                                  itemExtent: 40,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: (286 - 40) / 2,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final isSelected = index == _selectedMonth;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedMonth = index;
+                                          _datePicked = true;
+                                          _validateDob();
+                                        });
+                                        onDobPicked();
+                                        _snapToCenter(_monthController, index);
+                                      },
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          _months[index],
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w500,
+                                            color: isSelected
+                                                ? Colors.black
+                                                : Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
+
                             // Day column
                             Expanded(
-                              child:
-                                  NotificationListener<ScrollEndNotification>(
-                                    onNotification: (notification) {
-                                      if (!_dayController.hasClients)
-                                        return true;
-                                      final itemHeight = 40.0;
-                                      final containerHeight = 286.0;
-                                      final centerOffset =
-                                          (containerHeight / 2) -
-                                          (itemHeight / 2);
-                                      final scrollOffset =
-                                          _dayController.offset + centerOffset;
-                                      final index = (scrollOffset / itemHeight)
-                                          .round();
-                                      final clampedIndex = index.clamp(
-                                        0,
-                                        _days.length - 1,
-                                      );
-                                      _snapToCenter(
-                                        _dayController,
-                                        clampedIndex,
-                                      );
-                                      return true;
-                                    },
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: _days.length,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: (286 - 40) / 2,
-                                      ),
-                                      itemExtent: 40,
-                                      physics: const ClampingScrollPhysics(),
-                                      controller: _dayController,
-                                      itemBuilder: (context, index) {
-                                        final isSelected =
-                                            index == _selectedDay;
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedDay = index;
-                                              _datePicked = true;
-                                              _validateDob();
-                                            });
-                                            onDobPicked();
-                                            _snapToCenter(
-                                              _dayController,
-                                              index,
-                                            );
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              _days[index].toString(),
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isSelected
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                              child: NotificationListener<ScrollEndNotification>(
+                                onNotification: (notification) {
+                                  if (!_dayController.hasClients) return true;
+                                  final itemHeight = 40.0;
+                                  final containerHeight = 286.0;
+                                  final centerOffset =
+                                      (containerHeight / 2) - (itemHeight / 2);
+                                  final scrollOffset =
+                                      _dayController.offset + centerOffset;
+
+                                  // FIX: Subtract padding to get correct index
+                                  final padding =
+                                      (containerHeight - itemHeight) / 2;
+                                  final adjustedOffset = scrollOffset - padding;
+                                  final index = (adjustedOffset / itemHeight)
+                                      .round();
+
+                                  final clampedIndex = index.clamp(
+                                    0,
+                                    _days.length - 1,
+                                  );
+                                  _snapToCenter(_dayController, clampedIndex);
+                                  return true;
+                                },
+                                child: ListView.builder(
+                                  key: const PageStorageKey<String>('day_list'),
+                                  shrinkWrap: true,
+                                  itemCount: _days.length,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: (286 - 40) / 2,
                                   ),
+                                  itemExtent: 40,
+                                  physics: const ClampingScrollPhysics(),
+                                  controller: _dayController,
+                                  itemBuilder: (context, index) {
+                                    final isSelected = index == _selectedDay;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedDay = index;
+                                          _datePicked = true;
+                                          _validateDob();
+                                        });
+                                        onDobPicked();
+                                        _snapToCenter(_dayController, index);
+                                      },
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          _days[index].toString(),
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w500,
+                                            color: isSelected
+                                                ? Colors.black
+                                                : Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
+
                             // Year column
                             Expanded(
-                              child:
-                                  NotificationListener<ScrollEndNotification>(
-                                    onNotification: (notification) {
-                                      if (!_yearController.hasClients)
-                                        return true;
-                                      final itemHeight = 40.0;
-                                      final containerHeight = 286.0;
-                                      final centerOffset =
-                                          (containerHeight / 2) -
-                                          (itemHeight / 2);
-                                      final scrollOffset =
-                                          _yearController.offset + centerOffset;
-                                      final index = (scrollOffset / itemHeight)
-                                          .round();
-                                      final clampedIndex = index.clamp(
-                                        0,
-                                        _years.length - 1,
-                                      );
-                                      _snapToCenter(
-                                        _yearController,
-                                        clampedIndex,
-                                      );
-                                      return true;
-                                    },
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: _years.length,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: (286 - 40) / 2,
-                                      ),
-                                      itemExtent: 40,
-                                      physics: const ClampingScrollPhysics(),
-                                      controller: _yearController,
-                                      itemBuilder: (context, index) {
-                                        final isSelected =
-                                            index == _selectedYear;
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedYear = index;
-                                              _datePicked = true;
-                                              _validateDob();
-                                            });
-                                            onDobPicked();
-                                            _snapToCenter(
-                                              _yearController,
-                                              index,
-                                            );
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              _years[index].toString(),
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isSelected
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                              child: NotificationListener<ScrollEndNotification>(
+                                onNotification: (notification) {
+                                  if (!_yearController.hasClients) return true;
+                                  final itemHeight = 40.0;
+                                  final containerHeight = 286.0;
+                                  final centerOffset =
+                                      (containerHeight / 2) - (itemHeight / 2);
+                                  final scrollOffset =
+                                      _yearController.offset + centerOffset;
+
+                                  // FIX: Subtract padding to get correct index
+                                  final padding =
+                                      (containerHeight - itemHeight) / 2;
+                                  final adjustedOffset = scrollOffset - padding;
+                                  final index = (adjustedOffset / itemHeight)
+                                      .round();
+
+                                  final clampedIndex = index.clamp(
+                                    0,
+                                    _years.length - 1,
+                                  );
+                                  _snapToCenter(_yearController, clampedIndex);
+                                  return true;
+                                },
+                                child: ListView.builder(
+                                  key: const PageStorageKey<String>(
+                                    'year_list',
                                   ),
+                                  shrinkWrap: true,
+                                  itemCount: _years.length,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: (286 - 40) / 2,
+                                  ),
+                                  itemExtent: 40,
+                                  physics: const ClampingScrollPhysics(),
+                                  controller: _yearController,
+                                  itemBuilder: (context, index) {
+                                    final isSelected = index == _selectedYear;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedYear = index;
+                                          _datePicked = true;
+                                          _validateDob();
+                                        });
+                                        onDobPicked();
+                                        _snapToCenter(_yearController, index);
+                                      },
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          _years[index].toString(),
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w500,
+                                            color: isSelected
+                                                ? Colors.black
+                                                : Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -2014,9 +2111,14 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                     padding: const EdgeInsets.only(top: 0, bottom: 20),
                     child: GestureDetector(
                       onTap: () {
+                        // Save scroll positions before closing
+                        _saveScrollPositions();
                         setState(() {
                           _dobDropdownOpen = false;
+                          // Ensure date is marked as picked
+                          _datePicked = true;
                         });
+                        onDobPicked();
                       },
                       child: Container(
                         width: 120,
@@ -2210,10 +2312,24 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   }
 
   void _initializeDatePickerPositions() {
+    // Only snap to center if we have pre-filled data
     if (_datePicked) {
       _snapToCenter(_monthController, _selectedMonth);
       _snapToCenter(_dayController, _selectedDay);
       _snapToCenter(_yearController, _selectedYear);
+    } else {
+      // Initialize with current date
+      final now = DateTime.now();
+      _selectedYear = _years.indexOf(now.year);
+      _selectedMonth = now.month - 1;
+      _selectedDay = now.day - 1;
+      _datePicked = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _snapToCenter(_monthController, _selectedMonth);
+        _snapToCenter(_dayController, _selectedDay);
+        _snapToCenter(_yearController, _selectedYear);
+      });
     }
   }
 
@@ -2479,7 +2595,14 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
   void _snapToCenter(ScrollController controller, int selectedIndex) {
     if (!controller.hasClients) return;
 
-    final itemHeight = 40.0;
+    // Determine item height based on which controller it is
+    double itemHeight;
+    if (controller == _monthController) {
+      itemHeight = 40.0; // FIXED: Changed from 20.0 to 40.0
+    } else {
+      itemHeight = 40.0;
+    }
+
     final containerHeight = 286.0;
     final centerOffset = (containerHeight / 2) - (itemHeight / 2);
     final targetOffset = selectedIndex * itemHeight;
