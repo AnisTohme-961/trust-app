@@ -75,6 +75,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   };
 
   Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
+  Map<String, bool> _hasCodeBeenSentBeforeMap = {
+  'email': false,
+  'sms': false,
+  'auth': false,
+};
+
   bool _codeSent = false;
 
   bool _showPasswordChangedOverlay = false;
@@ -263,6 +269,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _activeCodeType = type; // 🔥 lock all buttons except this one
         _countdowns[type] = cooldown;
         codeDisabled = true; // disable all buttons
+        _hasCodeBeenSentBeforeMap[type] = true;
       });
 
       _timers[type]?.cancel();
@@ -1377,7 +1384,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         )
                       : Text(
-                          "Get Code",
+                          _hasCodeBeenSentBeforeMap[type]! ? "Send Again" : "Get Code",
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,

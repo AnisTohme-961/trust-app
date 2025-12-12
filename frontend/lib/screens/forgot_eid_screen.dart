@@ -42,6 +42,8 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isTimerRunning => _remainingSeconds > 0;
 
+  bool _hasCodeBeenSentBefore = false;
+
   // Overlay and animation
   bool _showOverlay = false;
   late AnimationController _slideController;
@@ -123,19 +125,19 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       return;
     }
 
-   for (var controller in _otpControllers) {
-    controller.clear();
-  }
+    for (var controller in _otpControllers) {
+      controller.clear();
+    }
 
-  // Unfocus all fields first
-  for (var node in _otpFocusNodes) {
-    node.unfocus();
-  }
+    // Unfocus all fields first
+    for (var node in _otpFocusNodes) {
+      node.unfocus();
+    }
 
-  setState(() {
-    _isClicked = true;
-    _otpTextColor = Colors.white; // reset color
-  });
+    setState(() {
+      _isClicked = true;
+      _otpTextColor = Colors.white; // reset color
+    });
 
     try {
       final data = await AuthService.sendEidCode(email);
@@ -147,6 +149,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       setState(() {
         _codeSent = true;
         _remainingSeconds = backendCooldown; // start UI timer
+        _hasCodeBeenSentBefore = true;
       });
 
       // Start countdown timer
@@ -263,6 +266,7 @@ class _ForgotEidPageState extends State<ForgotEidPage>
             isCodeCorrect: isCodeCorrect,
             isCodeValid: _isCodeValid,
             codeSent: _codeSent,
+            hasCodeBeenSentBefore: _hasCodeBeenSentBefore,
             isEmailNotEmpty: _isEmailNotEmpty,
             isTimerRunning: _isTimerRunning,
             showOverlay: _showOverlay,
@@ -295,6 +299,7 @@ class MobileForgotEidPage extends StatefulWidget {
   final bool isCodeCorrect;
   final bool isCodeValid;
   final bool codeSent;
+  final bool hasCodeBeenSentBefore;
   final bool isEmailNotEmpty;
   final bool isTimerRunning;
   final bool showOverlay;
@@ -322,6 +327,7 @@ class MobileForgotEidPage extends StatefulWidget {
     required this.isCodeCorrect,
     required this.isCodeValid,
     required this.codeSent,
+    required this.hasCodeBeenSentBefore,
     required this.isEmailNotEmpty,
     required this.isTimerRunning,
     required this.showOverlay,
@@ -791,7 +797,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
               child: Text(
                 widget.isTimerRunning
                     ? formatCooldown(widget.remainingSeconds)
-                    : 'Send Code',
+                    : (widget.hasCodeBeenSentBefore ? "Send Again" : "Get Code"),
                 style: TextStyle(
                   color: widget.isTimerRunning
                       ? const Color(0xFF0B1320)

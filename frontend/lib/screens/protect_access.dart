@@ -69,6 +69,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _codeValid = false;
   String? _emailError;
 
+  bool _hasCodeBeenSentBefore = false;
+
   // Controllers
   final TextEditingController _countryFieldController = TextEditingController();
   final TextEditingController _countrySearchController =
@@ -668,6 +670,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       setState(() {
         _showCodeSent = true;
         _codeDisabled = _cooldownSeconds > 0;
+        _hasCodeBeenSentBefore = true;
       });
 
       if (_cooldownSeconds > 0) {
@@ -1483,7 +1486,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                   : null,
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 100),
-                                width: 100,
+                                width: 120,
                                 height: 30,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -1540,7 +1543,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                           ),
                                         )
                                       : Text(
-                                          "Get Code",
+                                          _hasCodeBeenSentBefore ? "Send Again" : "Get Code",
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,

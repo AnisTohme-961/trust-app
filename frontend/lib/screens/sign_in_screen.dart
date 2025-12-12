@@ -38,6 +38,7 @@ class _SignInPageState extends State<SignInPage> {
   bool? _isCodeValid;
   bool _codeDisabled = false;
   bool _showCodeSent = false;
+  bool _hasCodeBeenSentBefore = false;
 
   @override
   void initState() {
@@ -131,6 +132,7 @@ class _SignInPageState extends State<SignInPage> {
         _showCodeSent = true;
         _codeDisabled = true; // grey input fields
         _secondsLeft = cooldown;
+        _hasCodeBeenSentBefore = true;
       });
 
       // hide "Code Sent" after 2s
@@ -305,6 +307,7 @@ class _SignInPageState extends State<SignInPage> {
               codeDisabled: _codeDisabled,
               showCodeSent: _showCodeSent,
               isClicked: _isClicked,
+              hasCodeBeenSentBefore: _hasCodeBeenSentBefore,
               onButtonClick: () {
                 // Show visual feedback
                 setState(() {
@@ -368,6 +371,7 @@ class MobileSignInPage extends StatelessWidget {
   final bool codeDisabled;
   final bool showCodeSent;
   final bool isClicked;
+  final bool hasCodeBeenSentBefore;
   final VoidCallback onButtonClick;
 
   const MobileSignInPage({
@@ -396,6 +400,7 @@ class MobileSignInPage extends StatelessWidget {
     required this.codeDisabled,
     required this.showCodeSent,
     required this.isClicked,
+    required this.hasCodeBeenSentBefore,
     required this.onButtonClick,
   });
 
@@ -885,7 +890,7 @@ class MobileSignInPage extends StatelessWidget {
                     : null,
                 child: AnimatedContainer(
                   duration: Duration(milliseconds: 100),
-                  width: 100,
+                  width: 120,
                   height: 30,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -924,7 +929,7 @@ class MobileSignInPage extends StatelessWidget {
                             ),
                           )
                         : Text(
-                            tooManyAttempts ? "Locked" : "Get Code",
+                            tooManyAttempts ? "Locked" : (hasCodeBeenSentBefore ? "Send Again" : "Get Code"),
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
