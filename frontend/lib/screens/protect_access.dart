@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_project/screens/password.dart';
-import 'package:flutter_project/services/api_service.dart';
-import 'package:flutter_project/screens/signup.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
-import 'dart:math';
 import 'dart:async';
 import 'package:flutter_project/widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
@@ -17,7 +13,6 @@ import 'package:provider/provider.dart';
 import '../constants/api_constants.dart';
 import '../widgets/custom_button.dart';
 import '../services/country_service.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_project/widgets/slide_up_menu_widget.dart';
 
 class ResponsiveProtectAccess extends StatelessWidget {
@@ -182,18 +177,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     _monthController.addListener(() {
       if (!_monthController.hasClients) return;
 
-      // Fixed calculation - account for the padding
       final itemHeight = 40.0;
-      final containerHeight = 286.0;
-      final centerOffset = (containerHeight / 2) - (itemHeight / 2);
-      final scrollOffset = _monthController.offset + centerOffset;
-
-      // Subtract the padding to get correct index
-      final padding = (containerHeight - itemHeight) / 2;
-      final adjustedOffset = scrollOffset - padding;
-      final newIndex = (adjustedOffset / itemHeight).round();
+      final scrollOffset = _monthController.offset;
+      final newIndex = (scrollOffset / itemHeight).round();
 
       final clampedIndex = newIndex.clamp(0, _months.length - 1);
+
       if (clampedIndex != _selectedMonth) {
         setState(() {
           _selectedMonth = clampedIndex;
@@ -208,16 +197,11 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       if (!_dayController.hasClients) return;
 
       final itemHeight = 40.0;
-      final containerHeight = 286.0;
-      final centerOffset = (containerHeight / 2) - (itemHeight / 2);
-      final scrollOffset = _dayController.offset + centerOffset;
-
-      // Subtract the padding to get correct index
-      final padding = (containerHeight - itemHeight) / 2;
-      final adjustedOffset = scrollOffset - padding;
-      final newIndex = (adjustedOffset / itemHeight).round();
+      final scrollOffset = _dayController.offset;
+      final newIndex = (scrollOffset / itemHeight).round();
 
       final clampedIndex = newIndex.clamp(0, _days.length - 1);
+
       if (clampedIndex != _selectedDay) {
         setState(() {
           _selectedDay = clampedIndex;
@@ -232,16 +216,11 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       if (!_yearController.hasClients) return;
 
       final itemHeight = 40.0;
-      final containerHeight = 286.0;
-      final centerOffset = (containerHeight / 2) - (itemHeight / 2);
-      final scrollOffset = _yearController.offset + centerOffset;
-
-      // Subtract the padding to get correct index
-      final padding = (containerHeight - itemHeight) / 2;
-      final adjustedOffset = scrollOffset - padding;
-      final newIndex = (adjustedOffset / itemHeight).round();
+      final scrollOffset = _yearController.offset;
+      final newIndex = (scrollOffset / itemHeight).round();
 
       final clampedIndex = newIndex.clamp(0, _years.length - 1);
+
       if (clampedIndex != _selectedYear) {
         setState(() {
           _selectedYear = clampedIndex;
@@ -286,23 +265,18 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   // NEW METHOD: Restore scroll positions when opening the menu
   void _restoreScrollPositions() {
-    if (!_shouldRestoreScrollPosition) return;
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_monthController.hasClients && _cachedMonthScrollOffset > 0) {
-        _monthController.jumpTo(_cachedMonthScrollOffset);
-      }
-      if (_dayController.hasClients && _cachedDayScrollOffset > 0) {
-        _dayController.jumpTo(_cachedDayScrollOffset);
-      }
-      if (_yearController.hasClients && _cachedYearScrollOffset > 0) {
-        _yearController.jumpTo(_cachedYearScrollOffset);
-      }
-      // Optionally snap to center after restoring
+      // Always snap to the selected date values when opening
       if (_datePicked) {
-        _snapToCenter(_monthController, _selectedMonth);
-        _snapToCenter(_dayController, _selectedDay);
-        _snapToCenter(_yearController, _selectedYear);
+        if (_monthController.hasClients) {
+          _snapToCenter(_monthController, _selectedMonth);
+        }
+        if (_dayController.hasClients) {
+          _snapToCenter(_dayController, _selectedDay);
+        }
+        if (_yearController.hasClients) {
+          _snapToCenter(_yearController, _selectedYear);
+        }
       }
     });
   }
@@ -511,11 +485,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     final itemHeight = 40.0;
     final containerHeight = 286.0;
-    final centerOffset = (containerHeight / 2) - (itemHeight / 2);
-    final targetOffset = selectedIndex * itemHeight;
-    final scrollPosition = targetOffset - centerOffset;
+
+    final padding = (containerHeight - itemHeight) / 2;
+    final targetOffset = (selectedIndex * itemHeight);
+
     final maxScroll = controller.position.maxScrollExtent;
-    final clampedPosition = scrollPosition.clamp(0.0, maxScroll);
+    final clampedPosition = targetOffset.clamp(0.0, maxScroll);
 
     controller.animateTo(
       clampedPosition,
@@ -1569,20 +1544,23 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                     width: double.infinity,
                     height: 40,
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          width: 64,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(11),
-                            gradient: const LinearGradient(
-                              begin: Alignment.centerRight,
-                              end: Alignment.centerLeft,
-                              colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                        // Left gradient line - takes available space
+                        Expanded(
+                          child: Container(
+                            margin: EdgeInsets.only(right: 8),
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: const LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                              ),
                             ),
                           ),
                         ),
+
                         MouseRegion(
                           onEnter: (_) => setState(() => _isBackHovered = true),
                           onExit: (_) => setState(() => _isBackHovered = false),
@@ -1620,6 +1598,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                             ),
                           ),
                         ),
+
+                        // Spacer between buttons
+                        SizedBox(width: 8),
+
                         MouseRegion(
                           onEnter: (_) => _allFieldsValid
                               ? setState(() => _isNextHovered = true)
@@ -1646,20 +1628,22 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                             onTap: _handleNextTap,
                           ),
                         ),
-                        Container(
-                          width: 64,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(11),
-                            gradient: LinearGradient(
-                              begin: Alignment.centerRight,
-                              end: Alignment.centerLeft,
-                              colors: _allFieldsValid
-                                  ? const [Color(0xFF0B1320), Color(0xFF00F0FF)]
-                                  : const [
-                                      Color(0xFF0B1320),
-                                      Color(0xFF4A5568),
-                                    ],
+
+                        // Right gradient line - takes available space
+                        Expanded(
+                          child: Container(
+                            margin: EdgeInsets.only(left: 8),
+                            height: 4,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(11),
+                              gradient: LinearGradient(
+                                begin: Alignment.centerRight,
+                                end: Alignment.centerLeft,
+                                colors: const [
+                                  Color(0xFF0B1320),
+                                  Color(0xFF00F0FF),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -1984,15 +1968,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                 _dobDropdownOpen = !_dobDropdownOpen;
               });
 
-              // When opening, restore the saved scroll positions
+              // When opening, restore positions to show selected values
               if (willOpen) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _restoreScrollPositions();
-                });
+                _restoreScrollPositions();
               }
             },
             onClose: () {
-              // Save scroll positions before closing
               _saveScrollPositions();
               setState(() {
                 _dobDropdownOpen = false;
@@ -2043,25 +2024,31 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                               child: NotificationListener<ScrollEndNotification>(
                                 onNotification: (notification) {
                                   if (!_monthController.hasClients) return true;
+
                                   final itemHeight = 40.0;
-                                  final containerHeight = 286.0;
-                                  final centerOffset =
-                                      (containerHeight / 2) - (itemHeight / 2);
-                                  final scrollOffset =
-                                      _monthController.offset + centerOffset;
-
-                                  // FIX: Subtract padding to get correct index
-                                  final padding =
-                                      (containerHeight - itemHeight) / 2;
-                                  final adjustedOffset = scrollOffset - padding;
-                                  final index = (adjustedOffset / itemHeight)
-                                      .round();
-
-                                  final clampedIndex = index.clamp(
+                                  final scrollOffset = _monthController.offset;
+                                  final currentIndex =
+                                      (scrollOffset / itemHeight).round();
+                                  final clampedIndex = currentIndex.clamp(
                                     0,
                                     _months.length - 1,
                                   );
-                                  _snapToCenter(_monthController, clampedIndex);
+
+                                  // Calculate what the target offset should be
+                                  final targetOffset =
+                                      clampedIndex * itemHeight;
+                                  final tolerance =
+                                      0.5; // Small tolerance to avoid infinite loops
+
+                                  // Only snap if we're not already at the target position
+                                  if ((scrollOffset - targetOffset).abs() >
+                                      tolerance) {
+                                    _snapToCenter(
+                                      _monthController,
+                                      clampedIndex,
+                                    );
+                                  }
+
                                   return true;
                                 },
                                 child: ListView.builder(
@@ -2112,25 +2099,26 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                               child: NotificationListener<ScrollEndNotification>(
                                 onNotification: (notification) {
                                   if (!_dayController.hasClients) return true;
+
                                   final itemHeight = 40.0;
-                                  final containerHeight = 286.0;
-                                  final centerOffset =
-                                      (containerHeight / 2) - (itemHeight / 2);
-                                  final scrollOffset =
-                                      _dayController.offset + centerOffset;
-
-                                  // FIX: Subtract padding to get correct index
-                                  final padding =
-                                      (containerHeight - itemHeight) / 2;
-                                  final adjustedOffset = scrollOffset - padding;
-                                  final index = (adjustedOffset / itemHeight)
-                                      .round();
-
-                                  final clampedIndex = index.clamp(
+                                  final scrollOffset = _dayController.offset;
+                                  final currentIndex =
+                                      (scrollOffset / itemHeight).round();
+                                  final clampedIndex = currentIndex.clamp(
                                     0,
                                     _days.length - 1,
                                   );
-                                  _snapToCenter(_dayController, clampedIndex);
+
+                                  final targetOffset =
+                                      clampedIndex * itemHeight;
+                                  final tolerance = 0.5;
+
+                                  // Only snap if we're not already at the target position
+                                  if ((scrollOffset - targetOffset).abs() >
+                                      tolerance) {
+                                    _snapToCenter(_dayController, clampedIndex);
+                                  }
+
                                   return true;
                                 },
                                 child: ListView.builder(
@@ -2179,25 +2167,29 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                               child: NotificationListener<ScrollEndNotification>(
                                 onNotification: (notification) {
                                   if (!_yearController.hasClients) return true;
+
                                   final itemHeight = 40.0;
-                                  final containerHeight = 286.0;
-                                  final centerOffset =
-                                      (containerHeight / 2) - (itemHeight / 2);
-                                  final scrollOffset =
-                                      _yearController.offset + centerOffset;
-
-                                  // FIX: Subtract padding to get correct index
-                                  final padding =
-                                      (containerHeight - itemHeight) / 2;
-                                  final adjustedOffset = scrollOffset - padding;
-                                  final index = (adjustedOffset / itemHeight)
-                                      .round();
-
-                                  final clampedIndex = index.clamp(
+                                  final scrollOffset = _yearController.offset;
+                                  final currentIndex =
+                                      (scrollOffset / itemHeight).round();
+                                  final clampedIndex = currentIndex.clamp(
                                     0,
                                     _years.length - 1,
                                   );
-                                  _snapToCenter(_yearController, clampedIndex);
+
+                                  final targetOffset =
+                                      clampedIndex * itemHeight;
+                                  final tolerance = 0.5;
+
+                                  // Only snap if we're not already at the target position
+                                  if ((scrollOffset - targetOffset).abs() >
+                                      tolerance) {
+                                    _snapToCenter(
+                                      _yearController,
+                                      clampedIndex,
+                                    );
+                                  }
+
                                   return true;
                                 },
                                 child: ListView.builder(
@@ -4393,9 +4385,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
               gradient: LinearGradient(
                 begin: Alignment.centerRight,
                 end: Alignment.centerLeft,
-                colors: _allFieldsValid
-                    ? const [Color(0xFF0B1320), Color(0xFF00F0FF)]
-                    : const [Color(0xFF0B1320), Color(0xFF4A5568)],
+                colors: const [Color(0xFF0B1320), Color(0xFF00F0FF)],
               ),
             ),
           ),

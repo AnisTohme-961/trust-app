@@ -14,7 +14,7 @@ import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
-import 'screens/password.dart';
+import 'screens/signup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
