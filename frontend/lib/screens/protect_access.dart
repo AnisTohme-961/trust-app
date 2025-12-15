@@ -748,7 +748,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.5;
+    final double dropdownHeight = screenHeight * 0.7;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -1461,7 +1461,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                   : null,
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 100),
-                                width: 120,
+                                width: 100,
                                 height: 30,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -1524,7 +1524,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 20,
+                                            fontSize: 16,
                                             color: Colors.white,
                                           ),
                                         ),

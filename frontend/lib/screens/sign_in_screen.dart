@@ -890,7 +890,7 @@ class MobileSignInPage extends StatelessWidget {
                     : null,
                 child: AnimatedContainer(
                   duration: Duration(milliseconds: 100),
-                  width: 120,
+                  width: 100,
                   height: 30,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -933,7 +933,7 @@ class MobileSignInPage extends StatelessWidget {
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 20,
+                              fontSize: 16,
                               color: tooManyAttempts
                                   ? Colors.black
                                   : Colors.white,

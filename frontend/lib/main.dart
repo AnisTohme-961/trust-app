@@ -14,7 +14,7 @@ import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
-import 'screens/signup.dart';
+import 'screens/protect_access.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -134,7 +134,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.7;
+    final double dropdownHeight = screenHeight * 0.5;
 
     return Consumer<FontSizeProvider>(
       builder: (context, fontProvider, child) {
