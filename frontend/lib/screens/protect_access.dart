@@ -773,7 +773,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.7;
+    final double dropdownHeight = screenHeight * 0.5;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -1543,7 +1543,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                           ),
                                         )
                                       : Text(
-                                          _hasCodeBeenSentBefore ? "Send Again" : "Get Code",
+                                          _hasCodeBeenSentBefore
+                                              ? "Send Again"
+                                              : "Get Code",
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,
@@ -1697,10 +1699,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                 child: Container(color: Colors.black.withOpacity(0.6)),
               ),
             ),
-
-          // COUNTRY DROPDOWN POPUP WITH FIXED LAYOUT
           SlideUpMenu(
-            menuHeight: dropdownHeight,
+            menuHeight: dropdownHeight, // can be smaller now
             isVisible: _countryDropdownOpen,
             onToggle: () {
               setState(() {
@@ -1726,11 +1726,13 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                 painter: VLinePainter(),
               ),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
+            child: SizedBox(
+              // height: dropdownHeight,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // SEARCH FIELD - Fixed height
+                    // SEARCH FIELD
                     Container(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 50,
@@ -1756,7 +1758,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                       ),
                     ),
 
-                    // DIVIDER - Fixed height
+                    // DIVIDER
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 50),
                       child: Divider(
@@ -1765,73 +1767,211 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                         height: 1,
                       ),
                     ),
-                    // COUNTRY LIST - Takes remaining space
-                    Expanded(
-                      child: _filteredCountries.isEmpty
-                          ? const Center(
+
+                    // COUNTRY LIST
+                    _filteredCountries.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Center(
                               child: Text(
                                 "No countries found",
                                 style: TextStyle(color: Colors.white),
                               ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 50,
-                                vertical: 8,
-                              ),
-                              itemCount: _filteredCountries.length,
-                              physics: const ClampingScrollPhysics(),
-                              itemBuilder: (context, index) {
-                                final country = _filteredCountries[index];
-                                final isSelected =
-                                    country['name'] == _selectedCountry;
-                                return GestureDetector(
-                                  onTap: () => _selectCountry(country),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8.0,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        SvgPicture.asset(
-                                          country['flag']!,
-                                          width: 30,
-                                          height: 30,
-                                          fit: BoxFit.contain,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            country['name'] ?? '',
-                                            style: TextStyle(
-                                              color: isSelected
-                                                  ? const Color(0xFF00F0FF)
-                                                  : Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isSelected)
-                                          Icon(
-                                            Icons.check,
-                                            color: const Color(0xFF00F0FF),
-                                            size: 20,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
                             ),
-                    ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 50,
+                              vertical: 8,
+                            ),
+                            itemCount: _filteredCountries.length,
+                            itemBuilder: (context, index) {
+                              final country = _filteredCountries[index];
+                              final isSelected =
+                                  country['name'] == _selectedCountry;
+                              return GestureDetector(
+                                onTap: () => _selectCountry(country),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SvgPicture.asset(
+                                        country['flag']!,
+                                        width: 30,
+                                        height: 30,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          country['name'] ?? '',
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? const Color(0xFF00F0FF)
+                                                : Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons.check,
+                                          color: Color(0xFF00F0FF),
+                                          size: 20,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ],
-                );
-              },
+                ),
+              ),
             ),
           ),
+
+          // COUNTRY DROPDOWN POPUP WITH FIXED LAYOUT
+          // SlideUpMenu(
+          //   menuHeight: dropdownHeight,
+          //   isVisible: _countryDropdownOpen,
+          //   onToggle: () {
+          //     setState(() {
+          //       _countryDropdownOpen = !_countryDropdownOpen;
+          //     });
+          //   },
+          //   onClose: () {
+          //     setState(() {
+          //       _countryDropdownOpen = false;
+          //     });
+          //   },
+          //   backgroundColor: const Color(0xFF0B1320),
+          //   shadowColor: const Color(0xFF00F0FF),
+          //   borderRadius: 20.0,
+          //   duration: const Duration(milliseconds: 400),
+          //   curve: Curves.easeOut,
+          //   minHeight: 100,
+          //   maxHeight: MediaQuery.of(context).size.height * 0.9,
+          //   dragHandle: Padding(
+          //     padding: const EdgeInsets.only(left: 20),
+          //     child: CustomPaint(
+          //       size: const Size(120, 20),
+          //       painter: VLinePainter(),
+          //     ),
+          //   ),
+          //   child: LayoutBuilder(
+          //     builder: (context, constraints) {
+          //       return Column(
+          //         children: [
+          //           // SEARCH FIELD - Fixed height
+          //           Container(
+          //             margin: const EdgeInsets.symmetric(
+          //               horizontal: 50,
+          //               vertical: 5,
+          //             ),
+          //             child: TextField(
+          //               controller: _countrySearchController,
+          //               onChanged: _filterCountries,
+          //               style: const TextStyle(
+          //                 color: Colors.white,
+          //                 fontSize: 20,
+          //                 fontWeight: FontWeight.w500,
+          //               ),
+          //               decoration: InputDecoration(
+          //                 hintText: 'Search Country',
+          //                 hintStyle: TextStyle(
+          //                   color: Colors.white.withOpacity(0.5),
+          //                 ),
+          //                 border: InputBorder.none,
+          //                 isDense: true,
+          //                 contentPadding: EdgeInsets.zero,
+          //               ),
+          //             ),
+          //           ),
+
+          //           // DIVIDER - Fixed height
+          //           const Padding(
+          //             padding: EdgeInsets.symmetric(horizontal: 50),
+          //             child: Divider(
+          //               color: Colors.white24,
+          //               thickness: 0.5,
+          //               height: 1,
+          //             ),
+          //           ),
+          //           // COUNTRY LIST - Takes remaining space
+          //           Expanded(
+          //             child: _filteredCountries.isEmpty
+          //                 ? const Center(
+          //                     child: Text(
+          //                       "No countries found",
+          //                       style: TextStyle(color: Colors.white),
+          //                     ),
+          //                   )
+          //                 : ListView.builder(
+          //                     padding: const EdgeInsets.symmetric(
+          //                       horizontal: 50,
+          //                       vertical: 8,
+          //                     ),
+          //                     itemCount: _filteredCountries.length,
+          //                     physics: const ClampingScrollPhysics(),
+          //                     itemBuilder: (context, index) {
+          //                       final country = _filteredCountries[index];
+          //                       final isSelected =
+          //                           country['name'] == _selectedCountry;
+          //                       return GestureDetector(
+          //                         onTap: () => _selectCountry(country),
+          //                         child: Container(
+          //                           padding: const EdgeInsets.symmetric(
+          //                             vertical: 8.0,
+          //                           ),
+          //                           child: Row(
+          //                             children: [
+          //                               SvgPicture.asset(
+          //                                 country['flag']!,
+          //                                 width: 30,
+          //                                 height: 30,
+          //                                 fit: BoxFit.contain,
+          //                               ),
+          //                               const SizedBox(width: 10),
+          //                               Expanded(
+          //                                 child: Text(
+          //                                   country['name'] ?? '',
+          //                                   style: TextStyle(
+          //                                     color: isSelected
+          //                                         ? const Color(0xFF00F0FF)
+          //                                         : Colors.white,
+          //                                     fontSize: 16,
+          //                                     fontWeight: isSelected
+          //                                         ? FontWeight.w600
+          //                                         : FontWeight.normal,
+          //                                   ),
+          //                                 ),
+          //                               ),
+          //                               if (isSelected)
+          //                                 Icon(
+          //                                   Icons.check,
+          //                                   color: const Color(0xFF00F0FF),
+          //                                   size: 20,
+          //                                 ),
+          //                             ],
+          //                           ),
+          //                         ),
+          //                       );
+          //                     },
+          //                   ),
+          //           ),
+          //         ],
+          //       );
+          //     },
+          //   ),
+          // ),
 
           // DOB DROPDOWN POPUP
           SlideUpMenu(
