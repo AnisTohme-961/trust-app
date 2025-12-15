@@ -539,54 +539,166 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     userProvider.setDob(_dobForApi);
   }
 
-  // Code input handler
   void _onCodeChanged(String value, int index) async {
-    if (value.length > 1) {
-      _codeControllers[index].text = value[0];
-    }
+  // Remove non-digit characters
+  final digits = value.replaceAll(RegExp(r'\D'), '');
 
-    setState(() {
-      _code[index] = _codeControllers[index].text;
-    });
+  if (digits.isEmpty) {
+    _code[index] = '';
+    setState(() {});
+    return;
+  }
 
-    if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
-    if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
-
-    if (_code.every((c) => c.isNotEmpty)) {
-      final email = _emailController.text.trim();
-      if (email.isEmpty) {
-        errorStackKey.currentState?.showError("Email is required.");
-        return;
-      }
-
-      final userProvider = context.read<UserProvider>();
-      bool valid = await _verifyCode(email, _code.join());
-
-      if (valid) {
-        userProvider.setEmailCode(_code.join());
-        setState(() {
-          _isCodeVerified = true;
-          _codeValid = true;
-          _codeDisabled = true;
-        });
-      } else {
-        setState(() {
-          _isCodeVerified = false;
-        });
-
-        Timer(const Duration(seconds: 3), () {
-          if (!mounted) return;
-          setState(() {
-            for (var c in _codeControllers) c.clear();
-            _code = ["", "", "", "", "", ""];
-            _isCodeVerified = null;
-            _codeDisabled = false;
-          });
-          _focusNodes[0].requestFocus();
-        });
-      }
+  // If user pasted multiple digits in any field, distribute them
+  for (int i = 0; i < 6; i++) {
+    if (i >= index && (i - index) < digits.length) {
+      _codeControllers[i].text = digits[i - index];
+      _code[i] = digits[i - index];
     }
   }
+
+  // Move focus to next empty field
+  int nextIndex = _code.indexWhere((c) => c.isEmpty);
+  if (nextIndex != -1) {
+    _focusNodes[nextIndex].requestFocus();
+  } else {
+    _focusNodes[5].unfocus(); // All filled
+  }
+
+  setState(() {});
+
+  // Auto verify if complete
+  if (_code.every((c) => c.isNotEmpty)) {
+    await _verifyAndHandleCode();
+  }
+}
+
+Future<void> _verifyAndHandleCode() async {
+  final email = _emailController.text.trim();
+  if (email.isEmpty) {
+    errorStackKey.currentState?.showError("Email is required.");
+    return;
+  }
+
+  final userProvider = context.read<UserProvider>();
+  bool valid = await _verifyCode(email, _code.join());
+
+  if (valid) {
+    userProvider.setEmailCode(_code.join());
+    setState(() {
+      _isCodeVerified = true;
+      _codeValid = true;
+      _codeDisabled = true;
+    });
+  } else {
+    setState(() => _isCodeVerified = false);
+
+    Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+
+      setState(() {
+        for (var c in _codeControllers) c.clear();
+        _code = ["", "", "", "", "", ""];
+        _isCodeVerified = null;
+        _codeDisabled = false;
+      });
+
+      _focusNodes[0].requestFocus();
+    });
+  }
+}
+
+
+//   void _onCodeChanged(String value, int index) async {
+//   // ✅ CASE 1: USER PASTED FULL CODE (e.g. 123456)
+//   if (value.length > 1) {
+//     final digits = value.replaceAll(RegExp(r'\D'), '');
+
+//     for (int i = 0; i < 6; i++) {
+//       if (i < digits.length) {
+//         _codeControllers[i].text = digits[i];
+//         _code[i] = digits[i];
+//       } else {
+//         _codeControllers[i].clear();
+//         _code[i] = '';
+//       }
+//     }
+
+//     setState(() {});
+
+//     // Move focus to last field
+//     _focusNodes[digits.length >= 6 ? 5 : digits.length].requestFocus();
+
+//     // Auto verify if complete
+//     if (_code.every((c) => c.isNotEmpty)) {
+//       await _verifyAndHandleCode();
+//     }
+//     return;
+//   }
+
+//   // ✅ CASE 2: NORMAL SINGLE DIGIT INPUT
+//   _code[index] = value;
+
+//   if (value.isNotEmpty && index < 5) {
+//     _focusNodes[index + 1].requestFocus();
+//   } else if (value.isEmpty && index > 0) {
+//     _focusNodes[index - 1].requestFocus();
+//   }
+
+//   setState(() {});
+
+//   if (_code.every((c) => c.isNotEmpty)) {
+//     await _verifyAndHandleCode();
+//   }
+// }
+
+  // void _onCodeChanged(String value, int index) async {
+  //   if (value.length > 1) {
+  //     _codeControllers[index].text = value[0];
+  //   }
+
+  //   setState(() {
+  //     _code[index] = _codeControllers[index].text;
+  //   });
+
+  //   if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
+  //   if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
+
+  //   if (_code.every((c) => c.isNotEmpty)) {
+  //     final email = _emailController.text.trim();
+  //     if (email.isEmpty) {
+  //       errorStackKey.currentState?.showError("Email is required.");
+  //       return;
+  //     }
+
+  //     final userProvider = context.read<UserProvider>();
+  //     bool valid = await _verifyCode(email, _code.join());
+
+  //     if (valid) {
+  //       userProvider.setEmailCode(_code.join());
+  //       setState(() {
+  //         _isCodeVerified = true;
+  //         _codeValid = true;
+  //         _codeDisabled = true;
+  //       });
+  //     } else {
+  //       setState(() {
+  //         _isCodeVerified = false;
+  //       });
+
+  //       Timer(const Duration(seconds: 3), () {
+  //         if (!mounted) return;
+  //         setState(() {
+  //           for (var c in _codeControllers) c.clear();
+  //           _code = ["", "", "", "", "", ""];
+  //           _isCodeVerified = null;
+  //           _codeDisabled = false;
+  //         });
+  //         _focusNodes[0].requestFocus();
+  //       });
+  //     }
+  //   }
+  // }
 
   // API methods
   Future<void> _fetchCodeFromGo() async {
@@ -1364,7 +1476,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                     _codeControllers[index],
                                                 focusNode: _focusNodes[index],
                                                 textAlign: TextAlign.center,
-                                                maxLength: 1,
+                                                // maxLength: 1,
                                                 keyboardType:
                                                     TextInputType.number,
                                                 style: TextStyle(

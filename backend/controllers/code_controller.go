@@ -94,10 +94,28 @@ func (cc *CodeController) GetCode(c *gin.Context) {
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	now := time.Now()
 
+	var user models.User
+	userErr := cc.UserCollection.
+		FindOne(ctx, bson.M{"email": email}).
+		Decode(&user)
+
+	if userErr == nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "Email already registered.",
+		})
+		return
+	}
+
+	if userErr != nil && !errors.Is(userErr, mongo.ErrNoDocuments) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
 	var existing models.EmailCode
 	attempts := 0
 
 	findErr := cc.EmailCodeCollection.FindOne(ctx, bson.M{"email": email}).Decode(&existing)
+
 	if findErr != nil && !errors.Is(findErr, mongo.ErrNoDocuments) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return

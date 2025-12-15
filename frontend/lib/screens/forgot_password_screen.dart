@@ -1135,7 +1135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 enabled: !codeDisabled,
                                 readOnly: codeDisabled,
                                 textAlign: TextAlign.center,
-                                maxLength: 1,
+                                // maxLength: 1,
                                 keyboardType: TextInputType.number,
                                 style: TextStyle(
                                   color: codeDisabled
