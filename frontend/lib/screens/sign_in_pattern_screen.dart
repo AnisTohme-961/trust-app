@@ -115,7 +115,6 @@ void _validatePattern() async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 8),
               Image.asset(
                 'assets/images/egetyPerfectStar.png',
                 width: 111,

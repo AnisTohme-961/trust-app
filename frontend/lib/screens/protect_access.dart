@@ -1461,7 +1461,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                   : null,
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 100),
-                                width: 120,
+                                width: 100,
                                 height: 30,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -1524,7 +1524,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 20,
+                                            fontSize: 16,
                                             color: Colors.white,
                                           ),
                                         ),

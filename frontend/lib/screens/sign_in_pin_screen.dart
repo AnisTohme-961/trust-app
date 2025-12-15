@@ -162,12 +162,12 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
         children: [
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: 75.0),
+                    padding: const EdgeInsets.only(top: 20.0),
                     child: Image.asset(
                       'assets/images/egetyPerfectStar.png',
                       width: 111,
