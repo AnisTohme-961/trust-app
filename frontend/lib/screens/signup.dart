@@ -797,36 +797,35 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                   const SizedBox(height: 40),
 
                   // Next button with gradient lines
-                  SizedBox(
+                  // Next button with gradient lines - Clean version
+                  Container(
                     width: double.infinity,
                     height: 40,
-                    child: Stack(
-                      alignment: Alignment.center,
+                    child: Row(
                       children: [
-                        Positioned(
-                          top: 14,
-                          left: 0,
+                        // Left gradient line
+                        Expanded(
                           child: Container(
-                            width: 125,
                             height: 4,
+                            margin: EdgeInsets.only(
+                              top: 0,
+                              right: 8,
+                            ), // 8px space from button
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
                               gradient: LinearGradient(
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
-                                colors: _allFieldsValid
-                                    ? const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
-                                      ]
-                                    : const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF4A5568),
-                                      ],
+                                colors: const [
+                                  Color(0xFF0B1320),
+                                  Color(0xFF00F0FF),
+                                ],
                               ),
                             ),
                           ),
                         ),
+
+                        // Button
                         MouseRegion(
                           onEnter: (_) => _allFieldsValid
                               ? setState(() => _isNextHovered = true)
@@ -859,32 +858,29 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                               if (_allFieldsValid) {
                                 _handleNextTap();
                               } else {
-                                // Validate all fields and show errors if any
                                 _validateAllFieldsAndShowErrors();
                               }
                             },
                           ),
                         ),
-                        Positioned(
-                          top: 14,
-                          right: 0,
+
+                        // Right gradient line
+                        Expanded(
                           child: Container(
-                            width: 125,
                             height: 4,
+                            margin: EdgeInsets.only(
+                              top: 0,
+                              left: 8,
+                            ), // 8px space from button
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
                               gradient: LinearGradient(
                                 begin: Alignment.centerRight,
                                 end: Alignment.centerLeft,
-                                colors: _allFieldsValid
-                                    ? const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
-                                      ]
-                                    : const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF4A5568),
-                                      ],
+                                colors: const [
+                                  Color(0xFF0B1320),
+                                  Color(0xFF00F0FF),
+                                ],
                               ),
                             ),
                           ),

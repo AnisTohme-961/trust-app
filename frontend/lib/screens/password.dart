@@ -81,6 +81,9 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
+  // Track if password field has text for paste/clear button
+  bool _hasTextInPassword = false;
+
   // Check if all fields are valid
   bool get _allFieldsValid =>
       _has2Caps &&
@@ -102,6 +105,9 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
     // Add text change listeners
     _passwordController.addListener(() {
       _validatePassword();
+      setState(() {
+        _hasTextInPassword = _passwordController.text.isNotEmpty;
+      });
     });
 
     _confirmPasswordController.addListener(() {
@@ -430,6 +436,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
     setState(() {
       _passwordController.text = newPassword;
       _confirmPasswordController.text = newPassword;
+      _hasTextInPassword = true;
       _validatePassword();
       _validatePasswordsMatch();
     });
@@ -441,6 +448,29 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
 
   Color _getValidationTextColor(bool isValid) {
     return isValid ? const Color(0xFF00F0FF) : const Color(0xFFFF0000);
+  }
+
+  // Helper method to handle paste/clear for both password fields
+  void _handlePasswordPasteClear() async {
+    if (_hasTextInPassword) {
+      // Clear both password fields
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+      setState(() {
+        _hasTextInPassword = false;
+      });
+    } else {
+      // Paste from clipboard into both fields
+      final clipboardData = await Clipboard.getData('text/plain');
+      if (clipboardData != null) {
+        final text = clipboardData.text ?? '';
+        _passwordController.text = text;
+        _confirmPasswordController.text = text;
+        setState(() {
+          _hasTextInPassword = text.isNotEmpty;
+        });
+      }
+    }
   }
 
   @override
@@ -660,97 +690,163 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                         const SizedBox(height: 16),
 
                         // Password Input Field
-                        Container(
-                          width: double.infinity,
-                          height: 70,
-                          child: TextField(
-                            controller: _passwordController,
-                            focusNode: _passwordFocusNode,
-                            obscureText: _obscurePassword,
-                            onEditingComplete: () {
-                              _validatePasswordAndShowError();
-                              FocusScope.of(
-                                context,
-                              ).requestFocus(_confirmPasswordFocusNode);
-                            },
-                            style: const TextStyle(
-                              color: Color(0xFF00F0FF),
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 15,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: "Password",
-                              labelStyle: const TextStyle(
-                                color: Colors.white70,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 15,
-                              ),
-                              floatingLabelStyle: const TextStyle(
-                                color: Color(0xFF00F0FF),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 10,
-                                  right: 8,
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              height: 70,
+                              child: TextField(
+                                controller: _passwordController,
+                                focusNode: _passwordFocusNode,
+                                obscureText: _obscurePassword,
+                                onEditingComplete: () {
+                                  _validatePasswordAndShowError();
+                                  FocusScope.of(
+                                    context,
+                                  ).requestFocus(_confirmPasswordFocusNode);
+                                },
+                                style: const TextStyle(
+                                  color: Color(0xFF00F0FF),
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 15,
                                 ),
-                                child: Image.asset(
-                                  'assets/images/Icon.png',
-                                  width: 20,
-                                  height: 20,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 35,
-                                minHeight: 20,
-                              ),
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    }),
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: Image.asset(
-                                        _obscurePassword
-                                            ? 'assets/images/eyeSlash.png'
-                                            : 'assets/images/eye1.png',
-                                        width: 22,
-                                        height: 22,
-                                        fit: BoxFit.contain,
-                                      ),
+                                decoration: InputDecoration(
+                                  labelText: "Password",
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white70,
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                  floatingLabelStyle: const TextStyle(
+                                    color: Color(0xFF00F0FF),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  prefixIcon: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 10,
+                                      right: 8,
+                                    ),
+                                    child: Image.asset(
+                                      'assets/images/Icon.png',
+                                      width: 20,
+                                      height: 20,
+                                      fit: BoxFit.contain,
                                     ),
                                   ),
-                                ],
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(7.64),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF00F0FF),
-                                  width: 1,
+                                  prefixIconConstraints: const BoxConstraints(
+                                    minWidth: 35,
+                                    minHeight: 20,
+                                  ),
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Eye Icon
+                                      GestureDetector(
+                                        onTap: () => setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        }),
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8,
+                                          ),
+                                          child: Image.asset(
+                                            _obscurePassword
+                                                ? 'assets/images/eyeSlash.png'
+                                                : 'assets/images/eye1.png',
+                                            width: 22,
+                                            height: 22,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                      ),
+
+                                      // Paste/Clear Button - works for both fields
+                                      Container(
+                                        width: 65,
+                                        height: 32,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            7,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(0xFF00F0FF),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(
+                                              7,
+                                            ),
+                                            onTap: _handlePasswordPasteClear,
+                                            child: Center(
+                                              child: Text(
+                                                _hasTextInPassword
+                                                    ? "Clear"
+                                                    : "Paste",
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(7.64),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF00F0FF),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(7.64),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF00F0FF),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.transparent,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                    horizontal: 0,
+                                  ),
                                 ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(7.64),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF00F0FF),
-                                  width: 1.5,
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.transparent,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 0,
                               ),
                             ),
-                          ),
+                            // Floating label
+                            if (_passwordController.text.isNotEmpty)
+                              Positioned(
+                                left: 50,
+                                top: -8,
+                                child: Container(
+                                  color: const Color(0xFF0B1320),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: const Text(
+                                    "Password",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
 
                         const SizedBox(height: 0),
@@ -760,97 +856,131 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                           children: [
                             Expanded(
                               flex: 2,
-                              child: Container(
-                                height: 52,
-                                child: TextField(
-                                  controller: _confirmPasswordController,
-                                  focusNode: _confirmPasswordFocusNode,
-                                  obscureText: _obscureConfirmPassword,
-                                  onEditingComplete: () {
-                                    _validateConfirmPasswordAndShowError();
-                                    FocusScope.of(context).unfocus();
-                                  },
-                                  style: const TextStyle(
-                                    color: Color(0xFF00F0FF),
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                  ),
-                                  decoration: InputDecoration(
-                                    labelText: "Confirm Password",
-                                    labelStyle: const TextStyle(
-                                      color: Colors.white70,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 15,
-                                    ),
-                                    floatingLabelStyle: const TextStyle(
-                                      color: Color(0xFF00F0FF),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 10,
-                                        right: 8,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    height: 52,
+                                    child: TextField(
+                                      controller: _confirmPasswordController,
+                                      focusNode: _confirmPasswordFocusNode,
+                                      obscureText: _obscureConfirmPassword,
+                                      onEditingComplete: () {
+                                        _validateConfirmPasswordAndShowError();
+                                        FocusScope.of(context).unfocus();
+                                      },
+                                      style: const TextStyle(
+                                        color: Color(0xFF00F0FF),
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
                                       ),
-                                      child: Image.asset(
-                                        'assets/images/Icon.png',
-                                        width: 20,
-                                        height: 20,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                    prefixIconConstraints: const BoxConstraints(
-                                      minWidth: 35,
-                                      minHeight: 20,
-                                    ),
-                                    suffixIcon: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () => setState(() {
-                                            _obscureConfirmPassword =
-                                                !_obscureConfirmPassword;
-                                          }),
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(
-                                              right: 8,
-                                            ),
-                                            child: Image.asset(
-                                              _obscureConfirmPassword
-                                                  ? 'assets/images/eyeSlash.png'
-                                                  : 'assets/images/eye1.png',
-                                              width: 22,
-                                              height: 22,
-                                              fit: BoxFit.contain,
-                                            ),
+                                      decoration: InputDecoration(
+                                        labelText: "Confirm Password",
+                                        labelStyle: const TextStyle(
+                                          color: Colors.white70,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 15,
+                                        ),
+                                        floatingLabelStyle: const TextStyle(
+                                          color: Color(0xFF00F0FF),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        prefixIcon: Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 10,
+                                            right: 8,
+                                          ),
+                                          child: Image.asset(
+                                            'assets/images/Icon.png',
+                                            width: 20,
+                                            height: 20,
+                                            fit: BoxFit.contain,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(7.64),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF00F0FF),
-                                        width: 1,
+                                        prefixIconConstraints:
+                                            const BoxConstraints(
+                                              minWidth: 35,
+                                              minHeight: 20,
+                                            ),
+                                        suffixIcon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Eye Icon for confirm password only
+                                            GestureDetector(
+                                              onTap: () => setState(() {
+                                                _obscureConfirmPassword =
+                                                    !_obscureConfirmPassword;
+                                              }),
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                child: Image.asset(
+                                                  _obscureConfirmPassword
+                                                      ? 'assets/images/eyeSlash.png'
+                                                      : 'assets/images/eye1.png',
+                                                  width: 22,
+                                                  height: 22,
+                                                  fit: BoxFit.contain,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            7.64,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF00F0FF),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            7.64,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF00F0FF),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.transparent,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                              horizontal: 0,
+                                            ),
                                       ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(7.64),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF00F0FF),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.transparent,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                      horizontal: 0,
                                     ),
                                   ),
-                                ),
+                                  // Floating label for confirm password
+                                  if (_confirmPasswordController
+                                      .text
+                                      .isNotEmpty)
+                                    Positioned(
+                                      left: 50,
+                                      top: -8,
+                                      child: Container(
+                                        color: const Color(0xFF0B1320),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
+                                        child: const Text(
+                                          "Confirm Password",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
 
@@ -891,6 +1021,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                         _passwordController.text = newPassword;
                                         _confirmPasswordController.text =
                                             newPassword;
+                                        _hasTextInPassword = true;
                                         _validatePassword(); // Validate immediately after generating
                                       });
                                     },
@@ -1101,25 +1232,23 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                       width: double.infinity,
                       height: 40,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            width: 64,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(11),
-                              gradient: LinearGradient(
-                                begin: Alignment.centerRight,
-                                end: Alignment.centerLeft,
-                                colors: _allFieldsValid
-                                    ? const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
-                                      ]
-                                    : const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF4A5568),
-                                      ],
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(
+                                right: 8,
+                              ), // Space from Back button
+                              height: 4,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(11),
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: const [
+                                    Color(0xFF0B1320),
+                                    Color(0xFF00F0FF),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -1160,6 +1289,9 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                               ),
                             ),
                           ),
+
+                          // Spacer between buttons
+                          const SizedBox(width: 8),
 
                           MouseRegion(
                             onEnter: (_) => _allFieldsValid
@@ -1216,23 +1348,21 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                             ),
                           ),
 
-                          Container(
-                            width: 64,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(11),
-                              gradient: LinearGradient(
-                                begin: Alignment.centerRight,
-                                end: Alignment.centerLeft,
-                                colors: _allFieldsValid
-                                    ? const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
-                                      ]
-                                    : const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF4A5568),
-                                      ],
+                          // Right divider
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              height: 4,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(11),
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerRight,
+                                  end: Alignment.centerLeft,
+                                  colors: const [
+                                    Color(0xFF0B1320),
+                                    Color(0xFF00F0FF),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -1368,6 +1498,9 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
+  // Track if password field has text for paste/clear button
+  bool _hasTextInPassword = false;
+
   // Check if all fields are valid
   bool get _allFieldsValid =>
       _has2Caps &&
@@ -1389,6 +1522,9 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
     // Add text change listeners
     _passwordController.addListener(() {
       _validatePassword();
+      setState(() {
+        _hasTextInPassword = _passwordController.text.isNotEmpty;
+      });
     });
 
     _confirmPasswordController.addListener(() {
@@ -1717,6 +1853,7 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
     setState(() {
       _passwordController.text = newPassword;
       _confirmPasswordController.text = newPassword;
+      _hasTextInPassword = true;
       _validatePassword();
       _validatePasswordsMatch();
     });
@@ -1728,6 +1865,29 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
 
   Color _getValidationTextColor(bool isValid) {
     return isValid ? const Color(0xFF00F0FF) : const Color(0xFFFF0000);
+  }
+
+  // Helper method to handle paste/clear for both password fields
+  void _handlePasswordPasteClear() async {
+    if (_hasTextInPassword) {
+      // Clear both password fields
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+      setState(() {
+        _hasTextInPassword = false;
+      });
+    } else {
+      // Paste from clipboard into both fields
+      final clipboardData = await Clipboard.getData('text/plain');
+      if (clipboardData != null) {
+        final text = clipboardData.text ?? '';
+        _passwordController.text = text;
+        _confirmPasswordController.text = text;
+        setState(() {
+          _hasTextInPassword = text.isNotEmpty;
+        });
+      }
+    }
   }
 
   @override
@@ -1997,83 +2157,160 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
 
                                     const SizedBox(height: 20),
 
-                                    // Password Input Field
-                                    Container(
-                                      width: 400,
-                                      height: 50,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: const Color(0xFF00F0FF),
-                                          width: 1,
-                                        ),
-                                        color: Colors.transparent,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 14,
-                                            height: 18,
-                                            child: Image.asset(
-                                              'assets/images/Icon.png',
-                                              fit: BoxFit.contain,
-                                            ),
+                                    // Password Input Field with Paste/Clear button
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: 400,
+                                          height: 50,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
                                           ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: TextField(
-                                              controller: _passwordController,
-                                              focusNode: _passwordFocusNode,
-                                              obscureText: _obscurePassword,
-                                              onEditingComplete: () {
-                                                _validatePasswordAndShowError();
-                                                FocusScope.of(
-                                                  context,
-                                                ).requestFocus(
-                                                  _confirmPasswordFocusNode,
-                                                );
-                                              },
-                                              style: const TextStyle(
-                                                color: Color(0xFF00F0FF),
-                                                fontFamily: 'Inter',
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 15,
-                                              ),
-                                              decoration: const InputDecoration(
-                                                hintText: "Password",
-                                                hintStyle: TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 15,
-                                                  color: Colors.white54,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: const Color(0xFF00F0FF),
+                                              width: 1,
+                                            ),
+                                            color: Colors.transparent,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              SizedBox(
+                                                width: 14,
+                                                height: 18,
+                                                child: Image.asset(
+                                                  'assets/images/Icon.png',
+                                                  fit: BoxFit.contain,
                                                 ),
-                                                border: InputBorder.none,
-                                                isDense: true,
-                                                contentPadding: EdgeInsets.zero,
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: TextField(
+                                                  controller:
+                                                      _passwordController,
+                                                  focusNode: _passwordFocusNode,
+                                                  obscureText: _obscurePassword,
+                                                  onEditingComplete: () {
+                                                    _validatePasswordAndShowError();
+                                                    FocusScope.of(
+                                                      context,
+                                                    ).requestFocus(
+                                                      _confirmPasswordFocusNode,
+                                                    );
+                                                  },
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF00F0FF),
+                                                    fontFamily: 'Inter',
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 15,
+                                                  ),
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        hintText: "Password",
+                                                        hintStyle: TextStyle(
+                                                          fontFamily: 'Inter',
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          fontSize: 15,
+                                                          color: Colors.white54,
+                                                        ),
+                                                        border:
+                                                            InputBorder.none,
+                                                        isDense: true,
+                                                        contentPadding:
+                                                            EdgeInsets.zero,
+                                                      ),
+                                                ),
+                                              ),
+                                              // Paste/Clear Button - works for both fields
+                                              Container(
+                                                width: 65,
+                                                height: 32,
+                                                margin: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(7),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF00F0FF,
+                                                    ),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          7,
+                                                        ),
+                                                    onTap:
+                                                        _handlePasswordPasteClear,
+                                                    child: Center(
+                                                      child: Text(
+                                                        _hasTextInPassword
+                                                            ? "Clear"
+                                                            : "Paste",
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontFamily: 'Inter',
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          fontSize: 15,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              // Eye Icon
+                                              GestureDetector(
+                                                onTap: () => setState(
+                                                  () => _obscurePassword =
+                                                      !_obscurePassword,
+                                                ),
+                                                child: SizedBox(
+                                                  width: 21,
+                                                  height: 16,
+                                                  child: Image.asset(
+                                                    _obscurePassword
+                                                        ? 'assets/images/eyeSlash.png'
+                                                        : 'assets/images/eye1.png',
+                                                    fit: BoxFit.contain,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        // Floating label
+                                        if (_passwordController.text.isNotEmpty)
+                                          Positioned(
+                                            left: 30,
+                                            top: -8,
+                                            child: Container(
+                                              color: const Color(0xFF0B1320),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                  ),
+                                              child: const Text(
+                                                "Password",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                          GestureDetector(
-                                            onTap: () => setState(
-                                              () => _obscurePassword =
-                                                  !_obscurePassword,
-                                            ),
-                                            child: SizedBox(
-                                              width: 21,
-                                              height: 16,
-                                              child: Image.asset(
-                                                _obscurePassword
-                                                    ? 'assets/images/eyeSlash.png'
-                                                    : 'assets/images/eye1.png',
-                                                fit: BoxFit.contain,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                      ],
                                     ),
 
                                     const SizedBox(height: 15),
@@ -2086,61 +2323,69 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                           // Confirm Password
                                           Expanded(
                                             flex: 2,
-                                            child: Container(
-                                              height: 50,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: const Color(
-                                                    0xFF00F0FF,
-                                                  ),
-                                                  width: 1,
-                                                ),
-                                                color: Colors.transparent,
-                                              ),
-                                              child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  SizedBox(
-                                                    width: 14,
-                                                    height: 18,
-                                                    child: Image.asset(
-                                                      'assets/images/Icon.png',
-                                                      fit: BoxFit.contain,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  Expanded(
-                                                    child: TextField(
-                                                      controller:
-                                                          _confirmPasswordController,
-                                                      focusNode:
-                                                          _confirmPasswordFocusNode,
-                                                      obscureText:
-                                                          _obscureConfirmPassword,
-                                                      onEditingComplete: () {
-                                                        _validateConfirmPasswordAndShowError();
-                                                        FocusScope.of(
-                                                          context,
-                                                        ).unfocus();
-                                                      },
-                                                      style: const TextStyle(
-                                                        color: Color(
-                                                          0xFF00F0FF,
-                                                        ),
-                                                        fontFamily: 'Inter',
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        fontSize: 15,
+                                            child: Stack(
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                Container(
+                                                  height: 50,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 16,
                                                       ),
-                                                      decoration:
-                                                          const InputDecoration(
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFF00F0FF,
+                                                      ),
+                                                      width: 1,
+                                                    ),
+                                                    color: Colors.transparent,
+                                                  ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      SizedBox(
+                                                        width: 14,
+                                                        height: 18,
+                                                        child: Image.asset(
+                                                          'assets/images/Icon.png',
+                                                          fit: BoxFit.contain,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 16),
+                                                      Expanded(
+                                                        child: TextField(
+                                                          controller:
+                                                              _confirmPasswordController,
+                                                          focusNode:
+                                                              _confirmPasswordFocusNode,
+                                                          obscureText:
+                                                              _obscureConfirmPassword,
+                                                          onEditingComplete: () {
+                                                            _validateConfirmPasswordAndShowError();
+                                                            FocusScope.of(
+                                                              context,
+                                                            ).unfocus();
+                                                          },
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Color(
+                                                                  0xFF00F0FF,
+                                                                ),
+                                                                fontFamily:
+                                                                    'Inter',
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontSize: 15,
+                                                              ),
+                                                          decoration: const InputDecoration(
                                                             hintText:
                                                                 "Confirm Password",
                                                             hintStyle:
@@ -2160,26 +2405,55 @@ class _TabletPasswordPageState extends State<TabletPasswordPage> {
                                                             contentPadding:
                                                                 EdgeInsets.zero,
                                                           ),
-                                                    ),
+                                                        ),
+                                                      ),
+                                                      // Eye Icon for confirm password only (no paste/clear button)
+                                                      GestureDetector(
+                                                        onTap: () => setState(
+                                                          () => _obscureConfirmPassword =
+                                                              !_obscureConfirmPassword,
+                                                        ),
+                                                        child: SizedBox(
+                                                          width: 21,
+                                                          height: 16,
+                                                          child: Image.asset(
+                                                            _obscureConfirmPassword
+                                                                ? 'assets/images/eyeSlash.png'
+                                                                : 'assets/images/eye1.png',
+                                                            fit: BoxFit.contain,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                  GestureDetector(
-                                                    onTap: () => setState(
-                                                      () => _obscureConfirmPassword =
-                                                          !_obscureConfirmPassword,
-                                                    ),
-                                                    child: SizedBox(
-                                                      width: 21,
-                                                      height: 16,
-                                                      child: Image.asset(
-                                                        _obscureConfirmPassword
-                                                            ? 'assets/images/eyeSlash.png'
-                                                            : 'assets/images/eye1.png',
-                                                        fit: BoxFit.contain,
+                                                ),
+                                                // Floating label for confirm password
+                                                if (_confirmPasswordController
+                                                    .text
+                                                    .isNotEmpty)
+                                                  Positioned(
+                                                    left: 30,
+                                                    top: -8,
+                                                    child: Container(
+                                                      color: const Color(
+                                                        0xFF0B1320,
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 4,
+                                                          ),
+                                                      child: const Text(
+                                                        "Confirm Password",
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
-                                                ],
-                                              ),
+                                              ],
                                             ),
                                           ),
 
