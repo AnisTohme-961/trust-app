@@ -41,75 +41,105 @@ class _ErrorBannerState extends State<ErrorBanner>
       child: AnimatedBuilder(
         animation: _progressController,
         builder: (context, child) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: double.infinity,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B1320),
-                border: Border(
-                  top: const BorderSide(color: Color(0xFFF42222), width: 2),
-                  left: const BorderSide(color: Color(0xFFF42222), width: 2),
-                  right: const BorderSide(color: Color(0xFFF42222), width: 2),
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0xFFAF2222),
-                    offset: Offset(0, 3),
-                    blurRadius: 8,
-                  ),
-                ],
+          return Container(
+            width: double.infinity,
+            height: 120,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1320),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
-              child: Column(
+              // Only bottom shadow
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0xFFAF2222),
+                  offset: Offset(0, 3), // Only downward offset
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+              child: Stack(
                 children: [
-                  // Content
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(23, 20, 23, 20),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF42222),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.priority_high,
+                  // Main content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(23, 20, 23, 20),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF42222),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.priority_high,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            widget.message,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                              height: 1.3,
+                              letterSpacing: 0,
                               color: Colors.white,
-                              size: 18,
+                              decoration: TextDecoration.none,
+                              decorationColor: Colors.transparent,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: Text(
-                              widget.message,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                                height: 1.3,
-                                letterSpacing: 0,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  // Progress bar as bottom border
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: 1 - _progressController.value,
-                      child: Container(
-                        height: 2,
-                        color: const Color(0xFFF42222),
+
+                  // Progress bar at the bottom
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 2,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: 1 - _progressController.value,
+                          child: Container(
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF42222),
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(1),
+                              ),
+                              // Optional: Add a subtle glow to the progress bar
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFFF42222,
+                                  ).withOpacity(0.5),
+                                  blurRadius: 3,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 0),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

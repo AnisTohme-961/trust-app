@@ -514,32 +514,22 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 40,
-                    child: Stack(
-                      alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Positioned(
-                          top: 14,
-                          left: 0,
-                          child: Container(
-                            width: 125,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(11),
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: _allFieldsValid
-                                    ? const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
-                                      ]
-                                    : const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF4A5568),
-                                      ],
-                              ),
-                            ),
-                          ),
+                        _GradientLine(isLeft: true),
+                        _NavButton(
+                          text: "Back",
+                          onTap: () {
+                            if (widget.originalPin != null) {
+                              // Prevent manual back button when in confirm PIN mode
+                              _errorStackKey.currentState?.showError(
+                                "Please complete PIN confirmation first",
+                              );
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
                         ),
                         MouseRegion(
                           onEnter: (_) => _allFieldsValid
@@ -592,30 +582,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                             ),
                           ),
                         ),
-                        Positioned(
-                          top: 14,
-                          right: 0,
-                          child: Container(
-                            width: 125,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(11),
-                              gradient: LinearGradient(
-                                begin: Alignment.centerRight,
-                                end: Alignment.centerLeft,
-                                colors: _allFieldsValid
-                                    ? const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF00F0FF),
-                                      ]
-                                    : const [
-                                        Color(0xFF0B1320),
-                                        Color(0xFF4A5568),
-                                      ],
-                              ),
-                            ),
-                          ),
-                        ),
+                        _GradientLine(isLeft: false),
                       ],
                     ),
                   ),
@@ -873,17 +840,6 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
     }
   }
 
-  // Check if all required fields are valid
-  bool get _allFieldsValid {
-    if (widget.originalPin != null) {
-      // For confirm PIN screen, need both valid AND matching
-      return _pinValid && _pinMatching;
-    } else {
-      // For first PIN entry, just need valid
-      return _pinValid && _pin.length == 4;
-    }
-  }
-
   void _onNext() async {
     final enteredPin = _pin.join();
 
@@ -947,6 +903,17 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
         _pin.clear();
         setState(() {});
       }
+    }
+  }
+
+  // Check if all required fields are valid
+  bool get _allFieldsValid {
+    if (widget.originalPin != null) {
+      // For confirm PIN screen, need both valid AND matching
+      return _pinValid && _pinMatching;
+    } else {
+      // For first PIN entry, just need valid
+      return _pinValid && _pin.length == 4;
     }
   }
 
@@ -1169,34 +1136,25 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                     // ===== Bottom Navigation =====
                                     SizedBox(
                                       width: isLandscape ? 450 : 380,
-                                      height: 40,
-                                      child: Stack(
-                                        alignment: Alignment.center,
+                                      height: 50,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Positioned(
-                                            top: 14,
-                                            left: 0,
-                                            child: Container(
-                                              width: 125,
-                                              height: 4,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(11),
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.centerLeft,
-                                                  end: Alignment.centerRight,
-                                                  colors: _allFieldsValid
-                                                      ? const [
-                                                          Color(0xFF0B1320),
-                                                          Color(0xFF00F0FF),
-                                                        ]
-                                                      : const [
-                                                          Color(0xFF0B1320),
-                                                          Color(0xFF4A5568),
-                                                        ],
-                                                ),
-                                              ),
-                                            ),
+                                          _GradientLine(isLeft: true),
+                                          _NavButton(
+                                            text: "Back",
+                                            onTap: () {
+                                              if (widget.originalPin != null) {
+                                                // Prevent manual back button when in confirm PIN mode
+                                                _errorStackKey.currentState
+                                                    ?.showError(
+                                                      "Please complete PIN confirmation first",
+                                                    );
+                                              } else {
+                                                Navigator.pop(context);
+                                              }
+                                            },
                                           ),
                                           MouseRegion(
                                             onEnter: (_) => _allFieldsValid
@@ -1263,31 +1221,7 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                               ),
                                             ),
                                           ),
-                                          Positioned(
-                                            top: 14,
-                                            right: 0,
-                                            child: Container(
-                                              width: 125,
-                                              height: 4,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(11),
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.centerRight,
-                                                  end: Alignment.centerLeft,
-                                                  colors: _allFieldsValid
-                                                      ? const [
-                                                          Color(0xFF0B1320),
-                                                          Color(0xFF00F0FF),
-                                                        ]
-                                                      : const [
-                                                          Color(0xFF0B1320),
-                                                          Color(0xFF4A5568),
-                                                        ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
+                                          _GradientLine(isLeft: false),
                                         ],
                                       ),
                                     ),
@@ -1649,4 +1583,54 @@ class _Keypad extends StatelessWidget {
       }).toList(),
     );
   }
+}
+
+class _NavButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  const _NavButton({required this.text, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: 106,
+      height: 40,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF00F0FF), width: 1),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w500,
+          fontSize: 20,
+          color: Colors.white,
+        ),
+      ),
+    ),
+  );
+}
+
+class _GradientLine extends StatelessWidget {
+  final bool isLeft;
+  const _GradientLine({required this.isLeft});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 64,
+    height: 4,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(11),
+      gradient: LinearGradient(
+        begin: Alignment.centerRight,
+        end: Alignment.centerLeft,
+        colors: isLeft
+            ? const [Color(0xFF00F0FF), Color(0xFF0B1320)]
+            : const [Color(0xFF0B1320), Color(0xFF00F0FF)],
+      ),
+    ),
+  );
 }
