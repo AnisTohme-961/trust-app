@@ -588,7 +588,7 @@ Future<void> _verifyAndHandleCode() async {
     setState(() {
       _isCodeVerified = true;
       _codeValid = true;
-      _codeDisabled = true;
+      // _codeDisabled = true;
     });
   } else {
     setState(() => _isCodeVerified = false);

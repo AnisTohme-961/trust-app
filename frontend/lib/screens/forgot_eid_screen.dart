@@ -549,26 +549,34 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                         border: InputBorder.none,
                       ),
                       onChanged: (value) async {
-                        if (widget.isCodeCorrect) return;
+                        if (widget.isCodeCorrect || isCooldown) return;
 
-                        if (value.length > 1) {
-                          widget.otpControllers[index].text = value[0];
+                        final digits = value.replaceAll(RegExp(r'\D'), '');
+
+                        if (digits.isEmpty) {
+                          widget.code[index] = '';
+                          setState(() {});
+                          return;
                         }
 
-                        if (value.isNotEmpty && index < 5) {
-                          widget.otpFocusNodes[index + 1].requestFocus();
+                        for (int i = 0; i < 6; i++) {
+                          if (i >= index && (i - index) < digits.length) {
+                            widget.otpControllers[i].text = digits[i - index];
+                            widget.code[i] = digits[i - index];
+                          }
                         }
 
-                        if (value.isEmpty && index > 0) {
-                          widget.otpFocusNodes[index - 1].requestFocus();
+                        final nextIndex = widget.code.indexWhere(
+                          (c) => c.isEmpty,
+                        );
+                        if (nextIndex != -1) {
+                          widget.otpFocusNodes[nextIndex].requestFocus();
+                        } else {
+                          widget.otpFocusNodes[5].unfocus(); // all filled
                         }
 
-                        setState(() {
-                          widget.code[index] =
-                              widget.otpControllers[index].text;
-                        });
-
-                        // Auto-verify when all fields are filled
+                        setState(() {});
+                        
                         if (widget.code.every((c) => c.isNotEmpty)) {
                           widget.onHandleCodeVerification();
                         }
@@ -797,7 +805,9 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
               child: Text(
                 widget.isTimerRunning
                     ? formatCooldown(widget.remainingSeconds)
-                    : (widget.hasCodeBeenSentBefore ? "Send Again" : "Get Code"),
+                    : (widget.hasCodeBeenSentBefore
+                          ? "Send Again"
+                          : "Get Code"),
                 style: TextStyle(
                   color: widget.isTimerRunning
                       ? const Color(0xFF0B1320)

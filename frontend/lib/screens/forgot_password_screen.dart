@@ -76,10 +76,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
   Map<String, bool> _hasCodeBeenSentBeforeMap = {
-  'email': false,
-  'sms': false,
-  'auth': false,
-};
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
 
   bool _codeSent = false;
 
@@ -140,13 +140,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _onChanged(
     String value,
     int index,
+    List<TextEditingController> controllers,
     List<String> codeList,
     List<FocusNode> focusNodes,
-  ) {
-    codeList[index] = value;
-    if (value.isNotEmpty && index < focusNodes.length - 1) {
-      FocusScope.of(context).requestFocus(focusNodes[index + 1]);
+  ) async {
+    // 1️⃣ Keep digits only
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+
+    // User deleted input
+    if (digits.isEmpty) {
+      codeList[index] = '';
+      setState(() {});
+      return;
     }
+
+    // 2️⃣ Distribute pasted digits starting from current index
+    for (int i = 0; i < codeList.length; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        controllers[i].text = digits[i - index];
+        codeList[i] = digits[i - index];
+      }
+    }
+
+    // 3️⃣ Move focus to next empty field
+    final nextIndex = codeList.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      focusNodes[nextIndex].requestFocus();
+    } else {
+      focusNodes.last.unfocus(); // all filled
+    }
+
     setState(() {});
   }
 
@@ -155,50 +178,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
 
   void _resetOtpFields(String type) {
-  List<TextEditingController> controllers;
-  List<FocusNode> focusNodes;
-  List<String> codeList;
+    List<TextEditingController> controllers;
+    List<FocusNode> focusNodes;
+    List<String> codeList;
 
-  // Choose which type to reset
-  switch (type) {
-    case 'email':
-      controllers = _emailCodeControllers;
-      focusNodes = _emailFocusNodes;
-      codeList = _emailCode;
-      break;
-    case 'sms':
-      controllers = _smsCodeControllers;
-      focusNodes = _smsFocusNodes;
-      codeList = _smsCode;
-      break;
-    case 'auth':
-      controllers = _authCodeControllers;
-      focusNodes = _authFocusNodes;
-      codeList = _authCode;
-      break;
-    default:
-      return;
+    // Choose which type to reset
+    switch (type) {
+      case 'email':
+        controllers = _emailCodeControllers;
+        focusNodes = _emailFocusNodes;
+        codeList = _emailCode;
+        break;
+      case 'sms':
+        controllers = _smsCodeControllers;
+        focusNodes = _smsFocusNodes;
+        codeList = _smsCode;
+        break;
+      case 'auth':
+        controllers = _authCodeControllers;
+        focusNodes = _authFocusNodes;
+        codeList = _authCode;
+        break;
+      default:
+        return;
+    }
+
+    // Clear all digits
+    for (var controller in controllers) {
+      controller.clear();
+    }
+
+    // Clear internal code list
+    for (int i = 0; i < codeList.length; i++) {
+      codeList[i] = '';
+    }
+
+    // Unfocus everything first
+    for (var node in focusNodes) {
+      node.unfocus();
+    }
   }
 
-  // Clear all digits
-  for (var controller in controllers) {
-    controller.clear();
-  }
-
-  // Clear internal code list
-  for (int i = 0; i < codeList.length; i++) {
-    codeList[i] = '';
-  }
-
-  // Unfocus everything first
-  for (var node in focusNodes) {
-    node.unfocus();
-  }
-}
   // Updated _fetchCode to handle timer with animation effect
   void _fetchCode(String type) async {
-
-      _resetOtpFields(type);
+    _resetOtpFields(type);
     // Cancel any existing button animation timer for this type
     _buttonAnimationTimers[type]?.cancel();
 
@@ -407,6 +430,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       });
     });
   }
+
+  void _handleInvalidCode(
+  String type,
+  List<TextEditingController> controllers,
+  List<String> codeList,
+  List<FocusNode> focusNodes,
+) {
+  setState(() {
+    isCodeValidMap[type] = false;
+    isCodeCorrectMap[type] = false;
+  });
+
+  Timer(const Duration(seconds: 3), () {
+    if (!mounted) return;
+
+    setState(() {
+      for (int i = 0; i < controllers.length; i++) {
+        controllers[i].clear();
+        codeList[i] = '';
+      }
+      isCodeValidMap[type] = true;
+      isCodeCorrectMap[type] = false;
+    });
+
+    focusNodes[0].requestFocus();
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -1161,33 +1212,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   contentPadding: EdgeInsets.zero,
                                 ),
                                 onChanged: (value) async {
-                                  // Update current field
-                                  codeList[index] = value.isEmpty
-                                      ? ''
-                                      : value[0];
-                                  codeControllers[index].text = codeList[index];
-                                  codeControllers[index]
-                                      .selection = TextSelection.fromPosition(
-                                    TextPosition(
-                                      offset:
-                                          codeControllers[index].text.length,
-                                    ),
+                                  // 1️⃣ Handle typing + paste + focus correctly
+                                  _onChanged(
+                                    value,
+                                    index,
+                                    codeControllers,
+                                    codeList,
+                                    focusNodes,
                                   );
 
-                                  // Move focus
-                                  if (value.isNotEmpty && index < 5) {
-                                    focusNodes[index + 1].requestFocus();
-                                  } else if (value.isEmpty && index > 0) {
-                                    focusNodes[index - 1].requestFocus();
-                                  }
-
-                                  // Reset validity while typing
+                                  // 2️⃣ Reset validity while typing
                                   setState(() {
                                     isCodeValidMap[type] = true;
                                     isCodeCorrectMap[type] = false;
                                   });
 
-                                  // Only verify when all digits are filled
+                                  // 3️⃣ Verify only when ALL digits are filled
                                   if (codeList.every((c) => c.isNotEmpty)) {
                                     final email = _controller.text.trim();
                                     bool valid = false;
@@ -1211,56 +1251,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                           isCodeCorrectMap[type] = true;
                                           isCodeValidMap[type] = true;
                                         });
+
                                         _timers[type]?.cancel();
                                         _timers[type] = null;
                                         _countdowns[type] = 0;
                                       } else {
-                                        // ❌ Show error for 3 seconds, then reset
-                                        setState(() {
-                                          isCodeValidMap[type] = false;
-                                          isCodeCorrectMap[type] = false;
-                                        });
-
-                                        Timer(const Duration(seconds: 3), () {
-                                          if (!mounted) return;
-                                          setState(() {
-                                            for (
-                                              var i = 0;
-                                              i < codeControllers.length;
-                                              i++
-                                            ) {
-                                              codeControllers[i].clear();
-                                              codeList[i] = '';
-                                            }
-                                            isCodeValidMap[type] = true;
-                                            isCodeCorrectMap[type] = false;
-                                          });
-                                          focusNodes[0].requestFocus();
-                                        });
+                                        _handleInvalidCode(
+                                          type,
+                                          codeControllers,
+                                          codeList,
+                                          focusNodes,
+                                        );
                                       }
-                                    } catch (e) {
-                                      // ❌ On error, show red for 3 seconds, then reset
-                                      setState(() {
-                                        isCodeValidMap[type] = false;
-                                        isCodeCorrectMap[type] = false;
-                                      });
-
-                                      Timer(const Duration(seconds: 3), () {
-                                        if (!mounted) return;
-                                        setState(() {
-                                          for (
-                                            var i = 0;
-                                            i < codeControllers.length;
-                                            i++
-                                          ) {
-                                            codeControllers[i].clear();
-                                            codeList[i] = '';
-                                          }
-                                          isCodeValidMap[type] = true;
-                                          isCodeCorrectMap[type] = false;
-                                        });
-                                        focusNodes[0].requestFocus();
-                                      });
+                                    } catch (_) {
+                                      _handleInvalidCode(
+                                        type,
+                                        codeControllers,
+                                        codeList,
+                                        focusNodes,
+                                      );
                                     }
                                   }
                                 },
@@ -1384,7 +1393,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         )
                       : Text(
-                          _hasCodeBeenSentBeforeMap[type]! ? "Send Again" : "Get Code",
+                          _hasCodeBeenSentBeforeMap[type]!
+                              ? "Send Again"
+                              : "Get Code",
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
