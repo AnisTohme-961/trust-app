@@ -4,7 +4,7 @@ import 'dart:async';
 import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
 import '../widgets/footer_widgets.dart';
-import '../widgets/error_widgets.dart'; // Make sure you import your ErrorStack file path correctly
+import '../widgets/error_widgets.dart';
 
 class SignInPinScreen extends StatefulWidget {
   const SignInPinScreen({super.key});
@@ -18,6 +18,11 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
   bool isEyeVisible = true;
   bool _obscurePin = true;
   List<String> _pin = [];
+  bool _isPinValid = false; // Track if PIN is valid (backend validated)
+  bool _isValidating = false; // Track if validation is in progress
+  bool _hasValidationError = false; // Track if we have a validation error
+  Timer? _validationTimer; // Timer for debouncing validation
+  Timer? _clearPinTimer; // Timer to clear PIN after error
 
   // Reference to the ErrorStackState to show errors
   final GlobalKey<ErrorStackState> _errorStackKey =
@@ -28,58 +33,152 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
     ..shuffle(Random());
 
   void _onKeyTap(String key) async {
-  // 1) Handle NEXT (Validate PIN)
-  if (key == 'Next') {
-    if (_pin.isEmpty || _pin.length < 4) {
-      _errorStackKey.currentState?.showError(
-        'Please Enter Your Pin.',
-        duration: Duration(seconds: 3),
-      );
-      return;
-    }
-
-    String enteredPin = _pin.join();
-
-    bool isValid = await AuthService.validatePin(enteredPin);
-
-    if (!isValid) {
-      _errorStackKey.currentState?.showError(
-        'Incorrect Pin. Try Again.',
-        duration: Duration(seconds: 3),
-      );
-
-      // clear pin
-      setState(() {
-        _pin.clear();
-      });
-
-      return;
-    }
-
-    // SUCCESS
-    debugPrint('✅ Correct PIN entered!');
-    Navigator.pushNamed(context, '/settings');
-    return;
-  }
-
-  // 2) For BACKSPACE
-  if (key == 'Back') {
-    setState(() {
-      if (_pin.isNotEmpty) {
-        _pin.removeLast();
+    // 1) Handle NEXT (Navigate after validation)
+    if (key == 'Next') {
+      if (!_isPinValid) {
+        return; // Button should be disabled, but just in case
       }
-    });
-    return;
+
+      // SUCCESS - Navigate to settings
+      debugPrint('✅ Correct PIN entered! Navigating to settings...');
+      Navigator.pushNamed(context, '/settings');
+      return;
+    }
+
+    // 2) For BACKSPACE
+    if (key == 'Back') {
+      // Cancel any pending clear timer
+      _clearPinTimer?.cancel();
+
+      // Reset error state when user starts editing again
+      if (_hasValidationError) {
+        setState(() {
+          _hasValidationError = false;
+          _pin.clear();
+        });
+      } else {
+        setState(() {
+          if (_pin.isNotEmpty) {
+            _pin.removeLast();
+            _isPinValid = false; // Reset validation when PIN changes
+            _hasValidationError = false; // Reset error state
+            if (_pin.length == 4) {
+              // If we still have 4 digits after backspace, re-validate
+              _schedulePinValidation();
+            }
+          }
+        });
+      }
+      return;
+    }
+
+    // 3) For number keys (0–9)
+    if (_pin.length < 4) {
+      // Cancel any pending clear timer
+      _clearPinTimer?.cancel();
+
+      // Clear error state when user starts typing again
+      if (_hasValidationError) {
+        setState(() {
+          _hasValidationError = false;
+          _pin.clear();
+          _pin.add(key);
+        });
+      } else {
+        setState(() {
+          _pin.add(key);
+          if (_pin.length == 4) {
+            // When we have 4 digits, schedule validation
+            _schedulePinValidation();
+          } else {
+            // If less than 4 digits, reset validation
+            _isPinValid = false;
+            _hasValidationError = false;
+          }
+        });
+      }
+    }
   }
 
-  // 3) For number keys (0–9)
-  if (_pin.length < 4) {
+  // Schedule PIN validation with debounce
+  void _schedulePinValidation() {
+    // Cancel any pending validation
+    _validationTimer?.cancel();
+
+    // Schedule new validation after a short delay (debounce)
+    _validationTimer = Timer(Duration(milliseconds: 500), () {
+      _validatePinWithBackend();
+    });
+  }
+
+  // Validate PIN with backend
+  Future<void> _validatePinWithBackend() async {
+    if (_pin.length != 4) {
+      return;
+    }
+
     setState(() {
-      _pin.add(key);
+      _isValidating = true;
+      _hasValidationError = false;
     });
-  }
-}
 
+    try {
+      String enteredPin = _pin.join();
+      bool isValid = await AuthService.validatePin(enteredPin);
+
+      setState(() {
+        if (isValid) {
+          _isPinValid = true;
+          _hasValidationError = false;
+          _isValidating = false;
+        } else {
+          // PIN is invalid - show red borders briefly, then clear
+          _hasValidationError = true;
+          _isPinValid = false;
+          _isValidating = false;
+
+          // Show error message
+          _errorStackKey.currentState?.showError(
+            'Incorrect Pin. Try Again.',
+            duration: Duration(seconds: 3),
+          );
+
+          // Schedule clearing of PIN after showing red borders briefly
+          _clearPinTimer = Timer(Duration(milliseconds: 1500), () {
+            if (mounted) {
+              setState(() {
+                _pin.clear(); // Clear the PIN digits
+                _hasValidationError = false; // Reset error state after clearing
+              });
+            }
+          });
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isPinValid = false;
+        _hasValidationError = true;
+        _isValidating = false;
+      });
+      print("Validation error: $e");
+
+      // Show error for network/backend issues
+      _errorStackKey.currentState?.showError(
+        'Validation failed. Please try again.',
+        duration: Duration(seconds: 3),
+      );
+
+      // Schedule clearing of PIN after showing red borders briefly
+      _clearPinTimer = Timer(Duration(milliseconds: 1500), () {
+        if (mounted) {
+          setState(() {
+            _pin.clear(); // Clear the PIN digits
+            _hasValidationError = false; // Reset error state after clearing
+          });
+        }
+      });
+    }
+  }
 
   Future<void> _logout() async {
     try {
@@ -88,6 +187,13 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
     } catch (e) {
       print("Logout failed: $e");
     }
+  }
+
+  @override
+  void dispose() {
+    _validationTimer?.cancel();
+    _clearPinTimer?.cancel();
+    super.dispose();
   }
 
   Widget buildBackAndLogoutButtons() {
@@ -221,39 +327,114 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
                   ),
                   const SizedBox(height: 25),
 
-                  // PIN Boxes
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      final filled = index < _pin.length;
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 18),
-                        width: 50,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.9),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(3),
+                  // PIN Boxes with validation indicator
+                  Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(4, (index) {
+                          final filled = index < _pin.length;
+                          Color borderColor;
+
+                          // Determine border color based on validation state
+                          if (_hasValidationError) {
+                            borderColor = Color(0xFFFF0000); // Red for error
+                          } else if (_isPinValid) {
+                            borderColor = Color(0xFF00F0FF); // Blue for valid
+                          } else if (filled) {
+                            borderColor = Colors.white.withOpacity(
+                              0.9,
+                            ); // White for filled but not validated
+                          } else {
+                            borderColor = Colors.white.withOpacity(
+                              0.9,
+                            ); // White for empty
+                          }
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 18),
+                            width: 50,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: borderColor,
+                                width: _hasValidationError || _isPinValid
+                                    ? 2
+                                    : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              filled ? (_obscurePin ? '*' : _pin[index]) : '',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 24,
+                                color: _hasValidationError
+                                    ? Color(0xFFFF0000)
+                                    : Colors.white,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      // Validation status indicator
+                      if (_pin.length == 4 && _isValidating)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF00F0FF),
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Validating...',
+                              style: TextStyle(
+                                color: Color(0xFF00F0FF),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          filled ? (_obscurePin ? '*' : _pin[index]) : '',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 24,
-                            color: Colors.white,
-                          ),
+                      if (_hasValidationError && _pin.isEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Color(0xFFFF0000),
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Incorrect PIN - Please try again',
+                              style: TextStyle(
+                                color: Color(0xFFFF0000),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    }),
+                    ],
                   ),
                   const SizedBox(height: 40),
 
                   // Keypad
-                  _Keypad(onKeyTap: _onKeyTap, numbers: _numbers),
+                  _Keypad(
+                    onKeyTap: _onKeyTap,
+                    numbers: _numbers,
+                    isPinValid: _isPinValid,
+                    isPinComplete: _pin.length == 4,
+                    isValidating: _isValidating,
+                    hasValidationError: _hasValidationError,
+                  ),
 
                   const SizedBox(height: 10),
 
@@ -312,8 +493,19 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
 class _Keypad extends StatelessWidget {
   final void Function(String) onKeyTap;
   final List<String> numbers;
+  final bool isPinValid; // PIN is validated by backend
+  final bool isPinComplete; // PIN has 4 digits (but may not be validated yet)
+  final bool isValidating; // Validation in progress
+  final bool hasValidationError; // PIN validation failed
 
-  const _Keypad({required this.onKeyTap, required this.numbers});
+  const _Keypad({
+    required this.onKeyTap,
+    required this.numbers,
+    required this.isPinValid,
+    required this.isPinComplete,
+    required this.isValidating,
+    required this.hasValidationError,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -337,14 +529,39 @@ class _Keypad extends StatelessWidget {
               final isBack = text == 'Back';
               final isNext = text == 'Next';
 
+              // Determine Next button border color - ALWAYS grey unless valid
+              Color nextButtonBorderColor;
+              Color nextButtonTextColor;
+
+              if (isPinValid) {
+                nextButtonBorderColor = Color(0xFF00F0FF); // Blue when valid
+                nextButtonTextColor = Colors.white; // White text when valid
+              } else {
+                nextButtonBorderColor =
+                    Colors.grey; // Always grey when not valid
+                nextButtonTextColor = Colors.grey; // Grey text when not valid
+              }
+
               return GestureDetector(
-                onTap: () => onKeyTap(text),
+                onTap: () {
+                  if (isNext && !isPinValid) {
+                    return; // Ignore tap if not valid
+                  }
+                  onKeyTap(text);
+                },
                 child: Container(
                   width: 103,
                   height: 49,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: isBack ? Colors.red : const Color(0xFF00F0FF),
+                      color: isBack
+                          ? (hasValidationError
+                                ? Color(0xFFFF0000)
+                                : Colors
+                                      .red) // Red for back button during error
+                          : isNext
+                          ? nextButtonBorderColor
+                          : Color(0xFF00F0FF), // Blue for number buttons
                       width: isBack || isNext ? 3 : 1,
                     ),
                     borderRadius: BorderRadius.circular(9),
@@ -355,7 +572,23 @@ class _Keypad extends StatelessWidget {
                           'assets/images/whiteBackArrow.png',
                           width: 25,
                           height: 25,
+                          color: hasValidationError
+                              ? Color(0xFFFF0000)
+                              : Colors.white,
                           fit: BoxFit.contain,
+                        )
+                      : isNext &&
+                            isPinComplete &&
+                            !isPinValid &&
+                            !hasValidationError &&
+                            isValidating
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.grey,
+                          ),
                         )
                       : Text(
                           text,
@@ -365,7 +598,9 @@ class _Keypad extends StatelessWidget {
                                 ? FontWeight.w500
                                 : FontWeight.w800,
                             fontSize: isNext ? 20 : 30,
-                            color: Colors.white,
+                            color: isNext
+                                ? nextButtonTextColor // Use determined text color
+                                : Colors.white, // White for number buttons
                           ),
                         ),
                 ),

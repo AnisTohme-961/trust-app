@@ -284,10 +284,6 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
               ),
 
             // SELECT ACCOUNT POPUP - USING SlideUpMenu
-            // In RegisterPageMobile build method, UPDATE the SlideUpMenu for select account:
-            // Update the SlideUpMenu in register.dart:
-            // In RegisterPageMobile build method, FIX the SlideUpMenu:
-            // In RegisterPageMobile build method, update the SlideUpMenu:
             SlideUpMenu(
               menuHeight: dropdownHeight,
               isVisible: _selectAccountOpen,

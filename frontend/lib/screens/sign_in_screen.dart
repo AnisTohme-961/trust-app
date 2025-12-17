@@ -185,7 +185,7 @@ class _SignInPageState extends State<SignInPage> {
     _focusNodes[5].unfocus(); 
   }
 
-  setState(() {});
+    setState(() {});
 
   if (code.every((c) => c.isNotEmpty)) {
     try {
@@ -194,10 +194,10 @@ class _SignInPageState extends State<SignInPage> {
         code: code.join(),
       );
 
-      setState(() {
-        isCodeCorrect = res;
-        _isCodeValid = res;
-      });
+        setState(() {
+          isCodeCorrect = res;
+          _isCodeValid = res;
+        });
 
       if (res) {
         _secondsLeft = 0;
@@ -945,7 +945,11 @@ class MobileSignInPage extends StatelessWidget {
                             ),
                           )
                         : Text(
-                            tooManyAttempts ? "Locked" : (hasCodeBeenSentBefore ? "Send Again" : "Get Code"),
+                            tooManyAttempts
+                                ? "Locked"
+                                : (hasCodeBeenSentBefore
+                                      ? "Send Again"
+                                      : "Get Code"),
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -1145,7 +1149,7 @@ class MobileSignInPage extends StatelessWidget {
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
           onTap: () {
-            Navigator.pushNamed(context, '/register');
+            Navigator.pushNamed(context, '/sign-up');
           },
         ),
       ],

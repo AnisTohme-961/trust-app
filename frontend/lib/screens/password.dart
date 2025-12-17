@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
+import 'package:flutter_project/routes/routes.dart';
 
 class PasswordPageApp extends StatelessWidget {
   @override
@@ -547,14 +548,21 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                     color: const Color(0xFF00F0FF),
                                   ),
                                 ),
-                                child: const Center(
-                                  child: Text(
-                                    'Sign In',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 20,
-                                      color: Colors.white,
+                                child: Center(
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.of(
+                                        context,
+                                      ).pushNamed('/sign-in');
+                                    },
+                                    child: const Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -826,26 +834,6 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 ),
                               ),
                             ),
-                            // Floating label
-                            if (_passwordController.text.isNotEmpty)
-                              Positioned(
-                                left: 50,
-                                top: -8,
-                                child: Container(
-                                  color: const Color(0xFF0B1320),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  child: const Text(
-                                    "Password",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
 
@@ -958,28 +946,6 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                       ),
                                     ),
                                   ),
-                                  // Floating label for confirm password
-                                  if (_confirmPasswordController
-                                      .text
-                                      .isNotEmpty)
-                                    Positioned(
-                                      left: 50,
-                                      top: -8,
-                                      child: Container(
-                                        color: const Color(0xFF0B1320),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                        ),
-                                        child: const Text(
-                                          "Confirm Password",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),
@@ -1324,25 +1290,20 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                       : Colors.transparent,
                                 ),
                                 child: Center(
-                                  child: _isLoading
-                                      ? const CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        )
-                                      : Text(
-                                          "Next",
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 20,
-                                            height: 1.0,
-                                            color: _allFieldsValid
-                                                ? (_isNextHovered
-                                                      ? const Color(0xFF00F0FF)
-                                                      : Colors.white)
-                                                : const Color(0xFF718096),
-                                          ),
-                                        ),
+                                  child: Text(
+                                    "Next",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20,
+                                      height: 1.0,
+                                      color: _allFieldsValid
+                                          ? (_isNextHovered
+                                                ? const Color(0xFF00F0FF)
+                                                : Colors.white)
+                                          : const Color(0xFF718096),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
