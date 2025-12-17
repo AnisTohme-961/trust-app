@@ -45,7 +45,7 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
         children: [
           // Header - Fixed height
           Container(
-            height: 60,
+            height: 61,
             padding: const EdgeInsets.all(16),
             alignment: Alignment.center,
             child: Text(

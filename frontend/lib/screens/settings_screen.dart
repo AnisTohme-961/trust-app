@@ -1130,6 +1130,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: notificationsMenuHeight,
             isVisible: _showNotificationsMenu,
             onToggle: _toggleNotificationsMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1137,44 +1138,61 @@ class _SettingsScreenState extends State<SettingsScreen>
               fit: BoxFit.contain,
             ),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              constraints: BoxConstraints(maxHeight: notificationsMenuHeight),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Notifications',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 30,
-                          color: Colors.white,
+                  // Header - Fixed height
+                  Container(
+                    height: 50.5,
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      top: 18,
+                      right: 16,
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Notifications',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 30,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      CustomButton(
-                        text: 'Clear',
-                        width: 106,
-                        height: 40,
-                        onTap: () {
-                          print('Clear notifications tapped');
-                        },
-                        backgroundColor: Colors.transparent,
-                        borderColor: const Color(0xFF00F0FF),
-                        textColor: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        borderRadius: 8,
-                        fontSize: 20,
-                      ),
-                    ],
+                        CustomButton(
+                          text: 'Clear',
+                          width: 106,
+                          height: 35,
+                          onTap: () {
+                            print('Clear notifications tapped');
+                          },
+                          backgroundColor: Colors.transparent,
+                          borderColor: const Color(0xFF00F0FF),
+                          textColor: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          borderRadius: 8,
+                          fontSize: 18,
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: notificationsMenuHeight * 0.76,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [_buildNotificationItem("11:52 AM")],
+
+                  // ListView - Takes remaining space
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(
+                        top: 25, // Add top padding for gap
+                        bottom: 10,
                       ),
+                      itemCount: 20,
+                      itemBuilder: (context, index) {
+                        return _buildNotificationItem(
+                          index % 2 == 0 ? "11:52 AM" : "Yesterday",
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -1183,36 +1201,48 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
 
           // Profile Menu
+          // Profile Menu - SIMPLER SCROLLABLE APPROACH
           SlideUpMenu(
             menuHeight: profileMenuHeight,
             isVisible: _showProfileMenu,
             onToggle: _toggleProfileMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
               height: 9,
               fit: BoxFit.contain,
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Select an Account',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            child: SingleChildScrollView(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: profileMenuHeight,
+                  minHeight: profileMenuHeight,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header - Fixed height
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                      child: const Text(
+                        'Select an Account',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: profileMenuHeight * 0.67,
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
+
+                    // Accounts List
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           AccountFrame(
                             firstName: "Sara",
@@ -1224,7 +1254,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                               _closeAllMenus();
                             },
                             isTablet: false,
+                            includeSpacing: false,
                           ),
+                          const SizedBox(height: 16),
                           AccountFrame(
                             firstName: "John",
                             lastName: "Smith",
@@ -1235,19 +1267,32 @@ class _SettingsScreenState extends State<SettingsScreen>
                               _closeAllMenus();
                             },
                             isTablet: false,
+                            includeSpacing: false,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 30),
-                  AddNewProfileButton(
-                    isTablet: false,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/sign-in');
-                    },
-                  ),
-                ],
+
+                    // Spacer to push button to bottom
+                    const Spacer(),
+
+                    // Add New Profile Button
+                    Container(
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: 50,
+                        top: 16,
+                      ),
+                      child: AddNewProfileButton(
+                        isTablet: false,
+                        onTap: () {
+                          Navigator.pushNamed(context, '/sign-in');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1257,6 +1302,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: fontSizeMenuHeight,
             isVisible: _showFontSizeMenu,
             onToggle: _toggleFontSizeMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1291,6 +1337,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: languageMenuHeight,
             isVisible: _showLanguageMenu,
             onToggle: _toggleLanguageMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1399,6 +1446,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: currencyMenuHeight,
             isVisible: _showCurrencyMenu,
             onToggle: _toggleCurrencyMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1449,6 +1497,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: freezeAccountMenuHeight,
             isVisible: _showFreezeAccountMenu,
             onToggle: _toggleFreezeAccountMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1680,6 +1729,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: patternMenuHeight,
             isVisible: _showPatternMenu,
             onToggle: _togglePatternMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1862,6 +1912,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: verificationMenuHeight,
             isVisible: _showVerificationMenu,
             onToggle: _toggleVerificationMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -2637,24 +2688,41 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Widget _buildNotificationItem(String time) {
-    return SizedBox(
-      width: double.infinity,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'You have received a notification',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 19.0,
-              fontWeight: FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'You have received a notification',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Text(
-            time,
-            style: const TextStyle(color: Color(0xFFA5A6A8), fontSize: 19.0),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Text(
+              time,
+              style: const TextStyle(color: Color(0xFFA5A6A8), fontSize: 18.0),
+            ),
+          ],
+        ),
       ),
     );
   }

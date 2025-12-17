@@ -14,6 +14,7 @@ import '../constants/api_constants.dart';
 import '../widgets/custom_button.dart';
 import '../services/country_service.dart';
 import 'package:flutter_project/widgets/slide_up_menu_widget.dart';
+import 'package:intl/intl.dart'; // Add this import
 
 class ResponsiveProtectAccess extends StatelessWidget {
   const ResponsiveProtectAccess({super.key});
@@ -56,6 +57,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   String _selectedCountry = '';
   String _selectedCountryId = '';
   bool _datePicked = false;
+  bool _isFirstTimeOpeningDob =
+      true; // Track if it's the first time opening DOB picker
 
   // Validation states
   bool _countryValid = false;
@@ -90,10 +93,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   late final ScrollController _dayController;
   late final ScrollController _yearController;
 
-  // Date values
-  int _selectedMonth = 0;
-  int _selectedDay = 0;
-  int _selectedYear = 0;
+  // Date values - Initialize to null (no selection initially)
+  int _selectedMonth = 0; // Will be set to 0 (January) when picker opens
+  int _selectedDay = 0; // Will be set to 0 (Day 1) when picker opens
+  int _selectedYear = 0; // Will be set to 0 (1970) when picker opens
 
   // Email verification states
   String _serverCode = "";
@@ -110,23 +113,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   List<Map<String, String>> get countries => CountriesService.getCountries();
   List<Map<String, String>> _filteredCountries = [];
 
-  // Date lists
-  final List<String> _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  final List<int> _days = List.generate(31, (i) => i + 1);
-  final List<int> _years = List.generate(56, (i) => 1970 + i);
+  // Date lists - Will be dynamically generated
+  late List<String> _months;
+  late List<int> _days;
+  late List<int> _years;
 
   // Cache to save scroll positions when menu closes
   double _cachedMonthScrollOffset = 0.0;
@@ -134,9 +124,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   double _cachedYearScrollOffset = 0.0;
   bool _shouldRestoreScrollPosition = false;
 
+  // Configuration
+  static const int _startYear = 1970; // Start year
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize date lists
+    _initializeDateLists();
 
     // Initialize controllers
     _monthController = ScrollController();
@@ -157,21 +153,47 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     // Initialize date picker after widgets are built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupDatePickerListeners();
-      _initializeDatePickerPositions();
     });
   }
 
-  void _initializeDatePickerPositions() {
-    // Only snap to center if we have pre-filled data
-    if (_datePicked) {
-      _scrollToSelectedDate();
+  void _initializeDateLists() {
+    // Generate months (January to December)
+    _months = List.generate(12, (index) {
+      // Create a date with the month index + 1 (months are 1-based in DateTime)
+      final date = DateTime(2000, index + 1, 1);
+      return DateFormat('MMMM').format(date); // Full month name
+    });
+
+    // Generate years (from 1970 to current year)
+    final currentYear = DateTime.now().year;
+    _years = List.generate(currentYear - _startYear + 1, (i) => _startYear + i);
+
+    // Initialize days list with default month (January)
+    _updateDaysList();
+  }
+
+  void _updateDaysList() {
+    // Use the selected year or default to 1970 if not set yet
+    final year = _selectedYear < _years.length ? _years[_selectedYear] : 1970;
+    final month = _selectedMonth + 1; // Convert to 1-based
+
+    // Get number of days in the selected month/year
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+
+    _days = List.generate(daysInMonth, (i) => i + 1);
+
+    // Adjust selected day if it's out of range
+    if (_selectedDay >= daysInMonth) {
+      _selectedDay = daysInMonth - 1;
     }
   }
 
   void _setupDatePickerListeners() {
     void _updateDobController() {
-      _dobController.text = _dobDisplayText;
-      onDobPicked();
+      if (_datePicked) {
+        _dobController.text = _dobDisplayText;
+        onDobPicked();
+      }
     }
 
     _monthController.addListener(() {
@@ -187,6 +209,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         setState(() {
           _selectedMonth = clampedIndex;
           _datePicked = true;
+          _updateDaysList(); // Update days when month changes
           _updateDobController();
           _validateDob();
         });
@@ -225,6 +248,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         setState(() {
           _selectedYear = clampedIndex;
           _datePicked = true;
+          _updateDaysList(); // Update days when year changes (for leap years)
           _updateDobController();
           _validateDob();
         });
@@ -234,17 +258,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   void _scrollToSelectedDate() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_datePicked) {
-        // Ensure controllers are attached before scrolling
-        if (_monthController.hasClients) {
-          _snapToCenter(_monthController, _selectedMonth);
-        }
-        if (_dayController.hasClients) {
-          _snapToCenter(_dayController, _selectedDay);
-        }
-        if (_yearController.hasClients) {
-          _snapToCenter(_yearController, _selectedYear);
-        }
+      // Ensure controllers are attached before scrolling
+      if (_monthController.hasClients) {
+        _snapToCenter(_monthController, _selectedMonth);
+      }
+      if (_dayController.hasClients) {
+        _snapToCenter(_dayController, _selectedDay);
+      }
+      if (_yearController.hasClients) {
+        _snapToCenter(_yearController, _selectedYear);
       }
     });
   }
@@ -267,18 +289,29 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   void _restoreScrollPositions() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Always snap to the selected date values when opening
-      if (_datePicked) {
-        if (_monthController.hasClients) {
-          _snapToCenter(_monthController, _selectedMonth);
-        }
-        if (_dayController.hasClients) {
-          _snapToCenter(_dayController, _selectedDay);
-        }
-        if (_yearController.hasClients) {
-          _snapToCenter(_yearController, _selectedYear);
-        }
+      if (_monthController.hasClients) {
+        _snapToCenter(_monthController, _selectedMonth);
+      }
+      if (_dayController.hasClients) {
+        _snapToCenter(_dayController, _selectedDay);
+      }
+      if (_yearController.hasClients) {
+        _snapToCenter(_yearController, _selectedYear);
       }
     });
+  }
+
+  // Method to set default values when opening the picker for the first time
+  void _setDefaultDateValues() {
+    if (_isFirstTimeOpeningDob) {
+      setState(() {
+        _selectedMonth = 0; // January
+        _selectedDay = 0; // Day 1
+        _selectedYear = 0; // 1970
+        _updateDaysList(); // Update days list for January 1970
+      });
+      _isFirstTimeOpeningDob = false;
+    }
   }
 
   @override
@@ -300,29 +333,53 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       _validateEmail();
     }
 
-    // Prefill date of birth
+    // Prefill date of birth from user provider
     if (_dobController.text.isEmpty && userProvider.dob.isNotEmpty) {
-      final parts = userProvider.dob.split('-');
-      final year = parts[0];
-      final monthIndex = int.parse(parts[1]) - 1;
-      final day = int.parse(parts[2]);
-      _selectedYear = _years.indexOf(int.parse(year));
-      _selectedMonth = monthIndex;
-      _selectedDay = day - 1;
-      _datePicked = true;
-      _dobController.text = "${_months[monthIndex]} $day $year";
-      _dobValid = true;
+      try {
+        final parts = userProvider.dob.split('-');
+        if (parts.length == 3) {
+          final year = int.parse(parts[0]);
+          final month = int.parse(parts[1]);
+          final day = int.parse(parts[2]);
 
-      // Initialize positions after widgets are built
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_monthController.hasClients &&
-            _dayController.hasClients &&
-            _yearController.hasClients) {
-          _snapToCenter(_monthController, _selectedMonth);
-          _snapToCenter(_dayController, _selectedDay);
-          _snapToCenter(_yearController, _selectedYear);
+          // Find indices
+          final yearIndex = _years.indexOf(year);
+          if (yearIndex != -1) {
+            _selectedYear = yearIndex;
+          }
+
+          final monthIndex = month - 1;
+          if (monthIndex >= 0 && monthIndex < _months.length) {
+            _selectedMonth = monthIndex;
+          }
+
+          // Update days list for the selected month/year
+          _updateDaysList();
+
+          final dayIndex = day - 1;
+          if (dayIndex >= 0 && dayIndex < _days.length) {
+            _selectedDay = dayIndex;
+          }
+
+          _datePicked = true;
+          _dobController.text = "${_months[monthIndex]} $day $year";
+          _dobValid = true;
+          _isFirstTimeOpeningDob = false; // User has already picked a date
+
+          // Initialize positions after widgets are built
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_monthController.hasClients &&
+                _dayController.hasClients &&
+                _yearController.hasClients) {
+              _snapToCenter(_monthController, _selectedMonth);
+              _snapToCenter(_dayController, _selectedDay);
+              _snapToCenter(_yearController, _selectedYear);
+            }
+          });
         }
-      });
+      } catch (e) {
+        print("Error parsing date of birth: $e");
+      }
     }
 
     // Prefill code if already verified
@@ -540,48 +597,48 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   }
 
   void _onCodeChanged(String value, int index) async {
-  // Remove non-digit characters
-  final digits = value.replaceAll(RegExp(r'\D'), '');
+    // Remove non-digit characters
+    final digits = value.replaceAll(RegExp(r'\D'), '');
 
-  if (digits.isEmpty) {
-    _code[index] = '';
+    if (digits.isEmpty) {
+      _code[index] = '';
+      setState(() {});
+      return;
+    }
+
+    // If user pasted multiple digits in any field, distribute them
+    for (int i = 0; i < 6; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        _codeControllers[i].text = digits[i - index];
+        _code[i] = digits[i - index];
+      }
+    }
+
+    // Move focus to next empty field
+    int nextIndex = _code.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      _focusNodes[nextIndex].requestFocus();
+    } else {
+      _focusNodes[5].unfocus(); // All filled
+    }
+
     setState(() {});
-    return;
-  }
 
-  // If user pasted multiple digits in any field, distribute them
-  for (int i = 0; i < 6; i++) {
-    if (i >= index && (i - index) < digits.length) {
-      _codeControllers[i].text = digits[i - index];
-      _code[i] = digits[i - index];
+    // Auto verify if complete
+    if (_code.every((c) => c.isNotEmpty)) {
+      await _verifyAndHandleCode();
     }
   }
 
-  // Move focus to next empty field
-  int nextIndex = _code.indexWhere((c) => c.isEmpty);
-  if (nextIndex != -1) {
-    _focusNodes[nextIndex].requestFocus();
-  } else {
-    _focusNodes[5].unfocus(); // All filled
-  }
+  Future<void> _verifyAndHandleCode() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      errorStackKey.currentState?.showError("Email is required.");
+      return;
+    }
 
-  setState(() {});
-
-  // Auto verify if complete
-  if (_code.every((c) => c.isNotEmpty)) {
-    await _verifyAndHandleCode();
-  }
-}
-
-Future<void> _verifyAndHandleCode() async {
-  final email = _emailController.text.trim();
-  if (email.isEmpty) {
-    errorStackKey.currentState?.showError("Email is required.");
-    return;
-  }
-
-  final userProvider = context.read<UserProvider>();
-  bool valid = await _verifyCode(email, _code.join());
+    final userProvider = context.read<UserProvider>();
+    bool valid = await _verifyCode(email, _code.join());
 
   if (valid) {
     userProvider.setEmailCode(_code.join());
@@ -593,112 +650,20 @@ Future<void> _verifyAndHandleCode() async {
   } else {
     setState(() => _isCodeVerified = false);
 
-    Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
+      Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
 
-      setState(() {
-        for (var c in _codeControllers) c.clear();
-        _code = ["", "", "", "", "", ""];
-        _isCodeVerified = null;
-        _codeDisabled = false;
+        setState(() {
+          for (var c in _codeControllers) c.clear();
+          _code = ["", "", "", "", "", ""];
+          _isCodeVerified = null;
+          _codeDisabled = false;
+        });
+
+        _focusNodes[0].requestFocus();
       });
-
-      _focusNodes[0].requestFocus();
-    });
+    }
   }
-}
-
-
-//   void _onCodeChanged(String value, int index) async {
-//   // ✅ CASE 1: USER PASTED FULL CODE (e.g. 123456)
-//   if (value.length > 1) {
-//     final digits = value.replaceAll(RegExp(r'\D'), '');
-
-//     for (int i = 0; i < 6; i++) {
-//       if (i < digits.length) {
-//         _codeControllers[i].text = digits[i];
-//         _code[i] = digits[i];
-//       } else {
-//         _codeControllers[i].clear();
-//         _code[i] = '';
-//       }
-//     }
-
-//     setState(() {});
-
-//     // Move focus to last field
-//     _focusNodes[digits.length >= 6 ? 5 : digits.length].requestFocus();
-
-//     // Auto verify if complete
-//     if (_code.every((c) => c.isNotEmpty)) {
-//       await _verifyAndHandleCode();
-//     }
-//     return;
-//   }
-
-//   // ✅ CASE 2: NORMAL SINGLE DIGIT INPUT
-//   _code[index] = value;
-
-//   if (value.isNotEmpty && index < 5) {
-//     _focusNodes[index + 1].requestFocus();
-//   } else if (value.isEmpty && index > 0) {
-//     _focusNodes[index - 1].requestFocus();
-//   }
-
-//   setState(() {});
-
-//   if (_code.every((c) => c.isNotEmpty)) {
-//     await _verifyAndHandleCode();
-//   }
-// }
-
-  // void _onCodeChanged(String value, int index) async {
-  //   if (value.length > 1) {
-  //     _codeControllers[index].text = value[0];
-  //   }
-
-  //   setState(() {
-  //     _code[index] = _codeControllers[index].text;
-  //   });
-
-  //   if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
-  //   if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
-
-  //   if (_code.every((c) => c.isNotEmpty)) {
-  //     final email = _emailController.text.trim();
-  //     if (email.isEmpty) {
-  //       errorStackKey.currentState?.showError("Email is required.");
-  //       return;
-  //     }
-
-  //     final userProvider = context.read<UserProvider>();
-  //     bool valid = await _verifyCode(email, _code.join());
-
-  //     if (valid) {
-  //       userProvider.setEmailCode(_code.join());
-  //       setState(() {
-  //         _isCodeVerified = true;
-  //         _codeValid = true;
-  //         _codeDisabled = true;
-  //       });
-  //     } else {
-  //       setState(() {
-  //         _isCodeVerified = false;
-  //       });
-
-  //       Timer(const Duration(seconds: 3), () {
-  //         if (!mounted) return;
-  //         setState(() {
-  //           for (var c in _codeControllers) c.clear();
-  //           _code = ["", "", "", "", "", ""];
-  //           _isCodeVerified = null;
-  //           _codeDisabled = false;
-  //         });
-  //         _focusNodes[0].requestFocus();
-  //       });
-  //     }
-  //   }
-  // }
 
   // API methods
   Future<void> _fetchCodeFromGo() async {
@@ -860,7 +825,7 @@ Future<void> _verifyAndHandleCode() async {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.5;
+    final double dropdownHeight = screenHeight * 0.559;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -923,7 +888,9 @@ Future<void> _verifyAndHandleCode() async {
                                 height: 40,
                                 fontSize: 20,
                                 fontWeight: FontWeight.w600,
-                                onTap: () {},
+                                onTap: () {
+                                  Navigator.of(context).pushNamed('/sign-in');
+                                },
                               ),
                             ),
                           ),
@@ -1148,6 +1115,11 @@ Future<void> _verifyAndHandleCode() async {
                       GestureDetector(
                         onTap: () {
                           final willOpen = !_dobDropdownOpen;
+                          // Set default values when opening the picker for the first time
+                          if (willOpen && _isFirstTimeOpeningDob) {
+                            _setDefaultDateValues();
+                          }
+
                           setState(() {
                             _dobDropdownOpen = !_dobDropdownOpen;
                           });
@@ -1301,12 +1273,12 @@ Future<void> _verifyAndHandleCode() async {
                             top:
                                 (_emailController.text.isNotEmpty ||
                                     _isEmailFocused)
-                                ? -10
+                                ? -6
                                 : 20,
                             child: AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
                               style: TextStyle(
-                                color: const Color(0xFFA5A6A8),
+                                color: Colors.white,
                                 fontSize:
                                     (_emailController.text.isNotEmpty ||
                                         _isEmailFocused)
@@ -1451,7 +1423,7 @@ Future<void> _verifyAndHandleCode() async {
                           Positioned(
                             top: 0,
                             child: Padding(
-                              padding: const EdgeInsets.only(top: 25.0),
+                              padding: const EdgeInsets.only(top: 23.0),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -1465,58 +1437,83 @@ Future<void> _verifyAndHandleCode() async {
                                         ),
                                         child: Column(
                                           children: [
+                                            // Show either TextField or colored Text widget
                                             SizedBox(
                                               width: 30,
-                                              height: 20,
-                                              child: TextField(
-                                                enabled: !_codeDisabled,
-                                                readOnly: _codeDisabled,
-                                                showCursor: !_codeDisabled,
-                                                controller:
-                                                    _codeControllers[index],
-                                                focusNode: _focusNodes[index],
-                                                textAlign: TextAlign.center,
-                                                // maxLength: 1,
-                                                keyboardType:
-                                                    TextInputType.number,
-                                                style: TextStyle(
-                                                  color: _codeDisabled
-                                                      ? Colors.grey
-                                                      : (_isCodeVerified == true
-                                                            ? const Color(
-                                                                0xFF00F0FF,
-                                                              )
-                                                            : (_isCodeVerified ==
-                                                                      false
-                                                                  ? Colors.red
-                                                                  : Colors
-                                                                        .white)),
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                cursorColor: Colors.white,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      counterText: "",
-                                                      border: InputBorder.none,
-                                                    ),
-                                                onChanged: _codeDisabled
-                                                    ? null
-                                                    : (value) => _onCodeChanged(
-                                                        value,
-                                                        index,
+                                              height: 21,
+                                              child:
+                                                  _isCodeVerified == true &&
+                                                      _code[index].isNotEmpty
+                                                  ? Center(
+                                                      child: Text(
+                                                        _code[index],
+                                                        style: const TextStyle(
+                                                          color: Color(
+                                                            0xFF00F0FF,
+                                                          ),
+                                                          fontSize: 20,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
+                                                    )
+                                                  : TextField(
+                                                      enabled: !_codeDisabled,
+                                                      readOnly: _codeDisabled,
+                                                      showCursor:
+                                                          !_codeDisabled,
+                                                      controller:
+                                                          _codeControllers[index],
+                                                      focusNode:
+                                                          _focusNodes[index],
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      keyboardType:
+                                                          TextInputType.number,
+                                                      style: TextStyle(
+                                                        color: _codeDisabled
+                                                            ? Colors.grey
+                                                            : (_isCodeVerified ==
+                                                                      true
+                                                                  ? const Color(
+                                                                      0xFF00F0FF,
+                                                                    )
+                                                                  : (_isCodeVerified ==
+                                                                            false
+                                                                        ? Colors
+                                                                              .red
+                                                                        : Colors
+                                                                              .white)),
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                      cursorColor: Colors.white,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            counterText: "",
+                                                            border: InputBorder
+                                                                .none,
+                                                          ),
+                                                      onChanged: _codeDisabled
+                                                          ? null
+                                                          : (value) =>
+                                                                _onCodeChanged(
+                                                                  value,
+                                                                  index,
+                                                                ),
+                                                    ),
+                                            ),
+                                            if (_isCodeVerified != true)
+                                              Container(
+                                                width: 30,
+                                                height: 2,
+                                                color: _codeDisabled
+                                                    ? Colors.grey
+                                                    : (_code[index].isEmpty
+                                                          ? Colors.white
+                                                          : Colors.transparent),
                                               ),
-                                            ),
-                                            Container(
-                                              width: 30,
-                                              height: 2,
-                                              color: _codeDisabled
-                                                  ? Colors.grey
-                                                  : (_code[index].isEmpty
-                                                        ? Colors.white
-                                                        : Colors.transparent),
-                                            ),
                                           ],
                                         ),
                                       ),
@@ -1933,141 +1930,6 @@ Future<void> _verifyAndHandleCode() async {
               ),
             ),
           ),
-
-          // COUNTRY DROPDOWN POPUP WITH FIXED LAYOUT
-          // SlideUpMenu(
-          //   menuHeight: dropdownHeight,
-          //   isVisible: _countryDropdownOpen,
-          //   onToggle: () {
-          //     setState(() {
-          //       _countryDropdownOpen = !_countryDropdownOpen;
-          //     });
-          //   },
-          //   onClose: () {
-          //     setState(() {
-          //       _countryDropdownOpen = false;
-          //     });
-          //   },
-          //   backgroundColor: const Color(0xFF0B1320),
-          //   shadowColor: const Color(0xFF00F0FF),
-          //   borderRadius: 20.0,
-          //   duration: const Duration(milliseconds: 400),
-          //   curve: Curves.easeOut,
-          //   minHeight: 100,
-          //   maxHeight: MediaQuery.of(context).size.height * 0.9,
-          //   dragHandle: Padding(
-          //     padding: const EdgeInsets.only(left: 20),
-          //     child: CustomPaint(
-          //       size: const Size(120, 20),
-          //       painter: VLinePainter(),
-          //     ),
-          //   ),
-          //   child: LayoutBuilder(
-          //     builder: (context, constraints) {
-          //       return Column(
-          //         children: [
-          //           // SEARCH FIELD - Fixed height
-          //           Container(
-          //             margin: const EdgeInsets.symmetric(
-          //               horizontal: 50,
-          //               vertical: 5,
-          //             ),
-          //             child: TextField(
-          //               controller: _countrySearchController,
-          //               onChanged: _filterCountries,
-          //               style: const TextStyle(
-          //                 color: Colors.white,
-          //                 fontSize: 20,
-          //                 fontWeight: FontWeight.w500,
-          //               ),
-          //               decoration: InputDecoration(
-          //                 hintText: 'Search Country',
-          //                 hintStyle: TextStyle(
-          //                   color: Colors.white.withOpacity(0.5),
-          //                 ),
-          //                 border: InputBorder.none,
-          //                 isDense: true,
-          //                 contentPadding: EdgeInsets.zero,
-          //               ),
-          //             ),
-          //           ),
-
-          //           // DIVIDER - Fixed height
-          //           const Padding(
-          //             padding: EdgeInsets.symmetric(horizontal: 50),
-          //             child: Divider(
-          //               color: Colors.white24,
-          //               thickness: 0.5,
-          //               height: 1,
-          //             ),
-          //           ),
-          //           // COUNTRY LIST - Takes remaining space
-          //           Expanded(
-          //             child: _filteredCountries.isEmpty
-          //                 ? const Center(
-          //                     child: Text(
-          //                       "No countries found",
-          //                       style: TextStyle(color: Colors.white),
-          //                     ),
-          //                   )
-          //                 : ListView.builder(
-          //                     padding: const EdgeInsets.symmetric(
-          //                       horizontal: 50,
-          //                       vertical: 8,
-          //                     ),
-          //                     itemCount: _filteredCountries.length,
-          //                     physics: const ClampingScrollPhysics(),
-          //                     itemBuilder: (context, index) {
-          //                       final country = _filteredCountries[index];
-          //                       final isSelected =
-          //                           country['name'] == _selectedCountry;
-          //                       return GestureDetector(
-          //                         onTap: () => _selectCountry(country),
-          //                         child: Container(
-          //                           padding: const EdgeInsets.symmetric(
-          //                             vertical: 8.0,
-          //                           ),
-          //                           child: Row(
-          //                             children: [
-          //                               SvgPicture.asset(
-          //                                 country['flag']!,
-          //                                 width: 30,
-          //                                 height: 30,
-          //                                 fit: BoxFit.contain,
-          //                               ),
-          //                               const SizedBox(width: 10),
-          //                               Expanded(
-          //                                 child: Text(
-          //                                   country['name'] ?? '',
-          //                                   style: TextStyle(
-          //                                     color: isSelected
-          //                                         ? const Color(0xFF00F0FF)
-          //                                         : Colors.white,
-          //                                     fontSize: 16,
-          //                                     fontWeight: isSelected
-          //                                         ? FontWeight.w600
-          //                                         : FontWeight.normal,
-          //                                   ),
-          //                                 ),
-          //                               ),
-          //                               if (isSelected)
-          //                                 Icon(
-          //                                   Icons.check,
-          //                                   color: const Color(0xFF00F0FF),
-          //                                   size: 20,
-          //                                 ),
-          //                             ],
-          //                           ),
-          //                         ),
-          //                       );
-          //                     },
-          //                   ),
-          //           ),
-          //         ],
-          //       );
-          //     },
-          //   ),
-          // ),
 
           // DOB DROPDOWN POPUP
           SlideUpMenu(

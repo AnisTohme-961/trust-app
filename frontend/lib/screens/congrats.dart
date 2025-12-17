@@ -32,13 +32,38 @@ class MobileRegisterLivePage extends StatefulWidget {
   State<MobileRegisterLivePage> createState() => _MobileRegisterLivePageState();
 }
 
-class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
+class _MobileRegisterLivePageState extends State<MobileRegisterLivePage>
+    with SingleTickerProviderStateMixin {
   bool _showCopiedFeedback = false;
   Timer? _feedbackTimer;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize animation controller first
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // Then initialize animations
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
 
   @override
   void dispose() {
     _feedbackTimer?.cancel();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -49,22 +74,41 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
       _showCopiedFeedback = true;
     });
 
+    // Animate in
+    _animationController.forward();
+
     // Cancel any existing timer
     _feedbackTimer?.cancel();
 
     // Start new timer to hide the feedback after 3 seconds
     _feedbackTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
-        setState(() {
-          _showCopiedFeedback = false;
+        // Animate out
+        _animationController.reverse().then((_) {
+          if (mounted) {
+            setState(() {
+              _showCopiedFeedback = false;
+            });
+          }
         });
       }
     });
   }
 
+  // Helper function to capitalize first letter of each word
+  String _capitalizeName(String name) {
+    if (name.isEmpty) return name;
+    return name[0].toUpperCase() + name.substring(1).toLowerCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+
+    // Capitalize first and last names
+    final capitalizedFirstName = _capitalizeName(userProvider.firstName);
+    final capitalizedLastName = _capitalizeName(userProvider.lastName);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
@@ -131,11 +175,11 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // User Name
+                    // User Name - Using capitalized names
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
-                        "${userProvider.firstName} ${userProvider.lastName}",
+                        "$capitalizedFirstName $capitalizedLastName",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Inter',
@@ -148,54 +192,71 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage> {
                       ),
                     ),
 
-                    // EID + Icon OR "EID COPIED" feedback
+                    // EID + Icon OR "EID COPIED" feedback with animation
                     GestureDetector(
                       onTap: () {
                         _copyToClipboard(userProvider.eid);
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: _showCopiedFeedback
-                            ? Text(
-                                "EID COPIED",
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
-                                  fontSize:
-                                      MediaQuery.of(context).size.width > 350
-                                      ? 25
-                                      : 20,
-                                  color: const Color(0xFF0B1320),
-                                ),
-                              )
-                            : Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    "EID: ${userProvider.eid}",
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize:
-                                          MediaQuery.of(context).size.width >
-                                              350
-                                          ? 25
-                                          : 20,
-                                      color: const Color(0xFF0B1320),
-                                    ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          switchInCurve: Curves.easeInOut,
+                          switchOutCurve: Curves.easeInOut,
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                                return ScaleTransition(
+                                  scale: animation,
+                                  child: FadeTransition(
+                                    opacity: animation,
+                                    child: child,
                                   ),
-                                  const SizedBox(width: 5),
-                                  SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: Image.asset(
-                                      'assets/images/DoubleSquare.png',
+                                );
+                              },
+                          child: _showCopiedFeedback
+                              ? Text(
+                                  "EID COPIED",
+                                  key: const ValueKey('copied'),
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize:
+                                        MediaQuery.of(context).size.width > 350
+                                        ? 25
+                                        : 20,
+                                    color: const Color(0xFF0B1320),
+                                  ),
+                                )
+                              : Row(
+                                  key: const ValueKey('eid'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "EID: ${userProvider.eid}",
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize:
+                                            MediaQuery.of(context).size.width >
+                                                350
+                                            ? 25
+                                            : 20,
+                                        color: const Color(0xFF0B1320),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    SizedBox(
                                       width: 18,
                                       height: 18,
+                                      child: Image.asset(
+                                        'assets/images/DoubleSquare.png',
+                                        width: 18,
+                                        height: 18,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
                   ],
@@ -336,13 +397,38 @@ class TabletRegisterLivePage extends StatefulWidget {
   State<TabletRegisterLivePage> createState() => _TabletRegisterLivePageState();
 }
 
-class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
+class _TabletRegisterLivePageState extends State<TabletRegisterLivePage>
+    with SingleTickerProviderStateMixin {
   bool _showCopiedFeedback = false;
   Timer? _feedbackTimer;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize animation controller first
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // Then initialize animations
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
 
   @override
   void dispose() {
     _feedbackTimer?.cancel();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -353,17 +439,31 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
       _showCopiedFeedback = true;
     });
 
+    // Animate in
+    _animationController.forward();
+
     // Cancel any existing timer
     _feedbackTimer?.cancel();
 
     // Start new timer to hide the feedback after 3 seconds
     _feedbackTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
-        setState(() {
-          _showCopiedFeedback = false;
+        // Animate out
+        _animationController.reverse().then((_) {
+          if (mounted) {
+            setState(() {
+              _showCopiedFeedback = false;
+            });
+          }
         });
       }
     });
+  }
+
+  // Helper function to capitalize first letter of each word
+  String _capitalizeName(String name) {
+    if (name.isEmpty) return name;
+    return name[0].toUpperCase() + name.substring(1).toLowerCase();
   }
 
   @override
@@ -373,6 +473,10 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
+
+    // Capitalize first and last names
+    final capitalizedFirstName = _capitalizeName(userProvider.firstName);
+    final capitalizedLastName = _capitalizeName(userProvider.lastName);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -433,9 +537,9 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // User Name
+                        // User Name - Using capitalized names
                         Text(
-                          "${userProvider.firstName} ${userProvider.lastName}",
+                          "$capitalizedFirstName $capitalizedLastName",
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
@@ -446,41 +550,58 @@ class _TabletRegisterLivePageState extends State<TabletRegisterLivePage> {
 
                         const SizedBox(height: 8),
 
-                        // EID + Icon OR "EID COPIED" feedback
+                        // EID + Icon OR "EID COPIED" feedback with animation
                         GestureDetector(
                           onTap: () {
                             _copyToClipboard(userProvider.eid);
                           },
-                          child: _showCopiedFeedback
-                              ? Text(
-                                  "EID COPIED",
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 25,
-                                    color: Color(0xFF0B1320),
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "EID: ${userProvider.eid}",
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 25,
-                                        color: Color(0xFF0B1320),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            switchInCurve: Curves.easeInOut,
+                            switchOutCurve: Curves.easeInOut,
+                            transitionBuilder:
+                                (Widget child, Animation<double> animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                            child: _showCopiedFeedback
+                                ? Text(
+                                    "EID COPIED",
+                                    key: const ValueKey('copied'),
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 25,
+                                      color: Color(0xFF0B1320),
+                                    ),
+                                  )
+                                : Row(
+                                    key: const ValueKey('eid'),
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "EID: ${userProvider.eid}",
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 25,
+                                          color: Color(0xFF0B1320),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Image.asset(
-                                      'assets/images/DoubleSquare.png',
-                                      width: 16,
-                                      height: 16,
-                                    ),
-                                  ],
-                                ),
+                                      const SizedBox(width: 8),
+                                      Image.asset(
+                                        'assets/images/DoubleSquare.png',
+                                        width: 16,
+                                        height: 16,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ],
                     ),
