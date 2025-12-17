@@ -422,7 +422,7 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                           right: 40,
                           child: _ProgressLine(
                             totalSteps: 5,
-                            completedSteps: widget.originalPin != null ? 4 : 3,
+                            completedSteps: widget.originalPin != null ? 4 : 4,
                           ),
                         ),
                         _ProgressSteps(originalPin: widget.originalPin),
