@@ -17,31 +17,10 @@ class ForgotEidPage extends StatefulWidget {
 class _ForgotEidPageState extends State<ForgotEidPage>
     with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
-  final List<TextEditingController> _otpControllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
 
-  Timer? _timer;
-  int _remainingSeconds = 0;
-  List<String> code = List.generate(6, (_) => "");
-  bool isCodeCorrect = false;
-  bool _isCodeValid = true;
-  bool _codeSent = false;
-  int cooldown = 0;
-  int attempts = 0;
-  Timer? _cooldownTimer;
-  // New state variables for color management
-  Color _otpTextColor = Colors.white;
-  Timer? _colorResetTimer;
   bool _isClicked = false; // Added for button animation
-
-  bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
-  bool get _isTimerRunning => _remainingSeconds > 0;
-
   bool _hasCodeBeenSentBefore = false;
 
   // Overlay and animation
@@ -65,46 +44,11 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   @override
   void dispose() {
     _controller.dispose();
-    for (var c in _otpControllers) c.dispose();
-    for (var f in _otpFocusNodes) f.dispose();
-    _timer?.cancel();
-    _colorResetTimer?.cancel();
     _slideController.dispose();
     super.dispose();
   }
 
-  Future<bool> verifyCode(String email, String code) async {
-    if (email.isEmpty || code.length != 6) return false;
-    try {
-      return await AuthService.verifyEidCode(email: email, code: code);
-    } catch (e) {
-      _errorStackKey.currentState?.showError('Failed to verify code: $e');
-      return false;
-    }
-  }
-
-  void _startTimer() {
-    setState(() {
-      _remainingSeconds = 120; // 2 minutes
-    });
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-      } else {
-        setState(() => _remainingSeconds--);
-      }
-    });
-  }
-
-  String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '${minutes}m ${secs.toString().padLeft(2, '0')}s';
-  }
-
-  void _handleSendCode() async {
+  void _handleGetEid() async {
     // Show visual feedback
     setState(() {
       _isClicked = true;
@@ -125,44 +69,33 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       return;
     }
 
-    for (var controller in _otpControllers) {
-      controller.clear();
+    // Basic email validation
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      _errorStackKey.currentState?.showError(
+        'Please enter a valid email address',
+      );
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _isClicked = false;
+          });
+        }
+      });
+      return;
     }
-
-    // Unfocus all fields first
-    for (var node in _otpFocusNodes) {
-      node.unfocus();
-    }
-
-    setState(() {
-      _isClicked = true;
-      _otpTextColor = Colors.white; // reset color
-    });
 
     try {
-      final data = await AuthService.sendEidCode(email);
-
-      final int backendCooldown =
-          data["cooldown"] ?? 0; // cooldown from backend
-      attempts = data["attempts"] ?? 0;
+      // Call the service to send EID directly to email
+      await AuthService.sendEidEmail(email);
 
       setState(() {
-        _codeSent = true;
-        _remainingSeconds = backendCooldown; // start UI timer
         _hasCodeBeenSentBefore = true;
       });
 
-      // Start countdown timer
-      _timer?.cancel();
-      _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-        if (_remainingSeconds > 0) {
-          setState(() => _remainingSeconds--);
-        } else {
-          t.cancel();
-        }
-      });
+      _openOverlay();
     } catch (e) {
-      _errorStackKey.currentState?.showError('Email not registered');
+      _errorStackKey.currentState?.showError('Failed to send EID: $e');
     } finally {
       // Reset animation after short delay
       Future.delayed(Duration(milliseconds: 200), () {
@@ -185,70 +118,6 @@ class _ForgotEidPageState extends State<ForgotEidPage>
     setState(() => _showOverlay = false);
   }
 
-  // New method to handle code verification with color changes
-  Future<void> _handleCodeVerification() async {
-    if (!_codeSent) {
-      _errorStackKey.currentState?.showError('Please click "Send Code" first.');
-      return;
-    }
-
-    final email = _controller.text.trim();
-    final code = _otpControllers.map((c) => c.text).join();
-
-    if (code.length != 6) {
-      _errorStackKey.currentState?.showError(
-        'Please enter the complete 6-digit code.',
-      );
-      return;
-    }
-
-    bool valid = await AuthService.verifyEidCode(email: email, code: code);
-
-    if (valid) {
-      // Code is correct - set color to #00F0FF
-      setState(() {
-        _otpTextColor = const Color(0xFF00F0FF);
-        isCodeCorrect = true;
-        _isCodeValid = true;
-      });
-
-      try {
-        await AuthService.sendEidEmail(email);
-        _openOverlay();
-      } catch (e) {
-        _errorStackKey.currentState?.showError('Failed to send EID: $e');
-      }
-    } else {
-      // Code is incorrect or expired - set color to #F42222
-      setState(() {
-        _otpTextColor = const Color(0xFFF42222);
-        isCodeCorrect = false;
-        _isCodeValid = false;
-      });
-
-      _errorStackKey.currentState?.showError("Invalid or expired code.");
-
-      // Clear input fields after 2 seconds
-      _colorResetTimer?.cancel();
-      _colorResetTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            for (var controller in _otpControllers) {
-              controller.clear();
-            }
-            // Clear the code list properly
-            for (int i = 0; i < this.code.length; i++) {
-              this.code[i] = "";
-            }
-            _otpTextColor = Colors.white;
-            _isCodeValid = true;
-          });
-          _otpFocusNodes[0].requestFocus();
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -257,30 +126,15 @@ class _ForgotEidPageState extends State<ForgotEidPage>
         builder: (context, constraints) {
           return MobileForgotEidPage(
             controller: _controller,
-            otpControllers: _otpControllers,
-            otpFocusNodes: _otpFocusNodes,
             errorStackKey: _errorStackKey,
-            timer: _timer,
-            remainingSeconds: _remainingSeconds,
-            code: code,
-            isCodeCorrect: isCodeCorrect,
-            isCodeValid: _isCodeValid,
-            codeSent: _codeSent,
             hasCodeBeenSentBefore: _hasCodeBeenSentBefore,
-            isEmailNotEmpty: _isEmailNotEmpty,
-            isTimerRunning: _isTimerRunning,
             showOverlay: _showOverlay,
             slideController: _slideController,
             slideAnimation: _slideAnimation,
-            otpTextColor: _otpTextColor,
             isClicked: _isClicked,
-            onVerifyCode: verifyCode,
-            onStartTimer: _startTimer,
-            onFormatTime: _formatTime,
-            onHandleSendCode: _handleSendCode,
+            onHandleGetEid: _handleGetEid,
             onOpenOverlay: _openOverlay,
             onCloseOverlay: _closeOverlay,
-            onHandleCodeVerification: _handleCodeVerification,
           );
         },
       ),
@@ -290,58 +144,28 @@ class _ForgotEidPageState extends State<ForgotEidPage>
 
 class MobileForgotEidPage extends StatefulWidget {
   final TextEditingController controller;
-  final List<TextEditingController> otpControllers;
-  final List<FocusNode> otpFocusNodes;
   final GlobalKey<ErrorStackState> errorStackKey;
-  final Timer? timer;
-  final int remainingSeconds;
-  final List<String> code;
-  final bool isCodeCorrect;
-  final bool isCodeValid;
-  final bool codeSent;
   final bool hasCodeBeenSentBefore;
-  final bool isEmailNotEmpty;
-  final bool isTimerRunning;
   final bool showOverlay;
   final AnimationController slideController;
   final Animation<Offset> slideAnimation;
-  final Color otpTextColor;
   final bool isClicked;
-  final Future<bool> Function(String, String) onVerifyCode;
-  final VoidCallback onStartTimer;
-  final String Function(int) onFormatTime;
-  final VoidCallback onHandleSendCode;
+  final VoidCallback onHandleGetEid;
   final VoidCallback onOpenOverlay;
   final VoidCallback onCloseOverlay;
-  final VoidCallback onHandleCodeVerification;
 
   const MobileForgotEidPage({
     super.key,
     required this.controller,
-    required this.otpControllers,
-    required this.otpFocusNodes,
     required this.errorStackKey,
-    required this.timer,
-    required this.remainingSeconds,
-    required this.code,
-    required this.isCodeCorrect,
-    required this.isCodeValid,
-    required this.codeSent,
     required this.hasCodeBeenSentBefore,
-    required this.isEmailNotEmpty,
-    required this.isTimerRunning,
     required this.showOverlay,
     required this.slideController,
     required this.slideAnimation,
-    required this.otpTextColor,
     required this.isClicked,
-    required this.onVerifyCode,
-    required this.onStartTimer,
-    required this.onFormatTime,
-    required this.onHandleSendCode,
+    required this.onHandleGetEid,
     required this.onOpenOverlay,
     required this.onCloseOverlay,
-    required this.onHandleCodeVerification,
   });
 
   @override
@@ -414,10 +238,8 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 ),
                 const SizedBox(height: 30),
                 _buildEmailInput(),
-                const SizedBox(height: 22),
-                _buildSendCodeSection(),
                 const SizedBox(height: 30),
-                _buildSendEidButton(),
+                _buildGetEidButton(),
                 const SizedBox(height: 120),
                 const Text(
                   'You built your vault \n Now unlock it',
@@ -486,7 +308,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
-                          'If an email is linked to your credentials and \nregistered in EGETY, your EID is sent to it.',
+                          'If an email is linked to your credentials and \nregistered in EGETY, your EID has been sent to it.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
@@ -510,105 +332,6 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
     );
   }
 
-  Widget _buildOtpInput() {
-    bool isCooldown = widget.remainingSeconds > 0;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const NeverScrollableScrollPhysics(),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ...List.generate(6, (index) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: 35,
-                    height: 25,
-                    child: TextField(
-                      controller: widget.otpControllers[index],
-                      focusNode: widget.otpFocusNodes[index],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      // maxLength: 1,
-                      showCursor: !widget.isCodeCorrect && !isCooldown,
-                      enabled: !widget.isCodeCorrect && !isCooldown,
-                      readOnly: widget.isCodeCorrect || isCooldown,
-                      style: TextStyle(
-                        color: isCooldown ? Colors.grey : widget.otpTextColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      cursorColor: widget.isCodeCorrect || isCooldown
-                          ? Colors.transparent
-                          : widget.otpTextColor,
-                      decoration: const InputDecoration(
-                        counterText: '',
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (value) async {
-                        if (widget.isCodeCorrect) return;
-
-                        if (value.length > 1) {
-                          widget.otpControllers[index].text = value[0];
-                        }
-
-                        if (value.isNotEmpty && index < 5) {
-                          widget.otpFocusNodes[index + 1].requestFocus();
-                        }
-
-                        if (value.isEmpty && index > 0) {
-                          widget.otpFocusNodes[index - 1].requestFocus();
-                        }
-
-                        setState(() {
-                          widget.code[index] =
-                              widget.otpControllers[index].text;
-                        });
-
-                        // Auto-verify when all fields are filled
-                        if (widget.code.every((c) => c.isNotEmpty)) {
-                          widget.onHandleCodeVerification();
-                        }
-                      },
-                    ),
-                  ),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    width: 35,
-                    height: widget.isCodeCorrect ? 0 : 2,
-                    color: isCooldown ? Colors.grey : widget.otpTextColor,
-                  ),
-                ],
-              ),
-            );
-          }),
-          if (widget.isCodeCorrect || !widget.isCodeValid) ...[
-            const SizedBox(width: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: widget.isCodeCorrect
-                    ? const Color(0xFF00F0FF)
-                    : const Color(0xFFF42222),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                widget.isCodeCorrect ? Icons.check : Icons.close,
-                color: widget.isCodeCorrect ? Colors.black : Colors.white,
-                size: 16,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Row _buildSignInAndSignUpButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -623,7 +346,9 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
           borderColor: const Color(0xFF00F0FF),
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).pushNamed('/sign-in');
+          },
         ),
         const SizedBox(width: 20),
         CustomButton(
@@ -636,7 +361,9 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
           borderColor: const Color(0xFF00F0FF),
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).pushNamed('/sign-up');
+          },
         ),
       ],
     );
@@ -742,79 +469,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
     );
   }
 
-  Widget _buildSendCodeSection() {
-    String formatCooldown(int secondsLeft) {
-      if (secondsLeft >= 3600) {
-        int hours = secondsLeft ~/ 3600;
-        int minutes = (secondsLeft % 3600) ~/ 60;
-        return "${hours}h ${minutes}m";
-      } else {
-        int minutes = secondsLeft ~/ 60;
-        int seconds = secondsLeft % 60;
-        return "${minutes}m ${seconds}s";
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 17),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: _buildOtpInput()),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: widget.isTimerRunning ? null : widget.onHandleSendCode,
-            child: AnimatedContainer(
-              duration: Duration(milliseconds: 100),
-              width: 92,
-              height: 25,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: widget.isClicked
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF00F0FF).withOpacity(0.4),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                          offset: const Offset(0, 0),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: const Color(0xFF00F0FF).withOpacity(0.8),
-                          blurRadius: 11.5,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 0),
-                        ),
-                      ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                widget.isTimerRunning
-                    ? formatCooldown(widget.remainingSeconds)
-                    : (widget.hasCodeBeenSentBefore ? "Send Again" : "Get Code"),
-                style: TextStyle(
-                  color: widget.isTimerRunning
-                      ? const Color(0xFF0B1320)
-                      : (widget.isClicked ? Colors.white : Colors.black),
-                  fontSize: 15,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSendEidButton() {
+  Widget _buildGetEidButton() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -843,7 +498,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
           borderColor: const Color(0xFF00F0FF),
           backgroundColor: const Color(0xFF0B1320),
           text: 'Send EID',
-          onTap: widget.onHandleCodeVerification,
+          onTap: widget.onHandleGetEid,
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -1245,7 +900,9 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
           borderColor: const Color(0xFF00F0FF),
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).pushNamed('/sign-in');
+          },
         ),
         const SizedBox(width: 15),
         CustomButton(
@@ -1258,7 +915,9 @@ class _TabletForgotEidPageState extends State<TabletForgotEidPage> {
           borderColor: const Color(0xFF00F0FF),
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).pushNamed('/sign-up');
+          },
         ),
       ],
     );

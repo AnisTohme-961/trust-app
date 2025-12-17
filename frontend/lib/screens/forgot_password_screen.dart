@@ -76,10 +76,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
   Map<String, bool> _hasCodeBeenSentBeforeMap = {
-  'email': false,
-  'sms': false,
-  'auth': false,
-};
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
 
   bool _codeSent = false;
 
@@ -155,50 +155,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
 
   void _resetOtpFields(String type) {
-  List<TextEditingController> controllers;
-  List<FocusNode> focusNodes;
-  List<String> codeList;
+    List<TextEditingController> controllers;
+    List<FocusNode> focusNodes;
+    List<String> codeList;
 
-  // Choose which type to reset
-  switch (type) {
-    case 'email':
-      controllers = _emailCodeControllers;
-      focusNodes = _emailFocusNodes;
-      codeList = _emailCode;
-      break;
-    case 'sms':
-      controllers = _smsCodeControllers;
-      focusNodes = _smsFocusNodes;
-      codeList = _smsCode;
-      break;
-    case 'auth':
-      controllers = _authCodeControllers;
-      focusNodes = _authFocusNodes;
-      codeList = _authCode;
-      break;
-    default:
-      return;
+    // Choose which type to reset
+    switch (type) {
+      case 'email':
+        controllers = _emailCodeControllers;
+        focusNodes = _emailFocusNodes;
+        codeList = _emailCode;
+        break;
+      case 'sms':
+        controllers = _smsCodeControllers;
+        focusNodes = _smsFocusNodes;
+        codeList = _smsCode;
+        break;
+      case 'auth':
+        controllers = _authCodeControllers;
+        focusNodes = _authFocusNodes;
+        codeList = _authCode;
+        break;
+      default:
+        return;
+    }
+
+    // Clear all digits
+    for (var controller in controllers) {
+      controller.clear();
+    }
+
+    // Clear internal code list
+    for (int i = 0; i < codeList.length; i++) {
+      codeList[i] = '';
+    }
+
+    // Unfocus everything first
+    for (var node in focusNodes) {
+      node.unfocus();
+    }
   }
 
-  // Clear all digits
-  for (var controller in controllers) {
-    controller.clear();
-  }
-
-  // Clear internal code list
-  for (int i = 0; i < codeList.length; i++) {
-    codeList[i] = '';
-  }
-
-  // Unfocus everything first
-  for (var node in focusNodes) {
-    node.unfocus();
-  }
-}
   // Updated _fetchCode to handle timer with animation effect
   void _fetchCode(String type) async {
-
-      _resetOtpFields(type);
+    _resetOtpFields(type);
     // Cancel any existing button animation timer for this type
     _buttonAnimationTimers[type]?.cancel();
 
@@ -455,27 +455,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     isClicked: _buttonClickedMap['email'] ?? false,
                   ),
                   const SizedBox(height: 10),
-                  buildVerificationSection(
-                    title: 'SMS Verification',
-                    showCodeSent: _showSMSCodeSent,
-                    codeControllers: _smsCodeControllers,
-                    focusNodes: _smsFocusNodes,
-                    codeList: _smsCode,
-                    type: 'sms',
-                    codeDisabled: codeDisabled,
-                    isClicked: _buttonClickedMap['sms'] ?? false,
-                  ),
-                  const SizedBox(height: 10),
-                  buildVerificationSection(
-                    title: 'Authenticator App',
-                    showCodeSent: _showAuthCodeSent,
-                    codeControllers: _authCodeControllers,
-                    focusNodes: _authFocusNodes,
-                    codeList: _authCode,
-                    type: 'auth',
-                    codeDisabled: codeDisabled,
-                    isClicked: _buttonClickedMap['auth'] ?? false,
-                  ),
+                  // buildVerificationSection(
+                  //   title: 'SMS Verification',
+                  //   showCodeSent: _showSMSCodeSent,
+                  //   codeControllers: _smsCodeControllers,
+                  //   focusNodes: _smsFocusNodes,
+                  //   codeList: _smsCode,
+                  //   type: 'sms',
+                  //   codeDisabled: codeDisabled,
+                  //   isClicked: _buttonClickedMap['sms'] ?? false,
+                  // ),
+                  // const SizedBox(height: 10),
+                  // buildVerificationSection(
+                  //   title: 'Authenticator App',
+                  //   showCodeSent: _showAuthCodeSent,
+                  //   codeControllers: _authCodeControllers,
+                  //   focusNodes: _authFocusNodes,
+                  //   codeList: _authCode,
+                  //   type: 'auth',
+                  //   codeDisabled: codeDisabled,
+                  //   isClicked: _buttonClickedMap['auth'] ?? false,
+                  // ),
                   const SizedBox(height: 0),
                   buildPasswordRow(
                     controller: _passwordController,
@@ -507,7 +507,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   buildConfirmAndGenerateRow(),
                   buildPasswordRules(),
                   buildBackAndChangeButtons(),
-                  const SizedBox(height: 20),
+
+                  // const SizedBox(height: 20),
+                  const SizedBox(height: 110),
                   const Text(
                     'Your system is safe again \n Welcome Back',
                     textAlign: TextAlign.center,
@@ -1384,7 +1386,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         )
                       : Text(
-                          _hasCodeBeenSentBeforeMap[type]! ? "Send Again" : "Get Code",
+                          _hasCodeBeenSentBeforeMap[type]!
+                              ? "Send Again"
+                              : "Get Code",
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,

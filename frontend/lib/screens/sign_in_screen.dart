@@ -162,244 +162,91 @@ class _SignInPageState extends State<SignInPage> {
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
   void _onChanged(String value, int index) async {
-  // Remove non-digit characters
-  final digits = value.replaceAll(RegExp(r'\D'), '');
-  if (digits.isEmpty) {
-    code[index] = '';
+    // 1️⃣ Keep digits only
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+
+    // If user deleted input
+    if (digits.isEmpty) {
+      code[index] = '';
+      setState(() {});
+      return;
+    }
+
+    // 2️⃣ Distribute pasted digits starting from current index
+    for (int i = 0; i < 6; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        _codecontrollers[i].text = digits[i - index];
+        code[i] = digits[i - index];
+      }
+    }
+
+    // 3️⃣ Move focus to next empty field
+    final nextIndex = code.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      _focusNodes[nextIndex].requestFocus();
+    } else {
+      _focusNodes[5].unfocus(); // all filled
+    }
+
     setState(() {});
-    return;
-  }
 
-  // Clear all fields first
-  for (int i = 0; i < 6; i++) {
-    _codecontrollers[i].clear();
-    code[i] = '';
-  }
+    // 4️⃣ Auto-verify when all digits are filled
+    if (code.every((c) => c.isNotEmpty)) {
+      try {
+        final res = await AuthService.verifyCode(
+          identifier: _controller.text.trim(),
+          code: code.join(),
+        );
 
-  // Fill fields with the pasted digits (up to 6)
-  for (int i = 0; i < digits.length && i < 6; i++) {
-    _codecontrollers[i].text = digits[i];
-    code[i] = digits[i];
-  }
+        setState(() {
+          isCodeCorrect = res;
+          _isCodeValid = res;
+        });
 
-  // Move focus to next empty field
-  int nextIndex = code.indexWhere((c) => c.isEmpty);
-  if (nextIndex != -1) {
-    _focusNodes[nextIndex].requestFocus();
-  } else {
-    _focusNodes[5].unfocus(); // all fields filled
-  }
+        if (res) {
+          _secondsLeft = 0;
+        } else {
+          errorStackKey.currentState?.showError(
+            'Incorrect or expired code. Please request a new one',
+            duration: const Duration(seconds: 5),
+          );
 
-  setState(() {});
+          _resetCodeInputs();
+        }
+      } catch (e) {
+        setState(() {
+          isCodeCorrect = false;
+          _isCodeValid = false;
+        });
 
-  // Auto verify if complete
-  if (code.every((c) => c.isNotEmpty)) {
-    try {
-      final res = await AuthService.verifyCode(
-        identifier: _controller.text.trim(),
-        code: code.join(),
-      );
+        final msg = e.toString().contains('expired')
+            ? 'Code expired. Please request a new one'
+            : 'Incorrect code. Try again';
 
-      setState(() {
-        isCodeCorrect = res;
-        _isCodeValid = res;
-      });
-
-      if (!res) {
         errorStackKey.currentState?.showError(
-          'Incorrect or expired code. Please request a new one',
+          msg,
           duration: const Duration(seconds: 5),
         );
 
-        Timer(const Duration(seconds: 2), () {
-          setState(() {
-            code = List.generate(6, (_) => "");
-            _codecontrollers.forEach((c) => c.clear());
-            _isCodeValid = null;
-            isCodeCorrect = false;
-            _focusNodes.forEach((f) => f.unfocus());
-          });
-        });
+        _resetCodeInputs();
       }
-    } catch (e) {
-      setState(() {
-        isCodeCorrect = false;
-        _isCodeValid = false;
-      });
-
-      final msg = e.toString().contains('expired')
-          ? 'Code expired. Please request a new one'
-          : 'Incorrect code. Try again';
-      errorStackKey.currentState?.showError(msg,
-          duration: const Duration(seconds: 5));
-
-      Timer(const Duration(seconds: 2), () {
-        setState(() {
-          code = List.generate(6, (_) => "");
-          _codecontrollers.forEach((c) => c.clear());
-          _isCodeValid = null;
-          _focusNodes.forEach((f) => f.unfocus());
-        });
-      });
     }
   }
-}
 
+  void _resetCodeInputs() {
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
 
-//   void _onChanged(String value, int index) async {
-//   // Remove non-digit characters
-//   final digits = value.replaceAll(RegExp(r'\D'), '');
+      setState(() {
+        code = List.generate(6, (_) => "");
+        _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = null;
+        isCodeCorrect = false;
+      });
 
-//   if (digits.isEmpty) {
-//     code[index] = '';
-//     setState(() {});
-//     return;
-//   }
-
-//   // Distribute digits to the fields starting from the current index
-//   for (int i = 0; i < 6; i++) {
-//     if (i >= index && (i - index) < digits.length) {
-//       _codecontrollers[i].text = digits[i - index];
-//       code[i] = digits[i - index];
-//     }
-//   }
-
-//   // Move focus to the next empty field
-//   int nextIndex = code.indexWhere((c) => c.isEmpty);
-//   if (nextIndex != -1) {
-//     _focusNodes[nextIndex].requestFocus();
-//   } else {
-//     _focusNodes[5].unfocus(); // All fields filled
-//   }
-
-//   setState(() {});
-
-//   // Auto verify if all fields are filled
-//   if (code.every((c) => c.isNotEmpty)) {
-//     try {
-//       final res = await AuthService.verifyCode(
-//         identifier: _controller.text.trim(),
-//         code: code.join(),
-//       );
-
-//       setState(() {
-//         isCodeCorrect = res;
-//         _isCodeValid = res;
-//       });
-
-//       if (res) {
-//         _secondsLeft = 0;
-//       } else {
-//         errorStackKey.currentState?.showError(
-//           'Incorrect or expired code. Please request a new one',
-//           duration: const Duration(seconds: 5),
-//         );
-
-//         // Clear fields after 2 seconds
-//         Timer(const Duration(seconds: 2), () {
-//           setState(() {
-//             code = List.generate(6, (_) => "");
-//             _codecontrollers.forEach((c) => c.clear());
-//             _isCodeValid = null;
-//             isCodeCorrect = false;
-//             _focusNodes.forEach((f) => f.unfocus());
-//           });
-//         });
-//       }
-//     } catch (e) {
-//       setState(() {
-//         isCodeCorrect = false;
-//         _isCodeValid = false;
-//       });
-
-//       final msg = e.toString().contains('expired')
-//           ? 'Code expired. Please request a new one'
-//           : 'Incorrect code. Try again';
-//       errorStackKey.currentState?.showError(
-//         msg,
-//         duration: const Duration(seconds: 5),
-//       );
-
-//       // Clear fields after 2 seconds
-//       Timer(const Duration(seconds: 2), () {
-//         setState(() {
-//           code = List.generate(6, (_) => "");
-//           _codecontrollers.forEach((c) => c.clear());
-//           _isCodeValid = null;
-//           _focusNodes.forEach((f) => f.unfocus());
-//         });
-//       });
-//     }
-//   }
-// }
-
-
-  // void _onChanged(String value, int index) async {
-  //   setState(() {
-  //     code[index] = value;
-  //     if (value.isNotEmpty && index < 5) {
-  //       _focusNodes[index + 1].requestFocus();
-  //     } else if (value.isEmpty && index > 0) {
-  //       _focusNodes[index - 1].requestFocus();
-  //     }
-  //   });
-
-  //   if (getEnteredCode().length == 6 &&
-  //       getEnteredCode().split('').every((d) => d.isNotEmpty)) {
-  //     try {
-  //       final res = await AuthService.verifyCode(
-  //         identifier: _controller.text.trim(),
-  //         code: getEnteredCode(),
-  //       );
-
-  //       setState(() {
-  //         isCodeCorrect = res;
-  //         _isCodeValid = res;
-  //       });
-
-  //       if (res) {
-  //         _secondsLeft = 0;
-  //       } else {
-  //         errorStackKey.currentState?.showError(
-  //           'Incorrect or expired code. Please request a new one',
-  //           duration: const Duration(seconds: 5),
-  //         );
-
-  //         // Clear input fields and hide red container after 2 seconds
-  //         Timer(const Duration(seconds: 2), () {
-  //           setState(() {
-  //             code = List.generate(6, (_) => "");
-  //             _codecontrollers.forEach((c) => c.clear());
-  //             _isCodeValid = null; // hide red container
-  //             isCodeCorrect = false; // reset "correct" status
-  //             _focusNodes.forEach((f) => f.unfocus());
-  //           });
-  //         });
-  //       }
-  //     } catch (e) {
-  //       setState(() {
-  //         isCodeCorrect = false;
-  //         _isCodeValid = false;
-  //       });
-  //       final msg = e.toString().contains('expired')
-  //           ? 'Code expired. Please request a new one'
-  //           : 'Incorrect code. Try again';
-  //       errorStackKey.currentState?.showError(
-  //         msg,
-  //         duration: const Duration(seconds: 5),
-  //       );
-
-  //       // Clear input fields and hide red container after 2 seconds
-  //       Timer(const Duration(seconds: 2), () {
-  //         setState(() {
-  //           code = List.generate(6, (_) => "");
-  //           _codecontrollers.forEach((c) => c.clear());
-  //           _isCodeValid = null; // hide red container
-  //         });
-  //       });
-  //     }
-  //   }
-  // }
+      _focusNodes[0].requestFocus();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1102,7 +949,11 @@ class MobileSignInPage extends StatelessWidget {
                             ),
                           )
                         : Text(
-                            tooManyAttempts ? "Locked" : (hasCodeBeenSentBefore ? "Send Again" : "Get Code"),
+                            tooManyAttempts
+                                ? "Locked"
+                                : (hasCodeBeenSentBefore
+                                      ? "Send Again"
+                                      : "Get Code"),
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -1302,7 +1153,7 @@ class MobileSignInPage extends StatelessWidget {
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
           onTap: () {
-            Navigator.pushNamed(context, '/register');
+            Navigator.pushNamed(context, '/sign-up');
           },
         ),
       ],

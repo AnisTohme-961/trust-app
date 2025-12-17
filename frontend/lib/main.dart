@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_project/screens/forgot_eid_screen.dart';
-import 'package:flutter_project/screens/forgot_password_screen.dart';
-import 'package:flutter_project/screens/sign_in_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
 import './providers/font_size_provider.dart';
@@ -14,7 +11,6 @@ import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
-import 'screens/signup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +45,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: ForgotEidPage(),
+            home: ResponsiveHomePage(),
             routes: appRoutes(),
           );
         },
