@@ -177,7 +177,7 @@ package controllers
 import (
 	"context"
 	"flutter_project_backend/models"
-	"flutter_project_backend/services"
+
 	"flutter_project_backend/utils"
 	"fmt"
 	"log"
@@ -483,7 +483,6 @@ func (uc *UserController) SignIn(c *gin.Context) {
 		return
 	}
 
-	// --- VERIFY EMAIL CODE ---
 	filter := bson.M{
 		"email":    email,
 		"code":     input.Code,
@@ -496,14 +495,6 @@ func (uc *UserController) SignIn(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired verification code"})
 		return
 	}
-
-	// --- CODE EXPIRATION CHECK (2 minutes) ---
-	if time.Since(codeDoc.SentAt) > 2*time.Minute {
-		_, _ = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Verification code expired"})
-		return
-	}
-
 	// --- DELETE USED CODE ---
 	_, err = uc.CodeController.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
 	if err != nil {
@@ -788,67 +779,67 @@ func (uc *UserController) ValidateCredentials(c *gin.Context) {
 	})
 }
 
-func (uc *UserController) SendCodeSignIn(c *gin.Context) {
-	var input struct {
-		Identifier string `json:"identifier"`
-	}
+// func (uc *UserController) SendCodeSignIn(c *gin.Context) {
+// 	var input struct {
+// 		Identifier string `json:"identifier"`
+// 	}
 
-	if err := c.BindJSON(&input); err != nil || input.Identifier == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
+// 	if err := c.BindJSON(&input); err != nil || input.Identifier == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+// 		return
+// 	}
 
-	ctx := context.TODO()
-	now := time.Now()
-	code := utils.GenerateCode(6)
-	var user models.User
-	var email string
+// 	ctx := context.TODO()
+// 	now := time.Now()
+// 	code := utils.GenerateCode(6)
+// 	var user models.User
+// 	var email string
 
-	if strings.Contains(input.Identifier, "@") {
-		email = strings.TrimSpace(strings.ToLower(input.Identifier))
-		err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
-			return
-		}
-	} else {
-		err := uc.UserCollection.FindOne(ctx, bson.M{"eid": input.Identifier}).Decode(&user)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
-			return
-		}
-		email = user.Email
-	}
+// 	if strings.Contains(input.Identifier, "@") {
+// 		email = strings.TrimSpace(strings.ToLower(input.Identifier))
+// 		err := uc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+// 		if err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered"})
+// 			return
+// 		}
+// 	} else {
+// 		err := uc.UserCollection.FindOne(ctx, bson.M{"eid": input.Identifier}).Decode(&user)
+// 		if err != nil {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID"})
+// 			return
+// 		}
+// 		email = user.Email
+// 	}
 
-	// Save or update code in EmailCodeCollection (NOT user collection)
-	_, _ = uc.CodeController.EmailCodeCollection.UpdateOne(
-		ctx,
-		bson.M{"email": email},
-		bson.M{
-			"$set": bson.M{
-				"email":    email,
-				"code":     code,
-				"sentAt":   now,
-				"isActive": true,
-			},
-		},
-		options.Update().SetUpsert(true),
-	)
+// 	// Save or update code in EmailCodeCollection (NOT user collection)
+// 	_, _ = uc.CodeController.EmailCodeCollection.UpdateOne(
+// 		ctx,
+// 		bson.M{"email": email},
+// 		bson.M{
+// 			"$set": bson.M{
+// 				"email":    email,
+// 				"code":     code,
+// 				"sentAt":   now,
+// 				"isActive": true,
+// 			},
+// 		},
+// 		options.Update().SetUpsert(true),
+// 	)
 
-	errMail := services.SendEmail(
-		email,
-		"Your Verification Code",
-		fmt.Sprintf("<h3>Your verification code is: <b>%s</b></h3>", code),
-	)
-	if errMail != nil {
-		log.Println("Failed to send email:", errMail)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
-		return
-	}
+// 	errMail := services.SendEmail(
+// 		email,
+// 		"Your Verification Code",
+// 		fmt.Sprintf("<h3>Your verification code is: <b>%s</b></h3>", code),
+// 	)
+// 	if errMail != nil {
+// 		log.Println("Failed to send email:", errMail)
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+// 		return
+// 	}
 
-	log.Printf("Verification code sent to %s: %s", email, code)
-	c.JSON(http.StatusOK, gin.H{"message": "Verification code sent"})
-}
+// 	log.Printf("Verification code sent to %s: %s", email, code)
+// 	c.JSON(http.StatusOK, gin.H{"message": "Verification code sent"})
+// }
 
 func (uc *UserController) RegisterPin(c *gin.Context) {
 	var input struct {

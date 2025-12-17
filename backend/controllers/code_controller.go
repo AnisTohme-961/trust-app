@@ -528,7 +528,7 @@ func (cc *CodeController) GetCodeSignIn(c *gin.Context) {
 
 func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 	var req struct {
-		Identifier string `json:"identifier"` // EID or Email
+		Identifier string `json:"identifier"`
 		Code       string `json:"code"`
 	}
 
@@ -541,49 +541,33 @@ func (cc *CodeController) VerifyCodeSignIn(c *gin.Context) {
 	var user models.User
 	var email string
 
-	// Resolve identifier to email
 	if strings.Contains(req.Identifier, "@") {
 		email = strings.TrimSpace(strings.ToLower(req.Identifier))
-		err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
-		if err != nil {
+		if err := cc.UserCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email not registered", "valid": false})
 			return
 		}
 	} else {
-		err := cc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user)
-		if err != nil {
+		if err := cc.UserCollection.FindOne(ctx, bson.M{"eid": req.Identifier}).Decode(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid EID", "valid": false})
 			return
 		}
 		email = user.Email
 	}
 
-	// Lookup code using resolved email
-	filter := bson.M{
+	var codeDoc models.EmailCode
+	err := cc.EmailCodeCollection.FindOne(ctx, bson.M{
 		"email":    email,
 		"code":     req.Code,
 		"isActive": true,
-	}
+	}).Decode(&codeDoc)
 
-	var codeDoc models.EmailCode
-	err := cc.EmailCodeCollection.FindOne(ctx, filter).Decode(&codeDoc)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired code", "valid": false})
 		return
 	}
 
-	// 2-minute validity for sign-in codes
-	// if time.Since(codeDoc.SentAt) > 15*time.Minute {
-	// 	_, _ = cc.EmailCodeCollection.DeleteOne(ctx, bson.M{"_id": codeDoc.ID})
-	// 	c.JSON(http.StatusBadRequest, gin.H{
-	// 		"error": "Code expired, please request a new one",
-	// 		"valid": false,
-	// 	})
-	// 	return
-	// }
-
-	c.JSON(http.StatusOK, gin.H{"valid": true, "message": "Code verified and deleted"})
-	log.Printf("✅ Code for %s verified and deleted from DB", email)
+	c.JSON(http.StatusOK, gin.H{"valid": true})
 }
 
 // Verify sign-in code (for UI feedback only - does NOT deactivate the code)
