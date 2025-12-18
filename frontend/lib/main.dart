@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/screens/sign_in_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
 import './providers/font_size_provider.dart';
@@ -11,6 +12,7 @@ import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
+import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -161,88 +161,87 @@ class _SignInPageState extends State<SignInPage> {
 
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
- void _onChanged(String value, int index) async {
-  
-  final digits = value.replaceAll(RegExp(r'\D'), '');
+  void _onChanged(String value, int index) async {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
 
-  if (digits.isEmpty) {
-    code[index] = '';
-    setState(() {});
-    return;
-  }
-
-  for (int i = 0; i < 6; i++) {
-    if (i >= index && (i - index) < digits.length) {
-      _codecontrollers[i].text = digits[i - index];
-      code[i] = digits[i - index];
+    if (digits.isEmpty) {
+      code[index] = '';
+      setState(() {});
+      return;
     }
-  }
 
-  final nextIndex = code.indexWhere((c) => c.isEmpty);
-  if (nextIndex != -1) {
-    _focusNodes[nextIndex].requestFocus();
-  } else {
-    _focusNodes[5].unfocus(); 
-  }
+    for (int i = 0; i < 6; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        _codecontrollers[i].text = digits[i - index];
+        code[i] = digits[i - index];
+      }
+    }
+
+    final nextIndex = code.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      _focusNodes[nextIndex].requestFocus();
+    } else {
+      _focusNodes[5].unfocus();
+    }
 
     setState(() {});
 
-  if (code.every((c) => c.isNotEmpty)) {
-    try {
-      final res = await AuthService.verifyCode(
-        identifier: _controller.text.trim(),
-        code: code.join(),
-      );
+    if (code.every((c) => c.isNotEmpty)) {
+      try {
+        final res = await AuthService.verifyCode(
+          identifier: _controller.text.trim(),
+          code: code.join(),
+        );
 
         setState(() {
           isCodeCorrect = res;
           _isCodeValid = res;
         });
 
-      if (res) {
-        _secondsLeft = 0;
-      } else {
+        if (res) {
+          _secondsLeft = 0;
+        } else {
+          errorStackKey.currentState?.showError(
+            'Incorrect or expired code. Please request a new one',
+            duration: const Duration(seconds: 5),
+          );
+
+          _resetCodeInputs();
+        }
+      } catch (e) {
+        setState(() {
+          isCodeCorrect = false;
+          _isCodeValid = false;
+        });
+
+        final msg = e.toString().contains('expired')
+            ? 'Code expired. Please request a new one'
+            : 'Incorrect code. Try again';
+
         errorStackKey.currentState?.showError(
-          'Incorrect or expired code. Please request a new one',
+          msg,
           duration: const Duration(seconds: 5),
         );
 
         _resetCodeInputs();
       }
-    } catch (e) {
-      setState(() {
-        isCodeCorrect = false;
-        _isCodeValid = false;
-      });
-
-      final msg = e.toString().contains('expired')
-          ? 'Code expired. Please request a new one'
-          : 'Incorrect code. Try again';
-
-      errorStackKey.currentState?.showError(
-        msg,
-        duration: const Duration(seconds: 5),
-      );
-
-      _resetCodeInputs();
     }
   }
-}
-void _resetCodeInputs() {
-  Timer(const Duration(seconds: 2), () {
-    if (!mounted) return;
 
-    setState(() {
-      code = List.generate(6, (_) => "");
-      _codecontrollers.forEach((c) => c.clear());
-      _isCodeValid = null;
-      isCodeCorrect = false;
+  void _resetCodeInputs() {
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      setState(() {
+        code = List.generate(6, (_) => "");
+        _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = null;
+        isCodeCorrect = false;
+      });
+
+      _focusNodes[0].requestFocus();
     });
-
-    _focusNodes[0].requestFocus();
-  });
-}
-
+  }
 
   @override
   Widget build(BuildContext context) {
