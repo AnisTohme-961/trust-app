@@ -9,6 +9,7 @@ import '../widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -161,88 +162,96 @@ class _SignInPageState extends State<SignInPage> {
 
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
- void _onChanged(String value, int index) async {
-  
-  final digits = value.replaceAll(RegExp(r'\D'), '');
+  void _onChanged(String value, int index) async {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
 
-  if (digits.isEmpty) {
-    code[index] = '';
-    setState(() {});
-    return;
-  }
-
-  for (int i = 0; i < 6; i++) {
-    if (i >= index && (i - index) < digits.length) {
-      _codecontrollers[i].text = digits[i - index];
-      code[i] = digits[i - index];
+    if (digits.isEmpty) {
+      code[index] = '';
+      setState(() {});
+      return;
     }
-  }
 
-  final nextIndex = code.indexWhere((c) => c.isEmpty);
-  if (nextIndex != -1) {
-    _focusNodes[nextIndex].requestFocus();
-  } else {
-    _focusNodes[5].unfocus(); 
-  }
+    for (int i = 0; i < 6; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        _codecontrollers[i].text = digits[i - index];
+        code[i] = digits[i - index];
+      }
+    }
+
+    final nextIndex = code.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      _focusNodes[nextIndex].requestFocus();
+    } else {
+      _focusNodes[5].unfocus();
+    }
 
     setState(() {});
 
-  if (code.every((c) => c.isNotEmpty)) {
-    try {
-      final res = await AuthService.verifyCode(
-        identifier: _controller.text.trim(),
-        code: code.join(),
-      );
+    if (code.every((c) => c.isNotEmpty)) {
+      try {
+        final res = await AuthService.verifyCode(
+          identifier: _controller.text.trim(),
+          code: code.join(),
+        );
 
         setState(() {
           isCodeCorrect = res;
           _isCodeValid = res;
         });
 
-      if (res) {
-        _secondsLeft = 0;
-      } else {
+        if (res) {
+          _secondsLeft = 0;
+        } else {
+          errorStackKey.currentState?.showError(
+            'Incorrect or expired code. Please request a new one',
+            duration: const Duration(seconds: 5),
+          );
+
+          _resetCodeInputs();
+        }
+      } catch (e) {
+        setState(() {
+          isCodeCorrect = false;
+          _isCodeValid = false;
+        });
+
+        final msg = e.toString().contains('expired')
+            ? 'Code expired. Please request a new one'
+            : 'Incorrect code. Try again';
+
         errorStackKey.currentState?.showError(
-          'Incorrect or expired code. Please request a new one',
+          msg,
           duration: const Duration(seconds: 5),
         );
 
         _resetCodeInputs();
       }
-    } catch (e) {
-      setState(() {
-        isCodeCorrect = false;
-        _isCodeValid = false;
-      });
-
-      final msg = e.toString().contains('expired')
-          ? 'Code expired. Please request a new one'
-          : 'Incorrect code. Try again';
-
-      errorStackKey.currentState?.showError(
-        msg,
-        duration: const Duration(seconds: 5),
-      );
-
-      _resetCodeInputs();
     }
   }
-}
-void _resetCodeInputs() {
-  Timer(const Duration(seconds: 2), () {
-    if (!mounted) return;
 
-    setState(() {
-      code = List.generate(6, (_) => "");
-      _codecontrollers.forEach((c) => c.clear());
-      _isCodeValid = null;
-      isCodeCorrect = false;
+  void _resetCodeInputs() {
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      setState(() {
+        code = List.generate(6, (_) => "");
+        _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = null;
+        isCodeCorrect = false;
+      });
+
+      _focusNodes[0].requestFocus();
     });
+  }
 
-    _focusNodes[0].requestFocus();
-  });
-}
-
+  void _handleBackspace(int index) {
+    if (code[index].isEmpty && index > 0) {
+      _codecontrollers[index - 1].clear();
+      code[index - 1] = '';
+      _focusNodes[index - 1].requestFocus();
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +325,9 @@ void _resetCodeInputs() {
               onRememberMeChanged: (value) =>
                   setState(() => _rememberMe = value),
               onFetchCode: fetchCodeFromGo,
+              handleBackspace: _handleBackspace,
               onCodeChanged: _onChanged,
+
               emailFocus: _emailFocus,
               passwordFocus: _passwordFocus,
               tooManyAttempts: _tooManyAttempts,
@@ -380,6 +391,7 @@ class MobileSignInPage extends StatelessWidget {
   final ValueChanged<bool> onShowPasswordChanged;
   final ValueChanged<bool> onRememberMeChanged;
   final VoidCallback onFetchCode;
+  final void Function(int) handleBackspace;
   final void Function(String, int) onCodeChanged;
   final FocusNode emailFocus;
   final FocusNode passwordFocus;
@@ -409,6 +421,7 @@ class MobileSignInPage extends StatelessWidget {
     required this.onShowPasswordChanged,
     required this.onRememberMeChanged,
     required this.onFetchCode,
+    required this.handleBackspace,
     required this.onCodeChanged,
     required this.emailFocus,
     required this.passwordFocus,
@@ -826,41 +839,51 @@ class MobileSignInPage extends StatelessWidget {
                           SizedBox(
                             width: 30,
                             height: 24,
-                            child: TextField(
-                              controller: codecontrollers[index],
-                              focusNode: focusNodes[index],
-                              enabled: !codeDisabled,
-                              readOnly: codeDisabled,
-                              showCursor: !codeDisabled,
-                              textAlign: TextAlign.center,
-                              // maxLength: 1,
-                              keyboardType: TextInputType.number,
-
-                              style: TextStyle(
-                                color: codeDisabled
+                            child: RawKeyboardListener(
+                              focusNode: FocusNode(), // must be separate
+                              onKey: (event) {
+                                if (event is RawKeyDownEvent &&
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.backspace) {
+                                  handleBackspace(index);
+                                }
+                              },
+                              child: TextField(
+                                controller: codecontrollers[index],
+                                focusNode: focusNodes[index],
+                                enabled: !codeDisabled,
+                                readOnly: codeDisabled,
+                                showCursor: !codeDisabled,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(
+                                  color: codeDisabled
+                                      ? Colors.grey
+                                      : isCodeCorrect
+                                      ? const Color(0xFF00F0FF)
+                                      : (isCodeValid == false
+                                            ? Colors.red
+                                            : Colors.white),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                cursorColor: codeDisabled
                                     ? Colors.grey
                                     : isCodeCorrect
                                     ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
                                           : Colors.white),
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                decoration: const InputDecoration(
+                                  counterText: "",
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (value) =>
+                                    onCodeChanged(value, index),
                               ),
-                              cursorColor: codeDisabled
-                                  ? Colors.grey
-                                  : isCodeCorrect
-                                  ? const Color(0xFF00F0FF)
-                                  : (isCodeValid == false
-                                        ? Colors.red
-                                        : Colors.white),
-                              decoration: const InputDecoration(
-                                counterText: "",
-                                border: InputBorder.none,
-                              ),
-                              onChanged: (value) => onCodeChanged(value, index),
                             ),
                           ),
+
                           Container(
                             width: 30,
                             height: 2,
@@ -1242,7 +1265,7 @@ class TabletSignInPage extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: screenWidth * 0.1,
-                          vertical: screenHeight * 0.05,
+                          vertical: screenHeight * 0.00,
                         ),
                         child: Center(
                           child: ConstrainedBox(
@@ -1311,9 +1334,9 @@ class TabletSignInPage extends StatelessWidget {
                                   _buildRememberMe(),
                                   const SizedBox(height: 20),
                                   _buildEmailVerification(),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 0),
                                   _buildSignInButton(context),
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: 10),
                                   const Text(
                                     'You built your vault\nNow unlock it',
                                     textAlign: TextAlign.center,
@@ -1324,7 +1347,7 @@ class TabletSignInPage extends StatelessWidget {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 10),
                                   FooterWidget(),
                                 ],
                               ),

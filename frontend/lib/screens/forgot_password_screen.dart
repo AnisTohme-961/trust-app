@@ -137,6 +137,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
+  void _handleBackspace(
+    int index,
+    List<TextEditingController> controllers,
+    List<String> codeList,
+    List<FocusNode> focusNodes,
+  ) {
+    if (codeList[index].isEmpty && index > 0) {
+      controllers[index - 1].clear();
+      codeList[index - 1] = '';
+      focusNodes[index - 1].requestFocus();
+      setState(() {});
+    }
+  }
+
   void _onChanged(
     String value,
     int index,
@@ -432,32 +446,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _handleInvalidCode(
-  String type,
-  List<TextEditingController> controllers,
-  List<String> codeList,
-  List<FocusNode> focusNodes,
-) {
-  setState(() {
-    isCodeValidMap[type] = false;
-    isCodeCorrectMap[type] = false;
-  });
-
-  Timer(const Duration(seconds: 3), () {
-    if (!mounted) return;
-
+    String type,
+    List<TextEditingController> controllers,
+    List<String> codeList,
+    List<FocusNode> focusNodes,
+  ) {
     setState(() {
-      for (int i = 0; i < controllers.length; i++) {
-        controllers[i].clear();
-        codeList[i] = '';
-      }
-      isCodeValidMap[type] = true;
+      isCodeValidMap[type] = false;
       isCodeCorrectMap[type] = false;
     });
 
-    focusNodes[0].requestFocus();
-  });
-}
+    Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
 
+      setState(() {
+        for (int i = 0; i < controllers.length; i++) {
+          controllers[i].clear();
+          codeList[i] = '';
+        }
+        isCodeValidMap[type] = true;
+        isCodeCorrectMap[type] = false;
+      });
+
+      focusNodes[0].requestFocus();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -942,7 +955,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IntrinsicWidth(
-                  // <-- Forces columns to take minimum width
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -954,7 +966,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 55),
+                const Spacer(), 
                 IntrinsicWidth(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1181,83 +1193,105 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             SizedBox(
                               width: 35,
                               height: 35,
-                              child: TextField(
-                                controller: codeControllers[index],
-                                focusNode: focusNodes[index],
-                                showCursor: !codeDisabled,
-                                enabled: !codeDisabled,
-                                readOnly: codeDisabled,
-                                textAlign: TextAlign.center,
-                                // maxLength: 1,
-                                keyboardType: TextInputType.number,
-                                style: TextStyle(
-                                  color: codeDisabled
+                              child: RawKeyboardListener(
+                                focusNode:
+                                    FocusNode(), // separate node for listener
+                                onKey: (event) {
+                                  if (event is RawKeyDownEvent &&
+                                      event.logicalKey ==
+                                          LogicalKeyboardKey.backspace) {
+                                    _handleBackspace(
+                                      index,
+                                      codeControllers,
+                                      codeList,
+                                      focusNodes,
+                                    );
+                                  }
+                                },
+                                child: TextField(
+                                  controller: codeControllers[index],
+                                  focusNode: focusNodes[index],
+                                  showCursor: !codeDisabled,
+                                  enabled: !codeDisabled,
+                                  readOnly: codeDisabled,
+                                  textAlign: TextAlign.center,
+                                  keyboardType: TextInputType.number,
+                                  style: TextStyle(
+                                    color: codeDisabled
+                                        ? Colors.grey
+                                        : isCodeCorrect
+                                        ? const Color(0xFF00F0FF)
+                                        : (isCodeValid == false
+                                              ? Colors.red
+                                              : Colors.white),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  cursorColor: codeDisabled
                                       ? Colors.grey
                                       : isCodeCorrect
                                       ? const Color(0xFF00F0FF)
                                       : (isCodeValid == false
                                             ? Colors.red
                                             : Colors.white),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                cursorColor: codeDisabled
-                                    ? Colors.grey
-                                    : isCodeCorrect
-                                    ? const Color(0xFF00F0FF)
-                                    : (isCodeValid == false
-                                          ? Colors.red
-                                          : Colors.white),
-                                decoration: const InputDecoration(
-                                  counterText: "",
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                                onChanged: (value) async {
-                                  // 1️⃣ Handle typing + paste + focus correctly
-                                  _onChanged(
-                                    value,
-                                    index,
-                                    codeControllers,
-                                    codeList,
-                                    focusNodes,
-                                  );
+                                  decoration: const InputDecoration(
+                                    counterText: "",
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onChanged: (value) async {
+                                    // 1️⃣ Handle typing + paste + focus correctly
+                                    _onChanged(
+                                      value,
+                                      index,
+                                      codeControllers,
+                                      codeList,
+                                      focusNodes,
+                                    );
 
-                                  // 2️⃣ Reset validity while typing
-                                  setState(() {
-                                    isCodeValidMap[type] = true;
-                                    isCodeCorrectMap[type] = false;
-                                  });
+                                    // 2️⃣ Reset validity while typing
+                                    setState(() {
+                                      isCodeValidMap[type] = true;
+                                      isCodeCorrectMap[type] = false;
+                                    });
 
-                                  // 3️⃣ Verify only when ALL digits are filled
-                                  if (codeList.every((c) => c.isNotEmpty)) {
-                                    final email = _controller.text.trim();
-                                    bool valid = false;
+                                    // 3️⃣ Verify only when ALL digits are filled
+                                    if (codeList.every((c) => c.isNotEmpty)) {
+                                      final email = _controller.text.trim();
+                                      bool valid = false;
 
-                                    try {
-                                      if (type == 'auth') {
-                                        valid = await AuthService.verifyTOTP(
-                                          email: email,
-                                          code: codeList.join(),
-                                        );
-                                      } else {
-                                        valid =
-                                            await AuthService.verifyResetCode(
-                                              identifier: email,
-                                              code: codeList.join(),
-                                            );
-                                      }
+                                      try {
+                                        if (type == 'auth') {
+                                          valid = await AuthService.verifyTOTP(
+                                            email: email,
+                                            code: codeList.join(),
+                                          );
+                                        } else {
+                                          valid =
+                                              await AuthService.verifyResetCode(
+                                                identifier: email,
+                                                code: codeList.join(),
+                                              );
+                                        }
 
-                                      if (valid) {
-                                        setState(() {
-                                          isCodeCorrectMap[type] = true;
-                                          isCodeValidMap[type] = true;
-                                        });
+                                        if (valid) {
+                                          setState(() {
+                                            isCodeCorrectMap[type] = true;
+                                            isCodeValidMap[type] = true;
+                                          });
 
-                                        _timers[type]?.cancel();
-                                        _timers[type] = null;
-                                        _countdowns[type] = 0;
-                                      } else {
+                                          _timers[type]?.cancel();
+                                          _timers[type] = null;
+                                          _countdowns[type] = 0;
+                                        } else {
+                                          _handleInvalidCode(
+                                            type,
+                                            codeControllers,
+                                            codeList,
+                                            focusNodes,
+                                          );
+                                        }
+                                      } catch (_) {
                                         _handleInvalidCode(
                                           type,
                                           codeControllers,
@@ -1265,16 +1299,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                           focusNodes,
                                         );
                                       }
-                                    } catch (_) {
-                                      _handleInvalidCode(
-                                        type,
-                                        codeControllers,
-                                        codeList,
-                                        focusNodes,
-                                      );
                                     }
-                                  }
-                                },
+                                  },
+                                ),
                               ),
                             ),
 

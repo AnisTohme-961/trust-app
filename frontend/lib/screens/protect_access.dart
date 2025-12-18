@@ -640,15 +640,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     final userProvider = context.read<UserProvider>();
     bool valid = await _verifyCode(email, _code.join());
 
-  if (valid) {
-    userProvider.setEmailCode(_code.join());
-    setState(() {
-      _isCodeVerified = true;
-      _codeValid = true;
-      // _codeDisabled = true;
-    });
-  } else {
-    setState(() => _isCodeVerified = false);
+    if (valid) {
+      userProvider.setEmailCode(_code.join());
+      setState(() {
+        _isCodeVerified = true;
+        _codeValid = true;
+        // _codeDisabled = true;
+      });
+    } else {
+      setState(() => _isCodeVerified = false);
 
       Timer(const Duration(seconds: 3), () {
         if (!mounted) return;
@@ -787,6 +787,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       _navigateToNext();
     } else {
       _validateAllFieldsAndShowErrors();
+    }
+  }
+
+  void _handleBackspace(int index) {
+    if (_code[index].isEmpty && index > 0) {
+      _codeControllers[index - 1].clear();
+      _code[index - 1] = '';
+      _focusNodes[index - 1].requestFocus();
+      setState(() {});
     }
   }
 
@@ -1409,9 +1418,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 20,
+                                      fontSize: 15,
                                       height: 1.0,
-                                      letterSpacing: -0.08 * 20,
+                                      letterSpacing: -1.6,
                                       color: Colors.black,
                                     ),
                                   ),
@@ -1440,7 +1449,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                             // Show either TextField or colored Text widget
                                             SizedBox(
                                               width: 30,
-                                              height: 21,
+                                              height: 24,
                                               child:
                                                   _isCodeVerified == true &&
                                                       _code[index].isNotEmpty
@@ -1457,51 +1466,67 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                         ),
                                                       ),
                                                     )
-                                                  : TextField(
-                                                      enabled: !_codeDisabled,
-                                                      readOnly: _codeDisabled,
-                                                      showCursor:
-                                                          !_codeDisabled,
-                                                      controller:
-                                                          _codeControllers[index],
+                                                  : RawKeyboardListener(
                                                       focusNode:
-                                                          _focusNodes[index],
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      keyboardType:
-                                                          TextInputType.number,
-                                                      style: TextStyle(
-                                                        color: _codeDisabled
-                                                            ? Colors.grey
-                                                            : (_isCodeVerified ==
-                                                                      true
-                                                                  ? const Color(
-                                                                      0xFF00F0FF,
-                                                                    )
-                                                                  : (_isCodeVerified ==
-                                                                            false
-                                                                        ? Colors
-                                                                              .red
-                                                                        : Colors
-                                                                              .white)),
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                          FocusNode(), // separate focus node (required)
+                                                      onKey: (event) {
+                                                        if (event
+                                                                is RawKeyDownEvent &&
+                                                            event.logicalKey ==
+                                                                LogicalKeyboardKey
+                                                                    .backspace) {
+                                                          _handleBackspace(
+                                                            index,
+                                                          );
+                                                        }
+                                                      },
+                                                      child: TextField(
+                                                        enabled: !_codeDisabled,
+                                                        readOnly: _codeDisabled,
+                                                        showCursor:
+                                                            !_codeDisabled,
+                                                        controller:
+                                                            _codeControllers[index],
+                                                        focusNode:
+                                                            _focusNodes[index],
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                        style: TextStyle(
+                                                          color: _codeDisabled
+                                                              ? Colors.grey
+                                                              : (_isCodeVerified ==
+                                                                        true
+                                                                    ? const Color(
+                                                                        0xFF00F0FF,
+                                                                      )
+                                                                    : (_isCodeVerified ==
+                                                                              false
+                                                                          ? Colors.red
+                                                                          : Colors.white)),
+                                                          fontSize: 20,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        cursorColor:
+                                                            Colors.white,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                              counterText: "",
+                                                              border:
+                                                                  InputBorder
+                                                                      .none,
+                                                            ),
+                                                        onChanged: _codeDisabled
+                                                            ? null
+                                                            : (value) =>
+                                                                  _onCodeChanged(
+                                                                    value,
+                                                                    index,
+                                                                  ),
                                                       ),
-                                                      cursorColor: Colors.white,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                            counterText: "",
-                                                            border: InputBorder
-                                                                .none,
-                                                          ),
-                                                      onChanged: _codeDisabled
-                                                          ? null
-                                                          : (value) =>
-                                                                _onCodeChanged(
-                                                                  value,
-                                                                  index,
-                                                                ),
                                                     ),
                                             ),
                                             if (_isCodeVerified != true)
@@ -4081,9 +4106,9 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
-                        fontSize: 20,
+                        fontSize: 15,
                         height: 1.0,
-                        letterSpacing: -0.08 * 20,
+                        letterSpacing: -1.6,
                         color: Colors.black,
                       ),
                     ),

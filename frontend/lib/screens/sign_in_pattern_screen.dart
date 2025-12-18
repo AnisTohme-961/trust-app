@@ -144,13 +144,13 @@ void _validatePattern() async {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 26,
+                          fontSize: 25,
                           color: Colors.white,
                         ),
                         softWrap: false, // 👈 disables wrapping
                         overflow: TextOverflow
                             .visible, // or TextOverflow.ellipsis if needed
-                        maxLines: 1, // 👈 force single line
+                        maxLines: 1, 
                       ),
                     ),
                     const SizedBox(width: 8),

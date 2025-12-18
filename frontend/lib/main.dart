@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/screens/forgot_password_screen.dart';
+import 'package:flutter_project/screens/sign_in_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
 import './providers/font_size_provider.dart';
