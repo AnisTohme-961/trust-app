@@ -196,33 +196,33 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       }
     }
 
+    // Month controller listener
     _monthController.addListener(() {
       if (!_monthController.hasClients) return;
 
       final itemHeight = 40.0;
       final scrollOffset = _monthController.offset;
       final newIndex = (scrollOffset / itemHeight).round();
-
       final clampedIndex = newIndex.clamp(0, _months.length - 1);
 
       if (clampedIndex != _selectedMonth) {
         setState(() {
           _selectedMonth = clampedIndex;
           _datePicked = true;
-          _updateDaysList(); // Update days when month changes
+          _updateDaysList();
           _updateDobController();
           _validateDob();
         });
       }
     });
 
+    // Day controller listener
     _dayController.addListener(() {
       if (!_dayController.hasClients) return;
 
       final itemHeight = 40.0;
       final scrollOffset = _dayController.offset;
       final newIndex = (scrollOffset / itemHeight).round();
-
       final clampedIndex = newIndex.clamp(0, _days.length - 1);
 
       if (clampedIndex != _selectedDay) {
@@ -235,20 +235,20 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       }
     });
 
+    // Year controller listener
     _yearController.addListener(() {
       if (!_yearController.hasClients) return;
 
       final itemHeight = 40.0;
       final scrollOffset = _yearController.offset;
       final newIndex = (scrollOffset / itemHeight).round();
-
       final clampedIndex = newIndex.clamp(0, _years.length - 1);
 
       if (clampedIndex != _selectedYear) {
         setState(() {
           _selectedYear = clampedIndex;
           _datePicked = true;
-          _updateDaysList(); // Update days when year changes (for leap years)
+          _updateDaysList();
           _updateDobController();
           _validateDob();
         });
@@ -541,11 +541,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     if (!controller.hasClients) return;
 
     final itemHeight = 40.0;
-    final containerHeight = 286.0;
-
-    final padding = (containerHeight - itemHeight) / 2;
-    final targetOffset = (selectedIndex * itemHeight);
-
+    final targetOffset = selectedIndex * itemHeight;
     final maxScroll = controller.position.maxScrollExtent;
     final clampedPosition = targetOffset.clamp(0.0, maxScroll);
 
@@ -2020,35 +2016,34 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           children: [
                             // Month column
                             Expanded(
-                              child: NotificationListener<ScrollEndNotification>(
+                              child: NotificationListener<ScrollNotification>(
                                 onNotification: (notification) {
-                                  if (!_monthController.hasClients) return true;
+                                  if (notification is ScrollEndNotification) {
+                                    if (!_monthController.hasClients)
+                                      return true;
 
-                                  final itemHeight = 40.0;
-                                  final scrollOffset = _monthController.offset;
-                                  final currentIndex =
-                                      (scrollOffset / itemHeight).round();
-                                  final clampedIndex = currentIndex.clamp(
-                                    0,
-                                    _months.length - 1,
-                                  );
-
-                                  // Calculate what the target offset should be
-                                  final targetOffset =
-                                      clampedIndex * itemHeight;
-                                  final tolerance =
-                                      0.5; // Small tolerance to avoid infinite loops
-
-                                  // Only snap if we're not already at the target position
-                                  if ((scrollOffset - targetOffset).abs() >
-                                      tolerance) {
-                                    _snapToCenter(
-                                      _monthController,
-                                      clampedIndex,
+                                    final itemHeight = 40.0;
+                                    final scrollOffset =
+                                        _monthController.offset;
+                                    final currentIndex =
+                                        (scrollOffset / itemHeight).round();
+                                    final clampedIndex = currentIndex.clamp(
+                                      0,
+                                      _months.length - 1,
                                     );
-                                  }
 
-                                  return true;
+                                    // Always snap to center when scrolling ends
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (_monthController.hasClients) {
+                                            _snapToCenter(
+                                              _monthController,
+                                              clampedIndex,
+                                            );
+                                          }
+                                        });
+                                  }
+                                  return false;
                                 },
                                 child: ListView.builder(
                                   key: const PageStorageKey<String>(
@@ -2069,6 +2064,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         setState(() {
                                           _selectedMonth = index;
                                           _datePicked = true;
+                                          _updateDaysList();
                                           _validateDob();
                                         });
                                         onDobPicked();
@@ -2095,30 +2091,32 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                             // Day column
                             Expanded(
-                              child: NotificationListener<ScrollEndNotification>(
+                              child: NotificationListener<ScrollNotification>(
                                 onNotification: (notification) {
-                                  if (!_dayController.hasClients) return true;
+                                  if (notification is ScrollEndNotification) {
+                                    if (!_dayController.hasClients) return true;
 
-                                  final itemHeight = 40.0;
-                                  final scrollOffset = _dayController.offset;
-                                  final currentIndex =
-                                      (scrollOffset / itemHeight).round();
-                                  final clampedIndex = currentIndex.clamp(
-                                    0,
-                                    _days.length - 1,
-                                  );
+                                    final itemHeight = 40.0;
+                                    final scrollOffset = _dayController.offset;
+                                    final currentIndex =
+                                        (scrollOffset / itemHeight).round();
+                                    final clampedIndex = currentIndex.clamp(
+                                      0,
+                                      _days.length - 1,
+                                    );
 
-                                  final targetOffset =
-                                      clampedIndex * itemHeight;
-                                  final tolerance = 0.5;
-
-                                  // Only snap if we're not already at the target position
-                                  if ((scrollOffset - targetOffset).abs() >
-                                      tolerance) {
-                                    _snapToCenter(_dayController, clampedIndex);
+                                    // Always snap to center when scrolling ends
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (_dayController.hasClients) {
+                                            _snapToCenter(
+                                              _dayController,
+                                              clampedIndex,
+                                            );
+                                          }
+                                        });
                                   }
-
-                                  return true;
+                                  return false;
                                 },
                                 child: ListView.builder(
                                   key: const PageStorageKey<String>('day_list'),
@@ -2163,33 +2161,33 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
                             // Year column
                             Expanded(
-                              child: NotificationListener<ScrollEndNotification>(
+                              child: NotificationListener<ScrollNotification>(
                                 onNotification: (notification) {
-                                  if (!_yearController.hasClients) return true;
+                                  if (notification is ScrollEndNotification) {
+                                    if (!_yearController.hasClients)
+                                      return true;
 
-                                  final itemHeight = 40.0;
-                                  final scrollOffset = _yearController.offset;
-                                  final currentIndex =
-                                      (scrollOffset / itemHeight).round();
-                                  final clampedIndex = currentIndex.clamp(
-                                    0,
-                                    _years.length - 1,
-                                  );
-
-                                  final targetOffset =
-                                      clampedIndex * itemHeight;
-                                  final tolerance = 0.5;
-
-                                  // Only snap if we're not already at the target position
-                                  if ((scrollOffset - targetOffset).abs() >
-                                      tolerance) {
-                                    _snapToCenter(
-                                      _yearController,
-                                      clampedIndex,
+                                    final itemHeight = 40.0;
+                                    final scrollOffset = _yearController.offset;
+                                    final currentIndex =
+                                        (scrollOffset / itemHeight).round();
+                                    final clampedIndex = currentIndex.clamp(
+                                      0,
+                                      _years.length - 1,
                                     );
-                                  }
 
-                                  return true;
+                                    // Always snap to center when scrolling ends
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (_yearController.hasClients) {
+                                            _snapToCenter(
+                                              _yearController,
+                                              clampedIndex,
+                                            );
+                                          }
+                                        });
+                                  }
+                                  return false;
                                 },
                                 child: ListView.builder(
                                   key: const PageStorageKey<String>(
@@ -2210,6 +2208,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         setState(() {
                                           _selectedYear = index;
                                           _datePicked = true;
+                                          _updateDaysList();
                                           _validateDob();
                                         });
                                         onDobPicked();

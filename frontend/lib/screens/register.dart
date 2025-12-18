@@ -9,6 +9,7 @@ import '../widgets/custom_button.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
+import '../widgets/select_account_slide_up_menu_widget.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -119,7 +120,8 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
     final userProvider = Provider.of<UserProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.75; // Reduced from 0.7
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double dropdownHeight = screenHeight * 0.75;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -283,81 +285,84 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                 ),
               ),
 
-            // SELECT ACCOUNT POPUP - USING SlideUpMenu
-            SlideUpMenu(
-              menuHeight: dropdownHeight,
-              isVisible: _selectAccountOpen,
-              onToggle: () {
-                setState(() {
-                  _selectAccountOpen = !_selectAccountOpen;
-                });
-              },
-              onClose: () {
-                setState(() {
-                  _selectAccountOpen = false;
-                });
-              },
-              backgroundColor: const Color(0xFF0B1320),
-              shadowColor: const Color(0xFF00F0FF),
-              borderRadius: 20.0,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              minHeight: 300, // Increased minimum height to ensure enough space
-              maxHeight: dropdownHeight,
-              dragHandle: Padding(
-                padding: const EdgeInsets.only(left: 20),
-                child: CustomPaint(
-                  size: const Size(120, 20),
-                  painter: VLinePainter(),
-                ),
-              ),
-              child: SelectAccountContent(
+            // SELECT ACCOUNT POPUP - USING SelectAccountSlideUpMenu
+            if (_selectAccountOpen)
+              SelectAccountSlideUpMenu(
+                menuHeight: dropdownHeight,
+                isVisible: _selectAccountOpen,
+                onToggle: () {
+                  setState(() {
+                    _selectAccountOpen = !_selectAccountOpen;
+                  });
+                },
                 onClose: () {
                   setState(() {
                     _selectAccountOpen = false;
                   });
                 },
-              ),
-            ),
-
-            // LANGUAGE DROPDOWN POPUP - USING SlideUpMenu
-            SlideUpMenu(
-              menuHeight: dropdownHeight,
-              isVisible: _languageDropdownOpen,
-              onToggle: () {
-                setState(() {
-                  _languageDropdownOpen = !_languageDropdownOpen;
-                });
-              },
-              onClose: () {
-                setState(() {
-                  _languageDropdownOpen = false;
-                });
-              },
-              backgroundColor: const Color(0xFF0B1320),
-              shadowColor: const Color(0xFF00F0FF),
-              borderRadius: 20.0,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              minHeight: 100,
-              maxHeight:
-                  MediaQuery.of(context).size.height * 0.8, // Reduced to 0.8
-              dragHandle: Padding(
-                padding: const EdgeInsets.only(left: 20),
-                child: CustomPaint(
-                  size: const Size(120, 20),
-                  painter: VLinePainter(),
+                backgroundColor: const Color(0xFF0B1320),
+                shadowColor: const Color(0xFF00F0FF),
+                borderRadius: 20.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                minHeight: 300,
+                dragHandle: Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: CustomPaint(
+                    size: const Size(120, 20),
+                    painter: VLinePainter(),
+                  ),
+                ),
+                child: SizedBox(
+                  height: dropdownHeight - 50, // Subtract drag handle height
+                  child: SelectAccountContent(
+                    onClose: () {
+                      setState(() {
+                        _selectAccountOpen = false;
+                      });
+                    },
+                  ),
                 ),
               ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Column(
+
+            // LANGUAGE DROPDOWN POPUP - USING SlideUpMenu
+            if (_languageDropdownOpen)
+              SlideUpMenu(
+                menuHeight: dropdownHeight,
+                isVisible: _languageDropdownOpen,
+                onToggle: () {
+                  setState(() {
+                    _languageDropdownOpen = !_languageDropdownOpen;
+                  });
+                },
+                onClose: () {
+                  setState(() {
+                    _languageDropdownOpen = false;
+                  });
+                },
+                backgroundColor: const Color(0xFF0B1320),
+                shadowColor: const Color(0xFF00F0FF),
+                borderRadius: 20.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                minHeight: 100,
+                maxHeight: dropdownHeight,
+                dragHandle: Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: CustomPaint(
+                    size: const Size(120, 20),
+                    painter: VLinePainter(),
+                  ),
+                ),
+                child: SizedBox(
+                  height: dropdownHeight - 50, // Subtract drag handle height
+                  child: Column(
                     children: [
                       // SEARCH FIELD - Fixed height
                       Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 50,
-                          vertical: 5,
+                          vertical: 10,
                         ),
                         child: TextField(
                           controller: _languageSearchController,
@@ -390,7 +395,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         ),
                       ),
 
-                      // DIVIDER - Fixed height
+                      // DIVIDER
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 50),
                         child: Divider(
@@ -399,8 +404,6 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                           height: 1,
                         ),
                       ),
-
-                      const SizedBox(height: 0),
 
                       // LANGUAGE LIST - Takes remaining space
                       Expanded(
@@ -462,10 +465,9 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),

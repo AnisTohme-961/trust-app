@@ -276,17 +276,33 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     bool hasError = false;
 
     // Validate first name
-    _validateFirstName();
-    if (_firstNameError != null && !_firstNameValid) {
-      widget.errorStackKey.currentState?.showError(_firstNameError!);
+    final firstName = _firstNameController.text.trim();
+    if (firstName.isEmpty) {
+      widget.errorStackKey.currentState?.showError(
+        'Please enter your First Name.',
+      );
       hasError = true;
+    } else {
+      _validateFirstName();
+      if (_firstNameError != null && !_firstNameValid) {
+        widget.errorStackKey.currentState?.showError(_firstNameError!);
+        hasError = true;
+      }
     }
 
     // Validate last name
-    _validateLastName();
-    if (_lastNameError != null && !_lastNameValid) {
-      widget.errorStackKey.currentState?.showError(_lastNameError!);
+    final lastName = _lastNameController.text.trim();
+    if (lastName.isEmpty) {
+      widget.errorStackKey.currentState?.showError(
+        'Please enter your last name.',
+      );
       hasError = true;
+    } else {
+      _validateLastName();
+      if (_lastNameError != null && !_lastNameValid) {
+        widget.errorStackKey.currentState?.showError(_lastNameError!);
+        hasError = true;
+      }
     }
 
     // Validate gender
