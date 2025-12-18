@@ -52,55 +52,53 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
     });
   }
 
-  void _showError(String message) {
-    final overlay = Overlay.of(context);
-    if (overlay == null) return;
+  // void _showError(String message) {
+  //   final overlay = Overlay.of(context);
+  //   if (overlay == null) return;
 
-    final overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        child: Material(
-          color: Colors.transparent,
-          child: ErrorBanner(message: message),
-        ),
-      ),
-    );
+  //   final overlayEntry = OverlayEntry(
+  //     builder: (context) => Positioned(
+  //       top: 0,
+  //       left: 0,
+  //       right: 0,
+  //       child: Material(
+  //         color: Colors.transparent,
+  //         child: ErrorBanner(message: message),
+  //       ),
+  //     ),
+  //   );
 
-    overlay.insert(overlayEntry);
+  //   overlay.insert(overlayEntry);
 
-    Future.delayed(const Duration(milliseconds: 3000), () {
-      overlayEntry.remove();
-    });
-  }
-void _validatePattern() async {
-  if (selectedDots.length < 4) {
-    _showError("Please draw a pattern of at least 4 dots.");
-    _clearPatternDelayed(1000);
-    return;
-  }
+  //   Future.delayed(const Duration(milliseconds: 3000), () {
+  //     overlayEntry.remove();
+  //   });
+  // }
+  // void _validatePattern() async {
+  //   if (selectedDots.length < 4) {
+  //     _showError("Please draw a pattern of at least 4 dots.");
+  //     _clearPatternDelayed(1000);
+  //     return;
+  //   }
 
-  try {
-    bool isValid = await AuthService.validatePattern(selectedDots);
+  //   try {
+  //     bool isValid = await AuthService.validatePattern(selectedDots);
 
-    if (!isValid) {
-      _showError("Incorrect Pattern. Try Again.");
-      _clearPatternDelayed(1200);
-      return;
-    }
+  //     if (!isValid) {
+  //       _showError("Incorrect Pattern. Try Again.");
+  //       _clearPatternDelayed(1200);
+  //       return;
+  //     }
 
-    // SUCCESS
-    debugPrint("✅ Correct Pattern!");
-    Navigator.pushNamed(context, '/settings');
+  //     // SUCCESS
+  //     debugPrint("✅ Correct Pattern!");
+  //     Navigator.pushNamed(context, '/settings');
+  //   } catch (e) {
+  //     _showError("Error validating pattern.");
+  //   }
 
-  } catch (e) {
-    _showError("Error validating pattern.");
-  }
-
-  _clearPatternDelayed(800);
-}
-
+  //   _clearPatternDelayed(800);
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -215,14 +213,14 @@ void _validatePattern() async {
                         }
                       }
                     },
-                    onPanEnd: (_) {
-                      if (selectedDots.length >= 4) {
-                        _validatePattern();
-                      } else {
-                        _showError("Pattern too short (min 4 dots).");
-                      }
-                      _clearPatternDelayed(900);
-                    },
+                    // onPanEnd: (_) {
+                    //   if (selectedDots.length >= 4) {
+                    //     _validatePattern();
+                    //   } else {
+                    //     _showError("Pattern too short (min 4 dots).");
+                    //   }
+                    //   _clearPatternDelayed(900);
+                    // },
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final size = min(

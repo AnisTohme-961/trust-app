@@ -1143,10 +1143,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                 children: [
                   // Header - Fixed height
                   Container(
-                    height: 50.5,
+                    height: 49,
                     padding: const EdgeInsets.only(
                       left: 16,
-                      top: 18,
+                      top: 16,
                       right: 16,
                     ),
                     alignment: Alignment.center,
@@ -1179,6 +1179,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 1.7),
 
                   // ListView - Takes remaining space
                   Expanded(
@@ -1213,20 +1215,20 @@ class _SettingsScreenState extends State<SettingsScreen>
               height: 9,
               fit: BoxFit.contain,
             ),
-            child: SingleChildScrollView(
-              child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: profileMenuHeight,
-                  minHeight: profileMenuHeight,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header - Fixed height
-                    Container(
+            child: SizedBox(
+              height: profileMenuHeight,
+              child: Stack(
+                children: [
+                  // Header - Fixed at top
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
                       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                       child: const Text(
                         'Select an Account',
+                        textAlign: TextAlign.center, // Add this
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -1234,56 +1236,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                         ),
                       ),
                     ),
+                  ),
 
-                    // Accounts List
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AccountFrame(
-                            firstName: "Sara",
-                            lastName: "Jones",
-                            eid: "123456789",
-                            imagePath: "assets/images/image1.png",
-                            onTap: () {
-                              print("Sara Jones account selected");
-                              _closeAllMenus();
-                            },
-                            isTablet: false,
-                            includeSpacing: false,
-                          ),
-                          const SizedBox(height: 16),
-                          AccountFrame(
-                            firstName: "John",
-                            lastName: "Smith",
-                            eid: "987654321",
-                            imagePath: "assets/images/image1.png",
-                            onTap: () {
-                              print("John Smith account selected");
-                              _closeAllMenus();
-                            },
-                            isTablet: false,
-                            includeSpacing: false,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Spacer to push button to bottom
-                    const Spacer(),
-
-                    // Add New Profile Button
-                    Container(
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        bottom: 50,
-                        top: 16,
-                      ),
+                  // Button - Fixed at bottom
+                  Positioned(
+                    bottom: 50,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: AddNewProfileButton(
                         isTablet: false,
                         onTap: () {
@@ -1291,8 +1252,55 @@ class _SettingsScreenState extends State<SettingsScreen>
                         },
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  // Scrollable content between header and button
+                  Positioned(
+                    top: 60, // Height of header
+                    bottom: 130, // Height of button + padding
+                    left: 0,
+                    right: 0,
+                    child: SingleChildScrollView(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AccountFrame(
+                              firstName: "Sara",
+                              lastName: "Jones",
+                              eid: "123456789",
+                              imagePath: "assets/images/image1.png",
+                              onTap: () {
+                                print("Sara Jones account selected");
+                                _closeAllMenus();
+                              },
+                              isTablet: false,
+                              includeSpacing: false,
+                            ),
+                            const SizedBox(height: 16),
+                            AccountFrame(
+                              firstName: "John",
+                              lastName: "Smith",
+                              eid: "987654321",
+                              imagePath: "assets/images/image1.png",
+                              onTap: () {
+                                print("John Smith account selected");
+                                _closeAllMenus();
+                              },
+                              isTablet: false,
+                              includeSpacing: false,
+                            ),
+                            // Add more accounts here
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

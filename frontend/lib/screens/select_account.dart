@@ -22,139 +22,103 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Get the actual available height
-        final availableHeight = constraints.maxHeight;
-
-        // If height is too small, use a scrollable single column
-        if (availableHeight < 200) {
-          return _buildCompactLayout(context, availableHeight);
-        }
-
-        return _buildNormalLayout(context, availableHeight);
-      },
-    );
-  }
-
-  Widget _buildNormalLayout(BuildContext context, double availableHeight) {
-    return Container(
-      color: const Color(0xFF0B1320),
-      height: availableHeight,
-      child: Column(
-        children: [
-          // Header - Fixed height
-          Container(
-            height: 61,
-            padding: const EdgeInsets.all(16),
-            alignment: Alignment.center,
-            child: Text(
-              'Select an Account',
-              style: TextStyle(
-                color: Colors.white,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 19,
-              ),
-            ),
-          ),
-
-          // Content area - Takes remaining space
-          Expanded(child: _buildContent(context)),
-
-          // Bottom button - Fixed height
-          Container(
-            height: 70,
-            padding: const EdgeInsets.all(16),
-            child: _buildAddNewProfileButton(context, false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactLayout(BuildContext context, double availableHeight) {
-    return SingleChildScrollView(
-      child: Container(
-        color: const Color(0xFF0B1320),
-        constraints: BoxConstraints(minHeight: availableHeight),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Select an Account',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 19,
-                ),
-              ),
-            ),
-
-            // Content
-            _buildContent(context),
-
-            // Bottom button
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: _buildAddNewProfileButton(context, false),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final accounts = _getAccounts(userProvider);
 
-    if (accounts.isEmpty) {
-      return Container(
-        height: 150,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(
-                Icons.account_circle_outlined,
-                size: 50,
-                color: Colors.white38,
-              ),
-              SizedBox(height: 8),
-              Text(
-                'No account found',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+    return Container(
+      color: const Color(0xFF0B1320),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header - Fixed height
+              Container(
+                height: 50,
+                padding: const EdgeInsets.all(12),
+                alignment: Alignment.center,
+                child: Text(
+                  'Select an Account',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 19,
+                  ),
                 ),
               ),
+
+              // Content area - Takes remaining space
+              SizedBox(
+                height: constraints.maxHeight - 120, // Header(50) + Button(70)
+                child: _buildContent(
+                  context,
+                  accounts,
+                  userProvider,
+                  constraints.maxWidth,
+                ),
+              ),
+
+              // Bottom button - Fixed height (only show if there are accounts)
+              if (accounts.isNotEmpty)
+                Container(
+                  height: 70,
+                  padding: const EdgeInsets.all(12),
+                  child: _buildAddNewProfileButton(
+                    context,
+                    false,
+                    constraints.maxWidth,
+                  ),
+                ),
             ],
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    List<Map<String, String>> accounts,
+    UserProvider userProvider,
+    double maxWidth,
+  ) {
+    if (accounts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(
+              Icons.account_circle_outlined,
+              size: 50,
+              color: Colors.white38,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'No account found',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Accounts list
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              shrinkWrap: true, // Important for nested ListView
-              physics: const ClampingScrollPhysics(),
-              itemCount: accounts.length,
-              itemBuilder: (context, index) {
-                final account = accounts[index];
-                return Padding(
+    final double accountWidth = maxWidth * 0.75; // 70% of available width
+
+    return SingleChildScrollView(
+      controller: _scrollController,
+      child: Center(
+        child: SizedBox(
+          width: accountWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final account in accounts)
+                Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: AccountFrame(
                     firstName: account['firstName'] ?? 'First Name',
@@ -166,17 +130,12 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
                       Navigator.pushNamed(context, '/sign-in');
                     },
                     isTablet: false,
+                    width: accountWidth,
                   ),
-                );
-              },
-            ),
+                ),
+            ],
           ),
-
-          const SizedBox(width: 8),
-
-          // Scrollbar
-          VerticalScrollbar(controller: _scrollController, height: 200),
-        ],
+        ),
       ),
     );
   }
@@ -185,63 +144,75 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
     return userProvider.accounts;
   }
 
-  Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
+  Widget _buildAddNewProfileButton(
+    BuildContext context,
+    bool isTablet,
+    double maxWidth,
+  ) {
     final buttonWidth = isTablet ? 200.0 : 160.0;
     final buttonHeight = isTablet ? 45.0 : 35.0;
     final fontSize = isTablet ? 20.0 : 18.0;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(left: isTablet ? 30 : 8),
-            child: Container(
-              height: 3,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+    return Center(
+      child: SizedBox(
+        width: maxWidth * 1, // 70% of available width
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(left: isTablet ? 30 : 8),
+                child: Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-        SizedBox(width: isTablet ? 20 : 15),
-        CustomButton(
-          text: 'Add New Profile',
-          width: buttonWidth,
-          height: buttonHeight,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          textColor: Colors.white,
-          borderColor: const Color(0xFF00F0FF),
-          backgroundColor: const Color(0xFF0B1320),
-          onTap: () {
-            Navigator.pushNamed(context, '/sign-in');
-          },
-        ),
-        SizedBox(width: isTablet ? 20 : 15),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: isTablet ? 30 : 8),
-            child: Container(
-              height: 3,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+            SizedBox(width: isTablet ? 20 : 10),
+            CustomButton(
+              text: 'Add New Profile',
+              width: buttonWidth,
+              height: buttonHeight,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              borderColor: const Color(0xFF00F0FF),
+              backgroundColor: const Color(0xFF0B1320),
+              onTap: () {
+                Navigator.pushNamed(context, '/sign-in');
+              },
+            ),
+            SizedBox(width: isTablet ? 20 : 10),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: isTablet ? 30 : 8),
+                child: Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
+
+// MobileSelectAccountContent and TabletSelectAccountContent classes
+// (these can be removed or updated similarly if needed)
 
 class MobileSelectAccountContent extends StatelessWidget {
   final VoidCallback onClose;
@@ -303,6 +274,9 @@ class MobileSelectAccountContent extends StatelessWidget {
     List<Map<String, String>> accounts,
     UserProvider userProvider,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final accountWidth = screenWidth * 0.7; // 70% of screen width
+
     if (accounts.isEmpty) {
       return Center(
         child: Column(
@@ -327,46 +301,97 @@ class MobileSelectAccountContent extends StatelessWidget {
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Accounts list
-        Expanded(
-          child: ListView.builder(
-            controller: scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            itemCount: accounts.length,
-            itemBuilder: (context, index) {
-              final account = accounts[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AccountFrame(
-                  firstName: account['firstName'] ?? 'First Name',
-                  lastName: account['lastName'] ?? 'Last Name',
-                  eid: account['eid'] ?? 'N/A',
-                  imagePath: account['image'] ?? '',
-                  onTap: () {
-                    userProvider.setEID(account['eid'] ?? '');
-                    Navigator.pushNamed(context, '/sign-in');
-                  },
-                  isTablet: false,
-                ),
-              );
-            },
-          ),
+    return Center(
+      child: SizedBox(
+        width: accountWidth,
+        child: ListView.builder(
+          controller: scrollController,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          itemCount: accounts.length,
+          itemBuilder: (context, index) {
+            final account = accounts[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: AccountFrame(
+                firstName: account['firstName'] ?? 'First Name',
+                lastName: account['lastName'] ?? 'Last Name',
+                eid: account['eid'] ?? 'N/A',
+                imagePath: account['image'] ?? '',
+                onTap: () {
+                  userProvider.setEID(account['eid'] ?? '');
+                  Navigator.pushNamed(context, '/sign-in');
+                },
+                isTablet: false,
+                width: accountWidth,
+              ),
+            );
+          },
         ),
+      ),
+    );
+  }
 
-        // Scrollbar
-        Container(
-          width: 6,
-          margin: const EdgeInsets.only(top: 10, bottom: 10, right: 5),
-          child: VerticalScrollbar(
-            controller: scrollController,
-            height:
-                MediaQuery.of(context).size.height * 0.5, // Conservative height
-          ),
+  Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth * 0.7;
+    final buttonWidth = isTablet ? 200.0 : 160.0;
+    final buttonHeight = isTablet ? 45.0 : 35.0;
+    final fontSize = isTablet ? 20.0 : 18.0;
+
+    return Center(
+      child: SizedBox(
+        width: containerWidth,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(left: isTablet ? 30 : 8),
+                child: Container(
+                  height: 2,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: isTablet ? 20 : 10),
+            CustomButton(
+              text: 'Add New Profile',
+              width: buttonWidth,
+              height: buttonHeight,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              borderColor: const Color(0xFF00F0FF),
+              backgroundColor: const Color(0xFF0B1320),
+              onTap: () {
+                Navigator.pushNamed(context, '/sign-in');
+              },
+            ),
+            SizedBox(width: isTablet ? 20 : 10),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: isTablet ? 30 : 8),
+                child: Container(
+                  height: 2,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -385,6 +410,8 @@ class TabletSelectAccountContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final accounts = _getAccounts(userProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth * 0.7;
 
     return Container(
       color: const Color(0xFF0B1320),
@@ -422,48 +449,36 @@ class TabletSelectAccountContent extends StatelessWidget {
 
           // Account grid area
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 30.0,
-                vertical: 10.0,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Account grid with 2 columns
-                  Expanded(
-                    child: GridView.builder(
-                      controller: scrollController,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12.0,
-                            crossAxisSpacing: 15.0,
-                            childAspectRatio: 300 / 75,
-                          ),
-                      itemCount: accounts.length,
-                      itemBuilder: (context, index) {
-                        final account = accounts[index];
-                        return AccountFrame(
-                          firstName: account['firstName'] ?? 'First Name',
-                          lastName: account['lastName'] ?? 'Last Name',
-                          eid: account['eid'] ?? 'N/A',
-                          imagePath: account['image'] ?? '',
-                          onTap: () {
-                            userProvider.setEID(account['eid']!);
-                            Navigator.pushNamed(context, '/sign-in');
-                          },
-                          isTablet: true,
-                        );
-                      },
-                    ),
+            child: Center(
+              child: SizedBox(
+                width: containerWidth,
+                child: GridView.builder(
+                  controller: scrollController,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12.0,
+                    crossAxisSpacing: 15.0,
+                    childAspectRatio: 300 / 75,
                   ),
-
-                  const SizedBox(width: 12.0),
-
-                  // Custom scrollbar with smaller height
-                  VerticalScrollbar(controller: scrollController, height: 300),
-                ],
+                  itemCount: accounts.length,
+                  itemBuilder: (context, index) {
+                    final account = accounts[index];
+                    return AccountFrame(
+                      firstName: account['firstName'] ?? 'First Name',
+                      lastName: account['lastName'] ?? 'Last Name',
+                      eid: account['eid'] ?? 'N/A',
+                      imagePath: account['image'] ?? '',
+                      onTap: () {
+                        userProvider.setEID(account['eid']!);
+                        Navigator.pushNamed(context, '/sign-in');
+                      },
+                      isTablet: true,
+                      width:
+                          (containerWidth - 15) /
+                          2, // Account width for 2-column grid
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -472,9 +487,76 @@ class TabletSelectAccountContent extends StatelessWidget {
           Container(
             height: 60,
             padding: const EdgeInsets.only(bottom: 15.0, top: 10.0),
-            child: _buildAddNewProfileButton(context, true),
+            child: _buildAddNewProfileButton(context, true, screenWidth),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAddNewProfileButton(
+    BuildContext context,
+    bool isTablet,
+    double screenWidth,
+  ) {
+    final containerWidth = screenWidth * 0.8;
+    final buttonWidth = isTablet ? 200.0 : 160.0;
+    final buttonHeight = isTablet ? 45.0 : 35.0;
+    final fontSize = isTablet ? 20.0 : 18.0;
+
+    return Center(
+      child: SizedBox(
+        width: containerWidth,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(left: isTablet ? 30 : 8),
+                child: Container(
+                  height: 2,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: isTablet ? 20 : 10),
+            CustomButton(
+              text: 'Add New Profile',
+              width: buttonWidth,
+              height: buttonHeight,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              borderColor: const Color(0xFF00F0FF),
+              backgroundColor: const Color(0xFF0B1320),
+              onTap: () {
+                Navigator.pushNamed(context, '/sign-in');
+              },
+            ),
+            SizedBox(width: isTablet ? 20 : 10),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: isTablet ? 30 : 8),
+                child: Container(
+                  height: 2,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -484,7 +566,150 @@ List<Map<String, String>> _getAccounts(UserProvider userProvider) {
   return userProvider.accounts;
 }
 
-// Updated VerticalScrollbar Widget with customizable height
+// Updated AccountFrame with width parameter
+class AccountFrame extends StatelessWidget {
+  final String firstName;
+  final String lastName;
+  final String eid;
+  final String imagePath;
+  final VoidCallback onTap;
+  final bool isTablet;
+  final double? width; // New width parameter
+
+  const AccountFrame({
+    required this.firstName,
+    required this.lastName,
+    required this.eid,
+    required this.imagePath,
+    required this.onTap,
+    required this.isTablet,
+    this.width, // Make width optional
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Use provided width or calculate based on screen
+    final frameWidth = width ?? (isTablet ? 280.0 : 280.0);
+    final height = isTablet ? 65.0 : 65.0;
+    final imageSize = isTablet ? 45.0 : 45.0;
+    final nameFontSize = isTablet ? 20.0 : 18.0;
+    final eidFontSize = isTablet ? 14.0 : 14.0;
+    final leftPadding = frameWidth * 0.3; // Dynamic left padding based on width
+
+    final topDivider = (height - imageSize) / 2.5;
+
+    return SizedBox(
+      width: frameWidth,
+      height: height,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF00F0FF), width: 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: GestureDetector(
+          onTap: onTap,
+          child: Stack(
+            children: [
+              // Profile Image
+              Positioned(
+                top: topDivider,
+                left: 12,
+                child: _buildProfileImage(imageSize),
+              ),
+              // User Full Name
+              Positioned(
+                top: isTablet ? 8 : 10,
+                left: leftPadding,
+                child: SizedBox(
+                  width: frameWidth - leftPadding - 12, // Limit width
+                  child: Text(
+                    '$firstName $lastName',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: nameFontSize,
+                      height: 1.0,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              // EID
+              Positioned(
+                top: isTablet ? 32 : 34,
+                left: leftPadding,
+                child: SizedBox(
+                  width: frameWidth - leftPadding - 12, // Limit width
+                  child: Text(
+                    'EID: $eid',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: eidFontSize,
+                      height: 1.0,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage(double size) {
+    // If imagePath is empty or null, use the icon
+    if (imagePath.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white12,
+        ),
+        child: Icon(
+          Icons.account_circle_outlined,
+          color: Colors.white,
+          size: size * 0.8,
+        ),
+      );
+    }
+
+    // Otherwise, try to load the image
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white12),
+      child: ClipOval(
+        child: Image.asset(
+          imagePath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white12,
+              ),
+              child: Icon(
+                Icons.account_circle_outlined,
+                color: Colors.white,
+                size: size * 0.8,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ... (VerticalScrollbar, VLinePainter classes remain the same) ...
+
 class VerticalScrollbar extends StatefulWidget {
   final ScrollController? controller;
   final double height;
@@ -501,7 +726,7 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   double _scrollThumbHeight = 50;
   bool _isDragging = false;
   bool _controllerReady = false;
-  double _trackHeight = 300; // Default height
+  double _trackHeight = 300;
 
   @override
   void initState() {
@@ -688,136 +913,6 @@ class _VerticalScrollbarState extends State<VerticalScrollbar> {
   }
 }
 
-// Updated AccountFrame with tablet support - COMPACT VERSION
-class AccountFrame extends StatelessWidget {
-  final String firstName;
-  final String lastName;
-  final String eid;
-  final String imagePath;
-  final VoidCallback onTap;
-  final bool isTablet;
-
-  const AccountFrame({
-    required this.firstName,
-    required this.lastName,
-    required this.eid,
-    required this.imagePath,
-    required this.onTap,
-    required this.isTablet,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final width = isTablet ? 280.0 : 280.0;
-    final height = isTablet ? 65.0 : 65.0;
-    final imageSize = isTablet ? 45.0 : 45.0;
-    final nameFontSize = isTablet ? 20.0 : 18.0;
-    final eidFontSize = isTablet ? 14.0 : 14.0;
-    final leftPadding = isTablet ? 80.0 : 85.0;
-
-    final topDivider = (height - imageSize) / 2.5;
-
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF00F0FF), width: 1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Stack(
-          children: [
-            // Profile Image
-            Positioned(
-              top: topDivider,
-              left: 12,
-              child: _buildProfileImage(imageSize),
-            ),
-            // User Full Name
-            Positioned(
-              top: isTablet ? 8 : 10,
-              left: leftPadding,
-              child: Text(
-                '$firstName $lastName',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w600,
-                  fontSize: nameFontSize,
-                  height: 1.0,
-                ),
-              ),
-            ),
-            // EID
-            Positioned(
-              top: isTablet ? 32 : 34,
-              left: leftPadding,
-              child: Text(
-                'EID: $eid',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                  fontSize: eidFontSize,
-                  height: 1.0,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileImage(double size) {
-    // If imagePath is empty or null, use the icon
-    if (imagePath.isEmpty) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white12,
-        ),
-        child: Icon(
-          Icons.account_circle_outlined,
-          color: Colors.white,
-          size: size * 0.8,
-        ),
-      );
-    }
-
-    // Otherwise, try to load the image
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white12),
-      child: ClipOval(
-        child: Image.asset(
-          imagePath,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white12,
-              ),
-              child: Icon(
-                Icons.account_circle_outlined,
-                color: Colors.white,
-                size: size * 0.8,
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// Cyan horizontal line painter
 class VLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -839,61 +934,4 @@ class VLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-Widget _buildAddNewProfileButton(BuildContext context, bool isTablet) {
-  final buttonWidth = isTablet ? 200.0 : 160.0;
-  final buttonHeight = isTablet ? 45.0 : 35.0;
-  final fontSize = isTablet ? 20.0 : 18.0;
-
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(left: isTablet ? 30 : 8),
-          child: Container(
-            height: 3,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-        ),
-      ),
-      SizedBox(width: isTablet ? 20 : 15),
-      CustomButton(
-        text: 'Add New Profile',
-        width: buttonWidth,
-        height: buttonHeight,
-        fontSize: fontSize,
-        fontWeight: FontWeight.w600,
-        textColor: Colors.white,
-        borderColor: const Color(0xFF00F0FF),
-        backgroundColor: const Color(0xFF0B1320),
-        onTap: () {
-          Navigator.pushNamed(context, '/sign-in');
-        },
-      ),
-      SizedBox(width: isTablet ? 20 : 15),
-      Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(right: isTablet ? 30 : 8),
-          child: Container(
-            height: 3,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF00F0FF), Color(0xFF0B1320)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
 }
