@@ -5,5 +5,5 @@
 class ApiConstants {
   // static String get baseUrl => "https://trust-app.onrender.com";
 
-  static String get baseUrl => "http://192.168.16.3:8080";
+  static String get baseUrl => "http://192.168.0.102:8080";
 }
