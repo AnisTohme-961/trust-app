@@ -440,7 +440,7 @@ class MobileSignInPage extends StatelessWidget {
         Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            const SizedBox(height: 60),
+            const SizedBox(height: 20),
             Image.asset(
               'assets/images/egetyPerfectStar.png',
               width: 111,
@@ -487,7 +487,7 @@ class MobileSignInPage extends StatelessWidget {
             const SizedBox(height: 10),
             _buildEmailVerification(),
             _buildSignInButton(context),
-            const SizedBox(height: 20),
+            // const SizedBox(height: 20),
             const Text(
               'You built your vault \nNow unlock it',
               textAlign: TextAlign.center,
@@ -496,6 +496,7 @@ class MobileSignInPage extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
+                height: 1.05
               ),
             ),
             const SizedBox(height: 20),
