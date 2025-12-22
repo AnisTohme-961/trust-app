@@ -905,7 +905,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                     ),
                   ),
 
-                  const SizedBox(height: 120),
+                  const SizedBox(height: 60),
 
                   // Quote text
                   const Text(

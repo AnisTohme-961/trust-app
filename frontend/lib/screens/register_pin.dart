@@ -1471,9 +1471,10 @@ class _ProgressSteps extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 66,
+      // height: 66,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStep("", filled: true),
           _buildStep("", filled: true, filledColor: Color(0xFF0EA0BB)),
@@ -1497,6 +1498,7 @@ class _ProgressSteps extends StatelessWidget {
     return SizedBox(
       width: 65,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           CircleAvatar(
             radius: 12,
@@ -1507,18 +1509,21 @@ class _ProgressSteps extends StatelessWidget {
                 ? Icon(Icons.check, color: Colors.white, size: 16)
                 : null,
           ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
-              height: 1.0,
-              color: Colors.white,
+          const SizedBox(height: 8),
+          if (label.isNotEmpty)
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+                fontSize: 14, // slightly smaller for multi-line
+                height: 1.2, // better line spacing
+                color: Colors.white,
+              ),
+              maxLines: 2, // allow two lines
+              overflow: TextOverflow.visible, // prevent clipping
             ),
-          ),
         ],
       ),
     );
