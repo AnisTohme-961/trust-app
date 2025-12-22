@@ -14,6 +14,7 @@ import '../providers/font_size_provider.dart';
 import '../services/language_api_service.dart';
 import '../widgets/error_widgets.dart';
 import '../services/auth_service.dart';
+import '../widgets/font_size_slide_up_menu_widget.dart';
 
 // Custom painter for pattern lines
 class _PatternPainter extends CustomPainter {
@@ -148,22 +149,28 @@ class _SettingsScreenState extends State<SettingsScreen>
     'Other',
   ];
   String? _selectedFreezeReason;
-
-  // Added currency data
-  // final List<Map<String, String>> _currencies = [
-  //   {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
-  //   {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
-  //   {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
-  //   {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
-  //   {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
-  //   {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
-  //   {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
-  //   {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
-  // ];
-
   // Freeze account controller
   TextEditingController _freezeTextController = TextEditingController();
   bool _showCheckImage = false;
+
+  bool _areFreezeConditionsMet() {
+    return _freezeTextController.text == 'FREEZE ACCOUNT' && _pin.length == 4;
+  }
+
+  void _handleFreezeNextTap() {
+    if (_areFreezeConditionsMet()) {
+      _openPatternMenu();
+    } else {
+      // Show appropriate error message
+      if (_freezeTextController.text != 'FREEZE ACCOUNT') {
+        _errorStackKey.currentState?.showError(
+          'Please enter "FREEZE ACCOUNT" first',
+        );
+      } else if (_pin.length < 4) {
+        _errorStackKey.currentState?.showError('Enter 4 digits PIN first');
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -607,14 +614,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       setState(() {
         _patternCompleted = true;
       });
-
       print("Pattern entered: $_selectedPatternDots");
-
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _closeAllMenus();
-        }
-      });
     } else {
       _errorStackKey.currentState?.showError("Minimum 4 dots required");
       setState(() {
@@ -717,20 +717,14 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   void _openVerificationMenuFromPattern() {
-    if (_selectedPatternDots.length >= 4) {
-      print("Pattern entered: $_selectedPatternDots");
-
-      setState(() {
-        _showPatternMenu = false;
-        Future.delayed(const Duration(milliseconds: 100), () {
-          setState(() {
-            _showVerificationMenu = true;
-          });
+    setState(() {
+      _showPatternMenu = false;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _showVerificationMenu = true;
         });
       });
-    } else {
-      _errorStackKey.currentState?.showError("Minimum 4 dots required");
-    }
+    });
   }
 
   void _selectFontSize(String size) {
@@ -788,6 +782,27 @@ class _SettingsScreenState extends State<SettingsScreen>
         _filteredLanguages = LanguagesService.searchLanguages(query);
       }
     });
+  }
+
+  void _handlePatternNextTap() {
+    if (_selectedPatternDots.length >= 4) {
+      print("Pattern entered: $_selectedPatternDots");
+
+      // Clear the pattern lines before opening verification menu
+      setState(() {
+        _selectedPatternDots = [];
+        _patternCompleted = false;
+      });
+
+      _openVerificationMenuFromPattern();
+    } else {
+      _errorStackKey.currentState?.showError("Minimum 4 dots required");
+      // Clear the pattern so user has to start fresh
+      setState(() {
+        _selectedPatternDots = [];
+        _patternCompleted = false;
+      });
+    }
   }
 
   @override
@@ -1337,11 +1352,14 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
 
           // Font Size Menu
-          SlideUpMenu(
-            menuHeight: fontSizeMenuHeight,
+          // In your SettingsScreen class, update the SimpleSlideUpMenu widget instantiation:
+
+          // Font Size Menu
+          SimpleSlideUpMenu(
+            menuHeight: 300, // Make sure this is enough height
             isVisible: _showFontSizeMenu,
-            onToggle: _toggleFontSizeMenu,
-            onClose: _closeAllMenus,
+            onClose: _closeAllMenus, // This is already there
+            onToggle: _toggleFontSizeMenu, // ADD THIS LINE
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1349,11 +1367,13 @@ class _SettingsScreenState extends State<SettingsScreen>
               fit: BoxFit.contain,
             ),
             child: Container(
+              // Don't set height here, let it be constrained by parent
               padding: const EdgeInsets.all(16),
               child: Column(
+                mainAxisSize:
+                    MainAxisSize.min, // CRITICAL: This prevents overflow
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 16),
                   const Text(
                     'Font Size',
                     style: TextStyle(
@@ -1366,6 +1386,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   _buildFontSizeOption('Medium', fontProvider),
                   const SizedBox(height: 12),
                   _buildFontSizeOption('Large', fontProvider),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -1650,7 +1671,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // Freeze Account Menu - UPDATED with CustomNavigationWidget
+          // Freeze Account Menu
           SlideUpMenu(
             menuHeight: freezeAccountMenuHeight,
             isVisible: _showFreezeAccountMenu,
@@ -1854,7 +1875,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                         // UPDATED: Using CustomNavigationWidget for Freeze Account
                         CustomNavigationWidget(
                           onCancel: _closeAllMenus,
-                          onNext: _openPatternMenu,
+                          onNext:
+                              _handleFreezeNextTap, // Always call this method
                           cancelText: "Cancel",
                           nextText: "Next",
                           cancelButtonWidth: 106,
@@ -1869,8 +1891,12 @@ class _SettingsScreenState extends State<SettingsScreen>
                           nextButtonHeight: 40,
                           nextFontSize: 20,
                           nextFontWeight: FontWeight.w600,
-                          nextTextColor: Colors.white,
-                          nextBorderColor: const Color(0xFF00F0FF),
+                          nextTextColor: _areFreezeConditionsMet()
+                              ? Colors.white
+                              : const Color(0xFF718096),
+                          nextBorderColor: _areFreezeConditionsMet()
+                              ? const Color(0xFF00F0FF)
+                              : const Color(0xFF4A5568),
                           nextBackgroundColor: Colors.transparent,
                           nextBorderRadius: 10,
                           lineHeight: 4,
@@ -1878,6 +1904,24 @@ class _SettingsScreenState extends State<SettingsScreen>
                           spacing: 16,
                           startGradientColor: const Color(0xFF00F0FF),
                           endGradientColor: const Color(0xFF0B1320),
+                          // New properties
+                          isNextEnabled: _areFreezeConditionsMet(),
+                          nextDisabledTextColor: const Color(0xFF718096),
+                          nextDisabledBorderColor: const Color(0xFF4A5568),
+                          // This callback is called when disabled Next button is tapped
+                          onNextDisabledTap: () {
+                            // Show appropriate error message
+                            if (_freezeTextController.text !=
+                                'FREEZE ACCOUNT') {
+                              _errorStackKey.currentState?.showError(
+                                'Please enter "FREEZE ACCOUNT" first',
+                              );
+                            } else if (_pin.length < 4) {
+                              _errorStackKey.currentState?.showError(
+                                'Please Enter 4 digits PIN first',
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -1887,7 +1931,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // Pattern Menu - UPDATED with CustomNavigationWidget
+          // Pattern Menu
           SlideUpMenu(
             menuHeight: patternMenuHeight,
             isVisible: _showPatternMenu,
@@ -2045,7 +2089,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     // UPDATED: Using CustomNavigationWidget for Pattern Menu
                     CustomNavigationWidget(
                       onCancel: _closeAllMenus,
-                      onNext: _openVerificationMenuFromPattern,
+                      onNext: _handlePatternNextTap, // Use the new method
                       cancelText: "Cancel",
                       nextText: "Next",
                       cancelButtonWidth: 106,
@@ -2060,8 +2104,12 @@ class _SettingsScreenState extends State<SettingsScreen>
                       nextButtonHeight: 40,
                       nextFontSize: 20,
                       nextFontWeight: FontWeight.w600,
-                      nextTextColor: Colors.white,
-                      nextBorderColor: const Color(0xFF00F0FF),
+                      nextTextColor: _selectedPatternDots.length >= 4
+                          ? Colors.white
+                          : const Color(0xFF718096),
+                      nextBorderColor: _selectedPatternDots.length >= 4
+                          ? const Color(0xFF00F0FF)
+                          : const Color(0xFF4A5568),
                       nextBackgroundColor: Colors.transparent,
                       nextBorderRadius: 10,
                       lineHeight: 4,
@@ -2069,6 +2117,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                       spacing: 16,
                       startGradientColor: const Color(0xFF00F0FF),
                       endGradientColor: const Color(0xFF0B1320),
+                      // New properties for disable state
+                      isNextEnabled: _selectedPatternDots.length >= 4,
+                      nextDisabledTextColor: const Color(0xFF718096),
+                      nextDisabledBorderColor: const Color(0xFF4A5568),
+                      onNextDisabledTap: () {
+                        _errorStackKey.currentState?.showError(
+                          "Minimum 4 dots required",
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -2076,7 +2133,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // VERIFICATION MENU - UPDATED with CustomNavigationWidget
+          // VERIFICATION MENU
           SlideUpMenu(
             menuHeight: verificationMenuHeight,
             isVisible: _showVerificationMenu,
