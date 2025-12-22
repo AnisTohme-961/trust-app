@@ -176,8 +176,8 @@ class _SelectAccountSlideUpMenuState extends State<SelectAccountSlideUpMenu>
 
         return Positioned(
           bottom: bottomPosition,
-          left: 0,
-          right: 0,
+          left: 7,
+          right: 7,
           child: Container(
             height: displayHeight,
             decoration: BoxDecoration(

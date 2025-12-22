@@ -813,7 +813,6 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                   const SizedBox(height: 40),
 
                   // Next button with gradient lines
-                  // Next button with gradient lines - Clean version
                   Container(
                     width: double.infinity,
                     height: 40,

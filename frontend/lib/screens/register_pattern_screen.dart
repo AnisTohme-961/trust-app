@@ -163,7 +163,7 @@ class _MobileRegisterPatternScreenState
   void _onPatternComplete() async {
     if (!isConfirmMode) {
       if (selectedDots.length < 4) {
-        _errorStackKey.currentState?.showError("Minimum 4 dots");
+        _errorStackKey.currentState?.showError("Minimum 4 dots required");
         setState(() {
           selectedDots = [];
           patternCompleted = false;
@@ -426,7 +426,9 @@ class _MobileRegisterPatternScreenState
                                           );
                                         } else {
                                           _errorStackKey.currentState
-                                              ?.showError("Minimum 4 dots");
+                                              ?.showError(
+                                                "Minimum 4 dots required",
+                                              );
                                           setState(() {
                                             selectedDots = [];
                                             patternCompleted = false;
