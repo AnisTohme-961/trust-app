@@ -177,6 +177,19 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
           _pinError = "PIN does not match";
           // Show error immediately when 4 digits are entered and don't match
           _errorStackKey.currentState?.showError(_pinError!);
+
+          // ===== ADD THIS =====
+          // Automatically clear the PIN field when it doesn't match
+          Future.delayed(const Duration(milliseconds: 500), () {
+            // Clear after a short delay so user can see the wrong PIN
+            if (mounted) {
+              setState(() {
+                _pin.clear();
+                _pinValid = false;
+                _pinMatching = false;
+              });
+            }
+          });
         }
       } else {
         // For first PIN entry, just mark as valid
@@ -231,6 +244,10 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
           _pinMatching = false;
           _pinError = "PIN does not match";
           _errorStackKey.currentState?.showError(_pinError!);
+
+          _pin.clear();
+          _pinValid = false;
+          _pinMatching = false;
         }
       } else {
         _pinMatching = true;
