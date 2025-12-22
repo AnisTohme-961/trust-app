@@ -546,7 +546,7 @@ class _MobileRegisterPatternScreenState
                               const SizedBox(height: 15),
                               // Back & Logout Buttons
                               buildBackAndLogoutButtons(context),
-                              const SizedBox(height: 30),
+                              const SizedBox(height: 10),
                               const FooterWidget(),
                             ],
                           ),

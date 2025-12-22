@@ -240,7 +240,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 _buildEmailInput(),
                 const SizedBox(height: 30),
                 _buildGetEidButton(),
-                const SizedBox(height: 120),
+                const SizedBox(height: 40),
                 const Text(
                   'You built your vault \n Now unlock it',
                   textAlign: TextAlign.center,

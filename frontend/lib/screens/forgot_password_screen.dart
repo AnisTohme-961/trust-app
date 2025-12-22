@@ -481,6 +481,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 60),
             child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -572,8 +574,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   buildPasswordRules(),
                   buildBackAndChangeButtons(),
 
-                  // const SizedBox(height: 20),
-                  const SizedBox(height: 110),
+                  const SizedBox(height: 40),
                   const Text(
                     'Your system is safe again \n Welcome Back',
                     textAlign: TextAlign.center,
