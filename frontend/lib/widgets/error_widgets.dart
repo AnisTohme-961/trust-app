@@ -316,21 +316,21 @@ class _ErrorBannerState extends State<ErrorBanner>
                       ),
                     ),
 
-                    Positioned(
-                      top: 10,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Positioned(
+                    //   top: 10,
+                    //   left: 0,
+                    //   right: 0,
+                    //   child: Center(
+                    //     child: Container(
+                    //       width: 40,
+                    //       height: 4,
+                    //       decoration: BoxDecoration(
+                    //         color: Colors.white.withOpacity(0.3),
+                    //         borderRadius: BorderRadius.circular(2),
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

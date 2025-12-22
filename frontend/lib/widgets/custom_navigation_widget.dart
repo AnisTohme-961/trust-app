@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'custom_button.dart';
 
-class CustomNavigationWidget extends StatelessWidget {
+class CustomNavigationWidget extends StatefulWidget {
   final String cancelText;
   final String nextText;
   final VoidCallback onCancel;
@@ -40,6 +40,13 @@ class CustomNavigationWidget extends StatelessWidget {
   final double spacing;
   final Color startGradientColor;
   final Color endGradientColor;
+
+  // New properties for disable state and error handling
+  final bool isNextEnabled;
+  final Color nextDisabledTextColor;
+  final Color nextDisabledBorderColor;
+  final VoidCallback?
+  onNextDisabledTap; // Callback when disabled Next is tapped
 
   const CustomNavigationWidget({
     Key? key,
@@ -81,7 +88,28 @@ class CustomNavigationWidget extends StatelessWidget {
     this.lineRadius = 11,
     this.startGradientColor = const Color(0xFF00F0FF),
     this.endGradientColor = const Color(0xFF0B1320),
+
+    // New properties
+    this.isNextEnabled = true,
+    this.nextDisabledTextColor = const Color(0xFF718096),
+    this.nextDisabledBorderColor = const Color(0xFF4A5568),
+    this.onNextDisabledTap,
   }) : super(key: key);
+
+  @override
+  State<CustomNavigationWidget> createState() => _CustomNavigationWidgetState();
+}
+
+class _CustomNavigationWidgetState extends State<CustomNavigationWidget> {
+  bool _isNextHovered = false;
+
+  void _handleNextTap() {
+    if (widget.isNextEnabled) {
+      widget.onNext?.call();
+    } else {
+      widget.onNextDisabledTap?.call();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,74 +121,91 @@ class CustomNavigationWidget extends StatelessWidget {
           // Left gradient line
           Expanded(
             child: Container(
-              height: lineHeight,
+              height: widget.lineHeight,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(lineRadius),
+                borderRadius: BorderRadius.circular(widget.lineRadius),
                 gradient: LinearGradient(
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
-                  colors: [startGradientColor, endGradientColor],
+                  colors: [widget.startGradientColor, widget.endGradientColor],
                 ),
               ),
             ),
           ),
 
-          SizedBox(width: spacing),
+          SizedBox(width: widget.spacing),
 
           // Cancel button with custom styling
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: CustomButton(
-              text: cancelText,
-              child: cancelChild,
-              width: cancelButtonWidth,
-              height: cancelButtonHeight,
-              fontSize: cancelFontSize,
-              fontWeight: cancelFontWeight,
-              textColor: cancelTextColor,
-              backgroundColor: cancelBackgroundColor,
-              borderColor: cancelBorderColor,
-              borderRadius: cancelBorderRadius,
-              gradient: cancelGradient,
-              boxShadow: cancelBoxShadow,
-              onTap: onCancel,
+              text: widget.cancelText,
+              child: widget.cancelChild,
+              width: widget.cancelButtonWidth,
+              height: widget.cancelButtonHeight,
+              fontSize: widget.cancelFontSize,
+              fontWeight: widget.cancelFontWeight,
+              textColor: widget.cancelTextColor,
+              backgroundColor: widget.cancelBackgroundColor,
+              borderColor: widget.cancelBorderColor,
+              borderRadius: widget.cancelBorderRadius,
+              gradient: widget.cancelGradient,
+              boxShadow: widget.cancelBoxShadow,
+              onTap: widget.onCancel,
             ),
           ),
 
-          SizedBox(width: spacing),
+          SizedBox(width: widget.spacing),
 
-          // Next button with custom styling
+          // Next button with hover effects and disable state
           MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: CustomButton(
-              text: nextText,
-              child: nextChild,
-              width: nextButtonWidth,
-              height: nextButtonHeight,
-              fontSize: nextFontSize,
-              fontWeight: nextFontWeight,
-              textColor: nextTextColor,
-              backgroundColor: nextBackgroundColor,
-              borderColor: nextBorderColor,
-              borderRadius: nextBorderRadius,
-              gradient: nextGradient,
-              boxShadow: nextBoxShadow,
-              onTap: onNext,
+            onEnter: (_) => widget.isNextEnabled
+                ? setState(() => _isNextHovered = true)
+                : null,
+            onExit: (_) => setState(() => _isNextHovered = false),
+            cursor: widget.isNextEnabled
+                ? SystemMouseCursors.click
+                : SystemMouseCursors.forbidden,
+            child: GestureDetector(
+              onTap: _handleNextTap,
+              child: CustomButton(
+                text: widget.nextText,
+                child: widget.nextChild,
+                width: widget.nextButtonWidth,
+                height: widget.nextButtonHeight,
+                fontSize: widget.nextFontSize,
+                fontWeight: widget.nextFontWeight,
+                textColor: widget.isNextEnabled
+                    ? widget.nextTextColor
+                    : widget.nextDisabledTextColor,
+                backgroundColor: widget.isNextEnabled
+                    ? (_isNextHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : widget.nextBackgroundColor)
+                    : widget.nextBackgroundColor,
+                borderColor: widget.isNextEnabled
+                    ? widget.nextBorderColor
+                    : widget.nextDisabledBorderColor,
+                borderRadius: widget.nextBorderRadius,
+                gradient: widget.nextGradient,
+                boxShadow: widget.nextBoxShadow,
+                onTap: null, // Handled by parent GestureDetector
+              ),
             ),
           ),
 
-          SizedBox(width: spacing),
+          SizedBox(width: widget.spacing),
 
           // Right gradient line
           Expanded(
             child: Container(
-              height: lineHeight,
+              height: widget.lineHeight,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(lineRadius),
+                borderRadius: BorderRadius.circular(widget.lineRadius),
                 gradient: LinearGradient(
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
-                  colors: [endGradientColor, startGradientColor],
+                  colors: [widget.endGradientColor, widget.startGradientColor],
                 ),
               ),
             ),
