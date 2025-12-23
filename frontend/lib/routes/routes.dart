@@ -11,6 +11,7 @@ import '../screens/sign_in_pin_screen.dart';
 import '../screens/sign_in_pattern_screen.dart';
 import '../screens/coming_soon_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/frozen_screen.dart';
 
 Map<String, WidgetBuilder> appRoutes() {
   return {
@@ -28,5 +29,6 @@ Map<String, WidgetBuilder> appRoutes() {
     '/sign-in-pattern': (_) => const SignInPatternScreen(),
     '/coming-soon': (_) => const ComingSoonPage(),
     '/settings': (_) => const SettingsScreen(),
+    '/frozen-screen': (_) => const FreezeAccount(),
   };
 }

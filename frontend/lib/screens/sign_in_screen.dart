@@ -445,16 +445,16 @@ class MobileSignInPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              // const SizedBox(height: 0),           
-            Transform.translate(
-  offset: const Offset(0, 16),
-  child: Image.asset(
-    'assets/images/egetyPerfectStar.png',
-    width: 111,
-    height: 126,
-    fit: BoxFit.contain,
-  ),
-),
+              // const SizedBox(height: 0),
+              Transform.translate(
+                offset: const Offset(0, 16),
+                child: Image.asset(
+                  'assets/images/egetyPerfectStar.png',
+                  width: 111,
+                  height: 126,
+                  fit: BoxFit.contain,
+                ),
+              ),
               const SizedBox(height: 0),
               const Text(
                 'Egety Trust',
