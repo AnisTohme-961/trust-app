@@ -189,6 +189,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pquerna/otp/totp"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -1171,4 +1172,28 @@ func (uc *UserController) CheckEID(c *gin.Context) {
 
 	// EID exists → not available
 	c.JSON(http.StatusOK, gin.H{"available": false})
+}
+
+func (uc *UserController) SetCurrency(c *gin.Context) {
+	userID := c.Param("id") // or get from JWT token
+	var body struct {
+		CurrencyCode string `json:"currencyCode"`
+	}
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	objID, _ := primitive.ObjectIDFromHex(userID)
+	_, err := uc.UserCollection.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objID},
+		bson.M{"$set": bson.M{"currencyCode": body.CurrencyCode}},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Currency updated"})
 }

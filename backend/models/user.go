@@ -28,4 +28,5 @@ type User struct {
 	PatternHash      string             `bson:"patternHash,omitempty" json:"patternHash,omitempty"`
 	Phone            string             `bson:"phone,omitempty" json:"phone,omitempty"`
 	TwoFASecret      string             `bson:"twofa_secret,omitempty" json:"twofa_secret,omitempty"`
+	CurrencyCode     string             `bson:"currencyCode,omitempty" json:"currencyCode,omitempty"`
 }

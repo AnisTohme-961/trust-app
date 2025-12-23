@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_project/models/currency_price_model.dart';
 import 'package:flutter_project/services/currency_service.dart';
+import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_button.dart';
@@ -817,9 +818,24 @@ class _SettingsScreenState extends State<SettingsScreen>
   double? _selectedPrice;
 
   void _selectCurrency(String currencyCode, String currencySymbol) async {
+    
     setState(() {
       _selectedCurrency = '$currencyCode($currencySymbol)';
     });
+
+ try {
+    // get userId from provider
+   final eid = await AuthService.getEID(); // get it from secure storage
+   print('Retrieved EID: $eid');
+if (eid != null && eid.isNotEmpty) {
+  await _currencyService.updateUserCurrency(eid, currencyCode);
+  print("Currency updated on backend");
+} else {
+  print("EID not found");
+}
+  } catch (e) {
+    print("Failed to update currency: $e");
+  }
 
     // Build the Binance symbol (ex: BTC → BTCUSDT)
     final currencies = await _currencyService.getCurrencies();

@@ -30,4 +30,6 @@ func UserRoutes(r *gin.Engine, userCollection *mongo.Collection, codeController 
 	r.POST("/logout", middleware.AuthMiddleware(), controller.Logout)
 	// Forgot Password Routes
 	r.POST("/reset-password", controller.ResetPassword)
+	r.PUT("/users/:id/currency", middleware.AuthMiddleware(), controller.SetCurrency)
+
 }

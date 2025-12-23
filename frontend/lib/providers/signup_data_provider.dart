@@ -31,6 +31,10 @@ class UserProvider extends ChangeNotifier {
   String confirmPassword = '';
   String eid = '';
 
+  String userId = ''; // <-- Add this
+
+  
+
   
 Map<String, int> emailCooldowns = {};        // email -> seconds left
 Map<String, bool> emailVerified = {};        // email -> verified or not
@@ -48,6 +52,10 @@ Map<String, int> emailAttempts = {};         // email -> number of attempts
   bool isReturningUser = false;
   bool justRegistered = false;
 
+void setUserId(String id) {
+    userId = id;
+    notifyListeners();
+  }
 
 // Set cooldown for a specific email
 void setEmailCooldown(String email, int seconds) {
