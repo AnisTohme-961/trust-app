@@ -9,8 +9,8 @@ import (
 func CodeRoutes(r *gin.Engine, controller *controllers.CodeController) {
 	r.POST("/get-code", controller.GetCode)
 	r.POST("/verify-code", controller.VerifyCode)
-	r.POST("/verify-code-sign-in", controller.VerifyCodeSignIn)
 	r.POST("/get-code-sign-in", controller.GetCodeSignIn)
+	r.POST("/verify-code-sign-in", controller.VerifyCodeSignIn)
 	// Forgot Password Routes
 	r.POST("/send-reset-code", controller.SendResetCode)
 	r.POST("/verify-reset-code", controller.VerifyResetCode)

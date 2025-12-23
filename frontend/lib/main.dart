@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/screens/forgot_password_screen.dart';
+import 'package:flutter_project/screens/sign_in_screen.dart';
 import '../providers/language_provider.dart';
 import '../providers/protect_access_provider.dart';
 import './providers/font_size_provider.dart';
@@ -9,18 +11,14 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../routes/routes.dart';
 import 'widgets/footer_widgets.dart';
-import 'screens/forgot_password_screen.dart';
+import '../services/language_api_service.dart';
+import '../widgets/slide_up_menu_widget.dart';
+import 'screens/register_pattern_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(const MyApp());
-
-  // final userProvider = UserProvider();
-  // final storage = FlutterSecureStorage();
-
-  // // Load saved user info
-  // await userProvider.loadFromStorage(storage);
 }
 
 class MyApp extends StatelessWidget {
@@ -37,7 +35,6 @@ class MyApp extends StatelessWidget {
       ],
       child: Builder(
         builder: (context) {
-          // Load user data after provider is available
           final userProvider = Provider.of<UserProvider>(
             context,
             listen: false,
@@ -86,6 +83,18 @@ class MobileHomePage extends StatefulWidget {
 
 class _MobileHomePageState extends State<MobileHomePage> {
   bool _swipeUp = false;
+  bool _languageDropdownOpen = false;
+  List<Map<String, String>> _filteredLanguages = [];
+  final TextEditingController _languageSearchController =
+      TextEditingController();
+
+  List<Map<String, String>> get _languages => LanguagesService.getLanguages();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredLanguages = _languages;
+  }
 
   void _onSwipeUp() {
     setState(() {
@@ -123,6 +132,9 @@ class _MobileHomePageState extends State<MobileHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double dropdownHeight = screenHeight * 0.7;
+
     return Consumer<FontSizeProvider>(
       builder: (context, fontProvider, child) {
         return GestureDetector(
@@ -152,26 +164,32 @@ class _MobileHomePageState extends State<MobileHomePage> {
                           // Vector icon at top-right
                           Align(
                             alignment: Alignment.topRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                top: 20,
-                                right: 20,
-                              ),
-                              child: Image.asset(
-                                'assets/images/Vector.png',
-                                width: 23,
-                                height: 23,
-                                color: Colors.white,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _languageDropdownOpen =
+                                      !_languageDropdownOpen;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 20,
+                                  right: 20,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/Vector.png',
+                                  width: 23,
+                                  height: 23,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
 
                           // Welcome texts
-                          // Welcome texts - UPDATED SECTION
                           Padding(
                             padding: const EdgeInsets.only(top: 40),
                             child: Center(
-                              // Added Center widget here
                               child: Column(
                                 children: [
                                   Text(
@@ -243,7 +261,6 @@ class _MobileHomePageState extends State<MobileHomePage> {
                       ),
 
                       // Swipe Up text and arrow section
-                      // In your MobileHomePage build method, replace the Row with Stack:
                       Padding(
                         padding: const EdgeInsets.only(bottom: 40),
                         child: Column(
@@ -261,11 +278,9 @@ class _MobileHomePageState extends State<MobileHomePage> {
                             ),
                             const SizedBox(height: 20),
                             SizedBox(
-                              height:
-                                  179, // Same height as the GlowingVerticalOvalArrow
+                              height: 179,
                               child: Stack(
                                 children: [
-                                  // Position the glowing oval arrow
                                   Positioned(
                                     left: 175.0,
                                     child: GlowingVerticalOvalArrow(
@@ -273,13 +288,12 @@ class _MobileHomePageState extends State<MobileHomePage> {
                                       swipeUp: _swipeUp,
                                     ),
                                   ),
-                                  // Position the animated SVG
                                   Positioned(
                                     top: 70,
                                     left:
                                         MediaQuery.of(context).size.width *
                                             0.7 -
-                                        40.0, // Adjust based on the Row's left padding
+                                        40.0,
                                     child: MobileSwipeUpDownAnimatedSvg(
                                       assetPath: "assets/images/Pointer.svg",
                                       startY:
@@ -302,7 +316,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                     ],
                   ),
 
-                  // Bottom-right rectangle (positioned element)
+                  // Bottom-right rectangle
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -310,6 +324,166 @@ class _MobileHomePageState extends State<MobileHomePage> {
                       "assets/images/Rectangle.png",
                       width: 140,
                       fit: BoxFit.contain,
+                    ),
+                  ),
+
+                  // BACKGROUND OVERLAY WHEN LANGUAGE POPUP IS OPEN
+                  if (_languageDropdownOpen)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _languageDropdownOpen = false;
+                          });
+                        },
+                        child: Container(color: Colors.black.withOpacity(0.6)),
+                      ),
+                    ),
+
+                  // LANGUAGE DROPDOWN POPUP WITH FIXED LAYOUT
+                  SlideUpMenu(
+                    menuHeight: dropdownHeight,
+                    isVisible: _languageDropdownOpen,
+                    onToggle: () {
+                      setState(() {
+                        _languageDropdownOpen = !_languageDropdownOpen;
+                      });
+                    },
+                    onClose: () {
+                      setState(() {
+                        _languageDropdownOpen = false;
+                      });
+                    },
+                    backgroundColor: const Color(0xFF0B1320),
+                    shadowColor: const Color(0xFF00F0FF),
+                    borderRadius: 20.0,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOut,
+                    minHeight: 100,
+                    maxHeight: MediaQuery.of(context).size.height * 0.9,
+                    dragHandle: Padding(
+                      padding: const EdgeInsets.only(left: 20),
+                      child: CustomPaint(
+                        size: const Size(120, 20),
+                        painter: VLinePainter(),
+                      ),
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Use LayoutBuilder to get available space
+                        return Column(
+                          children: [
+                            // SEARCH FIELD - Fixed height
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 50,
+                                vertical: 5,
+                              ),
+                              child: TextField(
+                                controller: _languageSearchController,
+                                onChanged: (value) {
+                                  final query = value.toLowerCase();
+                                  setState(() {
+                                    _filteredLanguages = _languages
+                                        .where(
+                                          (c) => c['name']!
+                                              .toLowerCase()
+                                              .contains(query),
+                                        )
+                                        .toList();
+                                  });
+                                },
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Search Language',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ),
+
+                            // DIVIDER - Fixed height
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 50),
+                              child: Divider(
+                                color: Colors.white24,
+                                thickness: 0.5,
+                                height: 1,
+                              ),
+                            ),
+
+                            const SizedBox(height: 0),
+
+                            // LANGUAGE LIST - Takes remaining space
+                            Expanded(
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 50,
+                                  vertical: 8,
+                                ),
+                                itemCount: _filteredLanguages.length,
+                                physics: const ClampingScrollPhysics(),
+                                itemBuilder: (context, index) {
+                                  final country = _filteredLanguages[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _languageSearchController.text =
+                                            country['name']!;
+                                        _languageDropdownOpen = false;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            country['flag']!,
+                                            width: 30,
+                                            height: 30,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                                      width: 30,
+                                                      height: 30,
+                                                      color: Colors.grey,
+                                                      child: const Icon(
+                                                        Icons.flag,
+                                                        size: 20,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              country['name']!,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -331,6 +505,29 @@ class TabletHomePage extends StatefulWidget {
 
 class _TabletHomePageState extends State<TabletHomePage> {
   bool _swipeUp = false;
+  bool _languageDropdownOpen = false;
+  List<Map<String, String>> _filteredLanguages = [];
+  final TextEditingController _languageSearchController =
+      TextEditingController();
+
+  // dynamic list from language_api_service.dart:
+  List<Map<String, String>> get _languages => LanguagesService.getLanguages();
+
+  final double _sheetHeight = 650;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredLanguages = _languages;
+  }
+
+  bool get _anySheetOpen => _languageDropdownOpen;
+
+  void _closeAllSheets() {
+    setState(() {
+      _languageDropdownOpen = false;
+    });
+  }
 
   void _onSwipeUp() {
     setState(() {
@@ -388,31 +585,7 @@ class _TabletHomePageState extends State<TabletHomePage> {
         backgroundColor: const Color(0xFF0B1320),
         body: Stack(
           children: [
-            // Top-right Vector icon - positioned relative to screen size
-            Positioned(
-              top: screenHeight * 0.05,
-              right: screenWidth * 0.05,
-              child: Image.asset(
-                'assets/images/Vector.png',
-                width: 32,
-                height: 32,
-                color: Colors.white,
-              ),
-            ),
-
-            // Bottom-right rectangle - larger for tablet
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Image.asset(
-                "assets/images/Rectangle.png",
-                width: 150,
-                fit: BoxFit.contain,
-              ),
-            ),
-
             // Content Area
-            // Replace your Positioned.fill(...) block with this:
             Positioned.fill(
               child: SingleChildScrollView(
                 child: Padding(
@@ -423,7 +596,6 @@ class _TabletHomePageState extends State<TabletHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Top content section
                       const SizedBox(height: 50),
                       const Text(
                         'Welcome to',
@@ -514,6 +686,169 @@ class _TabletHomePageState extends State<TabletHomePage> {
                     ],
                   ),
                 ),
+              ),
+            ),
+
+            // Top-right Vector icon
+            Positioned(
+              top: screenHeight * 0.05,
+              right: screenWidth * 0.05,
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  _languageDropdownOpen = !_languageDropdownOpen;
+                }),
+                child: Image.asset(
+                  'assets/images/Vector.png',
+                  width: 32,
+                  height: 32,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            // Bottom-right rectangle
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Image.asset(
+                "assets/images/Rectangle.png",
+                width: 150,
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            // 🔥 OVERLAY FADE WHEN SHEET IS OPEN
+            if (_anySheetOpen)
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 250),
+                opacity: 1,
+                child: GestureDetector(
+                  onTap: _closeAllSheets,
+                  child: Container(color: Colors.black.withOpacity(0.45)),
+                ),
+              ),
+
+            // LANGUAGE DROPDOWN SHEET
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              right: 0,
+              bottom: _languageDropdownOpen ? 0 : -_sheetHeight,
+              height: _sheetHeight,
+              child: _buildLanguageSheet(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSheet() {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Container(
+        color: const Color(0xFF0B1320),
+        child: Column(
+          children: [
+            const SizedBox(height: 18),
+
+            // HANDLE
+            GestureDetector(
+              onTap: () => setState(() => _languageDropdownOpen = false),
+              child: CustomPaint(
+                size: const Size(120, 20),
+                painter: VLinePainter(),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // SEARCH FIELD
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 60),
+              child: TextField(
+                controller: _languageSearchController,
+                onChanged: (value) {
+                  final query = value.toLowerCase();
+                  setState(() {
+                    _filteredLanguages = _languages
+                        .where(
+                          (lang) => lang['name']!.toLowerCase().contains(query),
+                        )
+                        .toList();
+                  });
+                },
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: const InputDecoration(
+                  hintText: 'Search Language',
+                  hintStyle: TextStyle(color: Colors.white54, fontSize: 22),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+
+            const Divider(color: Colors.white24),
+
+            // LANGUAGES GRID
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 60,
+                  vertical: 20,
+                ),
+                itemCount: _filteredLanguages.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 4,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 15,
+                ),
+                itemBuilder: (context, i) {
+                  final lang = _filteredLanguages[i];
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _languageSearchController.text = lang['name']!;
+                        _languageDropdownOpen = false;
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        SvgPicture.asset(
+                          lang['flag']!,
+                          width: 35,
+                          height: 35,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                width: 35,
+                                height: 35,
+                                color: Colors.grey,
+                                child: const Icon(
+                                  Icons.flag,
+                                  color: Colors.white,
+                                ),
+                              ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Text(
+                            lang['name']!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -732,7 +1067,7 @@ class _TabletSwipeUpDownAnimatedSvgState
   }
 }
 
-// Glowing V// Glowing Vertical Oval Arrow (Updated for mobile only)
+// Glowing Vertical Oval Arrow
 class GlowingVerticalOvalArrow extends StatefulWidget {
   final String arrowAsset;
   final bool swipeUp;
@@ -833,4 +1168,28 @@ class _GlowingVerticalOvalArrowState extends State<GlowingVerticalOvalArrow>
       },
     );
   }
+}
+
+// Custom painter to draw the cyan V-line
+class VLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF00F0FF)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+
+    path.moveTo(0, size.height / 2);
+    path.lineTo(size.width / 2 - 10, size.height / 2);
+    path.lineTo(size.width / 2, size.height / 2 + 5);
+    path.lineTo(size.width / 2 + 10, size.height / 2);
+    path.lineTo(size.width, size.height / 2);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

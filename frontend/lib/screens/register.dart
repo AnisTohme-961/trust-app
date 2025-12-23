@@ -8,6 +8,8 @@ import 'select_account.dart';
 import '../widgets/custom_button.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/language_api_service.dart';
+import '../widgets/slide_up_menu_widget.dart';
+import '../widgets/select_account_slide_up_menu_widget.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -19,7 +21,6 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   bool _signUpGlow = false;
   bool _selectAccountOpen = false;
-  final double _dropdownHeight = 730;
   bool _languageDropdownOpen = false;
   List<LanguageModel> _filteredLanguages = [];
 
@@ -50,8 +51,6 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         _filteredLanguages = languageProvider.languages;
         _selectAccountOpen = false;
-        // _selectAccountOpen =
-        //     userProvider.isRegistered;
       });
     });
   }
@@ -79,7 +78,6 @@ class RegisterPageMobile extends StatefulWidget {
 class _RegisterPageMobileState extends State<RegisterPageMobile> {
   bool _signUpGlow = false;
   bool _selectAccountOpen = false;
-  final double _dropdownHeight = 730;
   bool _languageDropdownOpen = false;
   List<LanguageModel> _filteredLanguages = [];
 
@@ -113,105 +111,110 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
     });
   }
 
+  void _navigateToNextPage(BuildContext context) {
+    Navigator.pushNamed(context, '/sign-up');
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
-
-    const double dropdownHeight = 550;
-
-    final filteredLanguages = _languageSearchController.text.isEmpty
-        ? languageProvider.languages
-        : languageProvider.languages
-              .where(
-                (lang) => lang.name.toLowerCase().contains(
-                  _languageSearchController.text.toLowerCase(),
-                ),
-              )
-              .toList();
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double dropdownHeight = screenHeight * 0.75;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
-      body: SizedBox(
-        width: double.infinity,
-        height: double.infinity,
+      body: SafeArea(
         child: Stack(
           children: [
-            // Background image - Bottom Right
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Image.asset(
-                "assets/images/Rectangle2.png",
-                width: 180,
-                fit: BoxFit.contain,
-              ),
-            ),
-
-            // Main content - Centered and takes full height
-            SizedBox(
-              width: double.infinity,
-              height: double.infinity,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            // Main content column
+            Column(
+              children: [
+                // Top section with vector icon
+                Stack(
                   children: [
-                    const SizedBox(height: 60),
-
-                    // Header section
-                    Container(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: const Column(
-                        children: [
-                          SizedBox(
-                            width: 220,
-                            child: Text(
-                              'Welcome to',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 28,
-                                color: Colors.white,
-                              ),
-                            ),
+                    // Vector icon at top-right
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _languageDropdownOpen = !_languageDropdownOpen;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 20, right: 20),
+                          child: Image.asset(
+                            'assets/images/Vector.png',
+                            width: 23,
+                            height: 23,
+                            color: Colors.white,
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Egety Trust',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Description text
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: const Text(
-                        'Step into a dynamic realm powered by decentralization, '
-                        'where true data ownership and assets belong to you.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 20,
-                          height: 1.0,
-                          color: Colors.white,
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    // Welcome texts
+                    Padding(
+                      padding: const EdgeInsets.only(top: 40),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Welcome to',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 30.0,
+                                height: 1.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Egety Trust',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 50.0,
+                                height: 1.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
-                    // Middle animation
-                    SizedBox(
+                // Description text
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 20,
+                  ),
+                  child: Text(
+                    'Step into a dynamic realm powered by decentralization, '
+                    'where true data ownership and assets belong to you.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20.0,
+                      height: 1.0,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+
+                // Central image
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
                       width: 153,
                       height: 200,
                       child: Image.asset(
@@ -219,68 +222,56 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         fit: BoxFit.cover,
                       ),
                     ),
-
-                    const SizedBox(height: 82),
-
-                    // Buttons
-                    Column(
-                      children: [
-                        // Sign In
-                        CustomButton(
-                          text: 'Sign In',
-                          width: 150,
-                          height: 40,
-                          fontSize: 20,
-                          onTap: () {
-                            setState(() {
-                              _selectAccountOpen =
-                                  true; // open select account popup
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 30),
-                        // Sign Up
-                        CustomButton(
-                          text: 'Sign Up',
-                          width: 150,
-                          height: 40,
-                          fontSize: 20,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/sign-up',
-                            ); // navigate to sign-up
-                          },
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 60),
-                  ],
+                  ),
                 ),
-              ),
+
+                // Buttons section
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      // Sign In Button
+                      CustomButton(
+                        text: 'Sign In',
+                        width: 150,
+                        height: 40,
+                        fontSize: 20,
+                        onTap: () {
+                          setState(() {
+                            _selectAccountOpen = true;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 30),
+                      // Sign Up Button
+                      CustomButton(
+                        text: 'Sign Up',
+                        width: 150,
+                        height: 40,
+                        fontSize: 20,
+                        onTap: () {
+                          _navigateToNextPage(context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
 
-            // Language toggle button - Top Right
+            // Bottom-right rectangle
             Positioned(
-              top: 60,
-              right: 20,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _languageDropdownOpen = !_languageDropdownOpen;
-                  });
-                },
-                child: Image.asset(
-                  'assets/images/Vector.png',
-                  width: 23,
-                  height: 23,
-                  color: Colors.white,
-                ),
+              bottom: 0,
+              right: 0,
+              child: Image.asset(
+                "assets/images/Rectangle2.png",
+                width: 140,
+                fit: BoxFit.contain,
               ),
             ),
 
-            // 🔥 BACKGROUND OVERLAY WHEN ANY POPUP IS OPEN
+            // BACKGROUND OVERLAY WHEN ANY POPUP IS OPEN
             if (_languageDropdownOpen || _selectAccountOpen)
               Positioned.fill(
                 child: GestureDetector(
@@ -294,20 +285,36 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                 ),
               ),
 
-            // SELECT ACCOUNT POPUP
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              bottom: _selectAccountOpen ? 0 : -_dropdownHeight,
-              left: 0,
-              right: 0,
-              height: _dropdownHeight,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+            // SELECT ACCOUNT POPUP - USING SelectAccountSlideUpMenu
+            if (_selectAccountOpen)
+              SelectAccountSlideUpMenu(
+                menuHeight: dropdownHeight,
+                isVisible: _selectAccountOpen,
+                onToggle: () {
+                  setState(() {
+                    _selectAccountOpen = !_selectAccountOpen;
+                  });
+                },
+                onClose: () {
+                  setState(() {
+                    _selectAccountOpen = false;
+                  });
+                },
+                backgroundColor: const Color(0xFF0B1320),
+                shadowColor: const Color(0xFF00F0FF),
+                borderRadius: 20.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                minHeight: 300,
+                dragHandle: Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: CustomPaint(
+                    size: const Size(120, 20),
+                    painter: VLinePainter(),
+                  ),
                 ),
-                child: Container(
-                  color: const Color(0xFF0B1320),
+                child: SizedBox(
+                  height: dropdownHeight - 50, // Subtract drag handle height
                   child: SelectAccountContent(
                     onClose: () {
                       setState(() {
@@ -317,52 +324,46 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                   ),
                 ),
               ),
-            ),
 
-            // LANGUAGE DROPDOWN POPUP
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              bottom: _languageDropdownOpen ? 0 : -dropdownHeight,
-              left: 0,
-              right: 0,
-              height: dropdownHeight,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0B1320),
-                    border: const Border(
-                      top: BorderSide(color: Color(0xFF00F0FF), width: 2.0),
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
+            // LANGUAGE DROPDOWN POPUP - USING SlideUpMenu
+            if (_languageDropdownOpen)
+              SlideUpMenu(
+                menuHeight: dropdownHeight,
+                isVisible: _languageDropdownOpen,
+                onToggle: () {
+                  setState(() {
+                    _languageDropdownOpen = !_languageDropdownOpen;
+                  });
+                },
+                onClose: () {
+                  setState(() {
+                    _languageDropdownOpen = false;
+                  });
+                },
+                backgroundColor: const Color(0xFF0B1320),
+                shadowColor: const Color(0xFF00F0FF),
+                borderRadius: 20.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                minHeight: 100,
+                maxHeight: dropdownHeight,
+                dragHandle: Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: CustomPaint(
+                    size: const Size(120, 20),
+                    painter: VLinePainter(),
                   ),
+                ),
+                child: SizedBox(
+                  height: dropdownHeight - 50, // Subtract drag handle height
                   child: Column(
                     children: [
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _languageDropdownOpen = false;
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 20),
-                          child: CustomPaint(
-                            size: const Size(120, 20),
-                            painter: VLinePainter(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // SEARCH FIELD
+                      // SEARCH FIELD - Fixed height
                       Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 50),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 10,
+                        ),
                         child: TextField(
                           controller: _languageSearchController,
                           onChanged: (value) {
@@ -388,19 +389,31 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                               color: Colors.white.withOpacity(0.5),
                             ),
                             border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
                           ),
                         ),
                       ),
-                      const Divider(color: Colors.white24, thickness: 0.5),
 
-                      // COUNTRY LIST
+                      // DIVIDER
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 50),
+                        child: Divider(
+                          color: Colors.white24,
+                          thickness: 0.5,
+                          height: 1,
+                        ),
+                      ),
+
+                      // LANGUAGE LIST - Takes remaining space
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 50,
-                            vertical: 16,
+                            vertical: 8,
                           ),
                           itemCount: _filteredCountries.length,
+                          physics: const ClampingScrollPhysics(),
                           itemBuilder: (context, index) {
                             final country = _filteredCountries[index];
                             return GestureDetector(
@@ -411,7 +424,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                                   _languageDropdownOpen = false;
                                 });
                               },
-                              child: Padding(
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 8.0,
                                 ),
@@ -435,11 +448,13 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                                               ),
                                     ),
                                     const SizedBox(width: 10),
-                                    Text(
-                                      country['name']!,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
+                                    Expanded(
+                                      child: Text(
+                                        country['name']!,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -453,7 +468,6 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -506,6 +520,10 @@ class _RegisterPageTabletState extends State<RegisterPageTablet>
       _selectAccountOpen = false;
       _languageDropdownOpen = false;
     });
+  }
+
+  void _navigateToNextPage(BuildContext context) {
+    Navigator.pushNamed(context, '/sign-up');
   }
 
   @override
@@ -586,7 +604,7 @@ class _RegisterPageTabletState extends State<RegisterPageTablet>
               fontSize: 22,
               onTap: userProvider.isRegistered
                   ? null
-                  : () => Navigator.pushNamed(context, '/sign-up'),
+                  : () => _navigateToNextPage(context),
             ),
           ],
         ),
@@ -648,7 +666,7 @@ class _RegisterPageTabletState extends State<RegisterPageTablet>
               ),
             ),
 
-          // SELECT ACCOUNT SHEET
+          // SELECT ACCOUNT SHEET - Using same animation as main.dart
           AnimatedPositioned(
             duration: const Duration(milliseconds: 350),
             curve: Curves.easeOutCubic,
@@ -662,8 +680,29 @@ class _RegisterPageTabletState extends State<RegisterPageTablet>
               ),
               child: Container(
                 color: const Color(0xFF0B1320),
-                child: SelectAccountContent(
-                  onClose: () => setState(() => _selectAccountOpen = false),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 18),
+
+                    // HANDLE
+                    GestureDetector(
+                      onTap: () => setState(() => _selectAccountOpen = false),
+                      child: CustomPaint(
+                        size: const Size(120, 20),
+                        painter: VLinePainter(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // SELECT ACCOUNT CONTENT
+                    Expanded(
+                      child: SelectAccountContent(
+                        onClose: () =>
+                            setState(() => _selectAccountOpen = false),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

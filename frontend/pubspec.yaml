@@ -41,11 +41,19 @@ dependencies:
   flutter_secure_storage: ^9.1.1
   ionicons: ^0.2.2
   flutter_svg: ^2.2.2
-  
+  flutter_launcher_icons: ^0.14.4
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.3
+
+# Egety Application Icon
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/egetyLogo.png"
+
 
 dev_dependencies:
   flutter_test:
@@ -139,7 +147,6 @@ flutter:
     - assets/images/gender/
     # - assets/images/gender/Male.png
     # - assets/images/gender/Female.png
-
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

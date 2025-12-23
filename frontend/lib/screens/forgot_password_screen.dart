@@ -61,6 +61,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _passwordsMatch = false;
 
   bool _validationPerformed = false;
+  String? _activeCodeType;
+  bool codeDisabled = false;
 
   Timer? _timer;
   int _remainingSeconds = 0;
@@ -73,12 +75,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   };
 
   Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
+  Map<String, bool> _hasCodeBeenSentBeforeMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
   bool _codeSent = false;
 
   bool _showPasswordChangedOverlay = false;
 
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
+
+  // New state variables for button animation effect
+  Map<String, bool> _buttonClickedMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  // Timer for button animation reset
+  Map<String, Timer?> _buttonAnimationTimers = {
+    'email': null,
+    'sms': null,
+    'auth': null,
+  };
 
   @override
   void dispose() {
@@ -91,72 +113,230 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     for (var f in _smsFocusNodes) f.dispose();
     for (var c in _authCodeControllers) c.dispose();
     for (var f in _authFocusNodes) f.dispose();
+
+    // Cancel all timers
+    _timer?.cancel();
+    for (var timer in _timers.values) {
+      timer?.cancel();
+    }
+    for (var timer in _buttonAnimationTimers.values) {
+      timer?.cancel();
+    }
     super.dispose();
+  }
+
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
+
+  void _handleBackspace(
+    int index,
+    List<TextEditingController> controllers,
+    List<String> codeList,
+    List<FocusNode> focusNodes,
+  ) {
+    if (codeList[index].isEmpty && index > 0) {
+      controllers[index - 1].clear();
+      codeList[index - 1] = '';
+      focusNodes[index - 1].requestFocus();
+      setState(() {});
+    }
   }
 
   void _onChanged(
     String value,
     int index,
+    List<TextEditingController> controllers,
     List<String> codeList,
     List<FocusNode> focusNodes,
-  ) {
-    codeList[index] = value;
-    if (value.isNotEmpty && index < focusNodes.length - 1) {
-      FocusScope.of(context).requestFocus(focusNodes[index + 1]);
-    }
-    setState(() {});
-  }
+  ) async {
+    // 1️⃣ Keep digits only
+    final digits = value.replaceAll(RegExp(r'\D'), '');
 
-  // Add these state variables at the top of _ForgotPasswordScreenState
-  Map<String, int> _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
-  Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
-
-  // Updated _fetchCode to handle timer
-  // Changed the _fetchCode to call the api in auth service
-  void _fetchCode(String type) async {
-    if (_countdowns[type]! > 0) return;
-
-    if (_controller.text.isEmpty) {
-      _errorStackKey.currentState?.showError("Please enter your EID / Email");
+    // User deleted input
+    if (digits.isEmpty) {
+      codeList[index] = '';
+      setState(() {});
       return;
     }
 
+    // 2️⃣ Distribute pasted digits starting from current index
+    for (int i = 0; i < codeList.length; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        controllers[i].text = digits[i - index];
+        codeList[i] = digits[i - index];
+      }
+    }
+
+    // 3️⃣ Move focus to next empty field
+    final nextIndex = codeList.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      focusNodes[nextIndex].requestFocus();
+    } else {
+      focusNodes.last.unfocus(); // all filled
+    }
+
+    setState(() {});
+  }
+
+  // Timer management variables
+  Map<String, int> _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
+  Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
+
+  void _resetOtpFields(String type) {
+    List<TextEditingController> controllers;
+    List<FocusNode> focusNodes;
+    List<String> codeList;
+
+    // Choose which type to reset
+    switch (type) {
+      case 'email':
+        controllers = _emailCodeControllers;
+        focusNodes = _emailFocusNodes;
+        codeList = _emailCode;
+        break;
+      case 'sms':
+        controllers = _smsCodeControllers;
+        focusNodes = _smsFocusNodes;
+        codeList = _smsCode;
+        break;
+      case 'auth':
+        controllers = _authCodeControllers;
+        focusNodes = _authFocusNodes;
+        codeList = _authCode;
+        break;
+      default:
+        return;
+    }
+
+    // Clear all digits
+    for (var controller in controllers) {
+      controller.clear();
+    }
+
+    // Clear internal code list
+    for (int i = 0; i < codeList.length; i++) {
+      codeList[i] = '';
+    }
+
+    // Unfocus everything first
+    for (var node in focusNodes) {
+      node.unfocus();
+    }
+  }
+
+  // Updated _fetchCode to handle timer with animation effect
+  void _fetchCode(String type) async {
+    _resetOtpFields(type);
+    // Cancel any existing button animation timer for this type
+    _buttonAnimationTimers[type]?.cancel();
+
+    // Show visual feedback
+    setState(() {
+      _buttonClickedMap[type] = true;
+    });
+
+    // Disable if ANY type is active
+    if (_activeCodeType != null && _activeCodeType != type) {
+      // Reset animation after delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
+      return;
+    }
+
+    if (_countdowns[type]! > 0) {
+      // Reset animation after delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
+      return;
+    }
+
+    if (_controller.text.isEmpty) {
+      _errorStackKey.currentState?.showError("Please enter your EID / Email");
+      // Reset animation after delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
+      return;
+    }
+
+    final identifier = _controller.text.trim();
+
     try {
-      if (type == 'auth') {
-        final totpData = await AuthService.generateTOTP(
-          _controller.text.trim(),
-        );
-        print("Secret: ${totpData['secret']} QR URL: ${totpData['qrUrl']}");
+      Map<String, dynamic> data;
+
+      if (type == "auth") {
+        data = await AuthService.generateTOTP(identifier);
       } else {
-        await AuthService.sendResetCode(_controller.text.trim());
+        data = await AuthService.sendResetCode(identifier);
       }
 
-      // Temporarily show "Code Sent"
-      _setCodeSentFlag(type, true);
+      final int cooldown = data["cooldown"] ?? 60;
 
-      // Hide "Code Sent" after 2 seconds (does not block input)
-      Timer(const Duration(seconds: 2), () {
-        _setCodeSentFlag(type, false);
+      // 🔵 Show "Code Sent"
+      _setCodeSentFlag(type, true);
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _setCodeSentFlag(type, false);
       });
 
-      // Start 2-minute cooldown for button
+      // 🔵 Start cooldown + disable ALL buttons
       setState(() {
-        _countdowns[type] = 120;
+        _activeCodeType = type; // 🔥 lock all buttons except this one
+        _countdowns[type] = cooldown;
+        codeDisabled = true; // disable all buttons
+        _hasCodeBeenSentBeforeMap[type] = true;
       });
 
       _timers[type]?.cancel();
       _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
+
         setState(() {
           if (_countdowns[type]! > 0) {
             _countdowns[type] = _countdowns[type]! - 1;
           } else {
             timer.cancel();
-            _timers.remove(type);
+            _timers[type] = null;
+            _activeCodeType = null;
+            codeDisabled = false;
           }
         });
       });
     } catch (e) {
-      _errorStackKey.currentState?.showError(e.toString());
+      _errorStackKey.currentState?.showError(
+        "Failed to send code. Please try again.",
+      );
+    } finally {
+      // Reset animation after short delay
+      Future.delayed(Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _buttonClickedMap[type] = false;
+          });
+        }
+      });
     }
   }
 
@@ -265,6 +445,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
   }
 
+  void _handleInvalidCode(
+    String type,
+    List<TextEditingController> controllers,
+    List<String> codeList,
+    List<FocusNode> focusNodes,
+  ) {
+    setState(() {
+      isCodeValidMap[type] = false;
+      isCodeCorrectMap[type] = false;
+    });
+
+    Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+
+      setState(() {
+        for (int i = 0; i < controllers.length; i++) {
+          controllers[i].clear();
+          codeList[i] = '';
+        }
+        isCodeValidMap[type] = true;
+        isCodeCorrectMap[type] = false;
+      });
+
+      focusNodes[0].requestFocus();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -272,8 +479,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 100),
+            padding: const EdgeInsets.only(top: 60),
             child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -308,25 +517,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     focusNodes: _emailFocusNodes,
                     codeList: _emailCode,
                     type: 'email',
+                    codeDisabled: codeDisabled,
+                    isClicked: _buttonClickedMap['email'] ?? false,
                   ),
                   const SizedBox(height: 10),
-                  buildVerificationSection(
-                    title: 'SMS Verification',
-                    showCodeSent: _showSMSCodeSent,
-                    codeControllers: _smsCodeControllers,
-                    focusNodes: _smsFocusNodes,
-                    codeList: _smsCode,
-                    type: 'sms',
-                  ),
-                  const SizedBox(height: 10),
-                  buildVerificationSection(
-                    title: 'Authenticator App',
-                    showCodeSent: _showAuthCodeSent,
-                    codeControllers: _authCodeControllers,
-                    focusNodes: _authFocusNodes,
-                    codeList: _authCode,
-                    type: 'auth',
-                  ),
+                  // buildVerificationSection(
+                  //   title: 'SMS Verification',
+                  //   showCodeSent: _showSMSCodeSent,
+                  //   codeControllers: _smsCodeControllers,
+                  //   focusNodes: _smsFocusNodes,
+                  //   codeList: _smsCode,
+                  //   type: 'sms',
+                  //   codeDisabled: codeDisabled,
+                  //   isClicked: _buttonClickedMap['sms'] ?? false,
+                  // ),
+                  // const SizedBox(height: 10),
+                  // buildVerificationSection(
+                  //   title: 'Authenticator App',
+                  //   showCodeSent: _showAuthCodeSent,
+                  //   codeControllers: _authCodeControllers,
+                  //   focusNodes: _authFocusNodes,
+                  //   codeList: _authCode,
+                  //   type: 'auth',
+                  //   codeDisabled: codeDisabled,
+                  //   isClicked: _buttonClickedMap['auth'] ?? false,
+                  // ),
                   const SizedBox(height: 0),
                   buildPasswordRow(
                     controller: _passwordController,
@@ -358,7 +573,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   buildConfirmAndGenerateRow(),
                   buildPasswordRules(),
                   buildBackAndChangeButtons(),
-                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 40),
                   const Text(
                     'Your system is safe again \n Welcome Back',
                     textAlign: TextAlign.center,
@@ -740,7 +956,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IntrinsicWidth(
-                  // <-- Forces columns to take minimum width
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -752,7 +967,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 55),
+                const Spacer(), 
                 IntrinsicWidth(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -910,6 +1125,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required List<FocusNode> focusNodes,
     required List<String> codeList,
     required String type,
+    required bool codeDisabled,
+    required bool isClicked,
   }) {
     bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
     bool isCodeValid = isCodeValidMap[type] ?? true;
@@ -977,130 +1194,115 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             SizedBox(
                               width: 35,
                               height: 35,
-                              child: TextField(
-                                controller: codeControllers[index],
-                                focusNode: focusNodes[index],
-                                showCursor: !(isCodeCorrect),
-                                enabled: !isCodeCorrect,
-                                readOnly: isCodeCorrect,
-                                textAlign: TextAlign.center,
-                                maxLength: 1,
-                                keyboardType: TextInputType.number,
-                                style: TextStyle(
-                                  color: isCodeCorrect
+                              child: RawKeyboardListener(
+                                focusNode:
+                                    FocusNode(), // separate node for listener
+                                onKey: (event) {
+                                  if (event is RawKeyDownEvent &&
+                                      event.logicalKey ==
+                                          LogicalKeyboardKey.backspace) {
+                                    _handleBackspace(
+                                      index,
+                                      codeControllers,
+                                      codeList,
+                                      focusNodes,
+                                    );
+                                  }
+                                },
+                                child: TextField(
+                                  controller: codeControllers[index],
+                                  focusNode: focusNodes[index],
+                                  showCursor: !codeDisabled,
+                                  enabled: !codeDisabled,
+                                  readOnly: codeDisabled,
+                                  textAlign: TextAlign.center,
+                                  keyboardType: TextInputType.number,
+                                  style: TextStyle(
+                                    color: codeDisabled
+                                        ? Colors.grey
+                                        : isCodeCorrect
+                                        ? const Color(0xFF00F0FF)
+                                        : (isCodeValid == false
+                                              ? Colors.red
+                                              : Colors.white),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  cursorColor: codeDisabled
+                                      ? Colors.grey
+                                      : isCodeCorrect
                                       ? const Color(0xFF00F0FF)
                                       : (isCodeValid == false
                                             ? Colors.red
                                             : Colors.white),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                cursorColor: isCodeCorrect
-                                    ? Colors.transparent
-                                    : (isCodeValid == false
-                                          ? Colors.red
-                                          : Colors.white),
-                                decoration: const InputDecoration(
-                                  counterText: "",
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
+                                  decoration: const InputDecoration(
+                                    counterText: "",
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onChanged: (value) async {
+                                    // 1️⃣ Handle typing + paste + focus correctly
+                                    _onChanged(
+                                      value,
+                                      index,
+                                      codeControllers,
+                                      codeList,
+                                      focusNodes,
+                                    );
 
-                                // Replace the onChanged callback in buildVerificationSection with this:
-                                onChanged: (value) async {
-                                  if (isCodeCorrect) return;
+                                    // 2️⃣ Reset validity while typing
+                                    setState(() {
+                                      isCodeValidMap[type] = true;
+                                      isCodeCorrectMap[type] = false;
+                                    });
 
-                                  if (value.length > 1) {
-                                    codeControllers[index].text = value[0];
-                                  }
+                                    // 3️⃣ Verify only when ALL digits are filled
+                                    if (codeList.every((c) => c.isNotEmpty)) {
+                                      final email = _controller.text.trim();
+                                      bool valid = false;
 
-                                  if (value.isNotEmpty && index < 5) {
-                                    focusNodes[index + 1].requestFocus();
-                                  } else if (value.isEmpty && index > 0) {
-                                    focusNodes[index - 1].requestFocus();
-                                  }
-
-                                  setState(() {
-                                    codeList[index] =
-                                        codeControllers[index].text;
-                                    isCodeValidMap[type] =
-                                        true; // Reset to true while typing
-                                  });
-
-                                  // When all digits are filled
-                                  if (codeList.every((c) => c.isNotEmpty)) {
-                                    final email = _controller.text.trim();
-                                    bool valid = false;
-
-                                    try {
-                                      if (type == 'auth') {
-                                        valid = await AuthService.verifyTOTP(
-                                          email: email,
-                                          code: codeList.join(),
-                                        );
-                                      } else {
-                                        valid =
-                                            await AuthService.verifyResetCode(
-                                              identifier: email,
-                                              code: codeList.join(),
-                                            );
-                                      }
-
-                                      setState(() {
-                                        isCodeCorrectMap[type] = valid;
-                                        isCodeValidMap[type] =
-                                            valid; // ✅ This is the key fix - set to false when invalid
-                                      });
-
-                                      // ✅ Pause/Stop timer if code is correct
-                                      if (valid) {
-                                        _timers[type]?.cancel();
-                                        _timers[type] = null;
-                                        _countdowns[type] = 0;
-                                      } else {
-                                        // reset fields after 3s if invalid
-                                        Timer(const Duration(seconds: 3), () {
-                                          if (!mounted) return;
-                                          setState(() {
-                                            for (var c in codeControllers) {
-                                              c.clear();
-                                            }
-                                            codeList = List.generate(
-                                              6,
-                                              (_) => "",
-                                            );
-                                            isCodeValidMap[type] =
-                                                true; // Reset to neutral state
-                                          });
-                                          focusNodes[0].requestFocus();
-                                        });
-                                      }
-                                    } catch (e) {
-                                      // Handle error case
-                                      setState(() {
-                                        isCodeCorrectMap[type] = false;
-                                        isCodeValidMap[type] =
-                                            false; // Show red X on error
-                                      });
-
-                                      // reset fields after 3s
-                                      Timer(const Duration(seconds: 3), () {
-                                        if (!mounted) return;
-                                        setState(() {
-                                          for (var c in codeControllers) {
-                                            c.clear();
-                                          }
-                                          codeList = List.generate(
-                                            6,
-                                            (_) => "",
+                                      try {
+                                        if (type == 'auth') {
+                                          valid = await AuthService.verifyTOTP(
+                                            email: email,
+                                            code: codeList.join(),
                                           );
-                                          isCodeValidMap[type] = true;
-                                        });
-                                        focusNodes[0].requestFocus();
-                                      });
+                                        } else {
+                                          valid =
+                                              await AuthService.verifyResetCode(
+                                                identifier: email,
+                                                code: codeList.join(),
+                                              );
+                                        }
+
+                                        if (valid) {
+                                          setState(() {
+                                            isCodeCorrectMap[type] = true;
+                                            isCodeValidMap[type] = true;
+                                          });
+
+                                          _timers[type]?.cancel();
+                                          _timers[type] = null;
+                                          _countdowns[type] = 0;
+                                        } else {
+                                          _handleInvalidCode(
+                                            type,
+                                            codeControllers,
+                                            codeList,
+                                            focusNodes,
+                                          );
+                                        }
+                                      } catch (_) {
+                                        _handleInvalidCode(
+                                          type,
+                                          codeControllers,
+                                          codeList,
+                                          focusNodes,
+                                        );
+                                      }
                                     }
-                                  }
-                                },
+                                  },
+                                ),
                               ),
                             ),
 
@@ -1109,7 +1311,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               duration: const Duration(milliseconds: 250),
                               width: 35,
                               height: isCodeCorrect ? 0 : 2,
-                              color: isCodeCorrect
+                              color: codeDisabled
+                                  ? Colors.grey
+                                  : isCodeCorrect
                                   ? Colors.transparent
                                   : (isCodeValid == false
                                         ? Colors.red
@@ -1145,55 +1349,90 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
 
-            // 📩 Get Code button
+            // 📩 Get Code button WITH ANIMATION EFFECT
             Positioned(
               top: 21,
               left: 280,
               child: GestureDetector(
-                onTap: () {
-                  if (_controller.text.isEmpty) {
-                    _errorStackKey.currentState?.showError(
-                      "Please enter your EID / Email",
-                    );
-                    return;
-                  }
-                  _fetchCode(type);
-                },
-                child: Container(
+                onTap: (_activeCodeType == null || _activeCodeType == type)
+                    ? () {
+                        // Show visual feedback immediately
+                        setState(() {
+                          _buttonClickedMap[type] = true;
+                        });
+
+                        if (_controller.text.isEmpty) {
+                          _errorStackKey.currentState?.showError(
+                            "Please enter your EID / Email",
+                          );
+                          // Reset animation after delay
+                          Future.delayed(Duration(milliseconds: 200), () {
+                            if (mounted) {
+                              setState(() {
+                                _buttonClickedMap[type] = false;
+                              });
+                            }
+                          });
+                          return;
+                        }
+                        _fetchCode(type);
+                      }
+                    : null,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 100),
                   width: 94,
                   height: 23,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
                     borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withOpacity(1),
-                        blurRadius: 11.5,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
+                    boxShadow: _buttonClickedMap[type]!
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.8),
+                              blurRadius: 11.5,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
                   ),
                   alignment: Alignment.center,
                   child: _countdowns[type]! > 0
                       ? Text(
-                          "${_countdowns[type]! ~/ 60}m ${_countdowns[type]! % 60}s",
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: Colors.black,
-                          ),
-                        )
-                      : const Text(
-                          "Get Code",
+                          formatCooldown(_countdowns[type]!),
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: Colors.black,
+                            color: _countdowns[type]! > 0
+                                ? const Color(0xFF0B1320)
+                                : (_buttonClickedMap[type]!
+                                      ? Colors.white
+                                      : Colors.black),
+                          ),
+                        )
+                      : Text(
+                          _hasCodeBeenSentBeforeMap[type]!
+                              ? "Send Again"
+                              : "Get Code",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: _buttonClickedMap[type]!
+                                ? Colors.white
+                                : Colors.black,
                           ),
                         ),
                 ),

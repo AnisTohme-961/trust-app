@@ -1,13 +1,49 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_project/models/currency_price_model.dart';
+import 'package:flutter_project/services/currency_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/footer_widgets.dart';
 import '../widgets/slide_up_menu_widget.dart';
 import '../widgets/add_new_profile_widget.dart';
+import '../widgets/custom_navigation_widget.dart'; // Add this import
 import '../providers/font_size_provider.dart';
 import '../services/language_api_service.dart';
+import '../widgets/error_widgets.dart';
+import '../services/auth_service.dart';
+import '../widgets/font_size_slide_up_menu_widget.dart';
+
+// Custom painter for pattern lines
+class _PatternPainter extends CustomPainter {
+  final List<int> selectedDots;
+  final List<Offset> dotCenters;
+
+  _PatternPainter({required this.selectedDots, required this.dotCenters});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (selectedDots.length < 2) return;
+
+    Paint paint = Paint()
+      ..color = const Color(0xFF00F0FF)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+
+    for (int i = 0; i < selectedDots.length - 1; i++) {
+      int first = selectedDots[i];
+      int second = selectedDots[i + 1];
+      canvas.drawLine(dotCenters[first], dotCenters[second], paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -24,7 +60,76 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showFontSizeMenu = false;
   bool _showLanguageMenu = false;
   bool _showCurrencyMenu = false;
-  bool _showFreezeAccountMenu = false; // Added freeze account menu state
+  bool _showFreezeAccountMenu = false;
+  bool _showPatternMenu = false;
+  bool _showVerificationMenu = false;
+
+  // PIN Input State
+  final List<String> _pin = [];
+  bool _obscurePin = true;
+  List<String> _numbers = List.generate(10, (i) => i.toString());
+
+  // Pattern Grid State
+  final int _patternGridSize = 3;
+  List<int> _selectedPatternDots = [];
+  bool _patternCompleted = false;
+  final GlobalKey<ErrorStackState> _errorStackKey =
+      GlobalKey<ErrorStackState>();
+  final double _patternDotSize = 17;
+  final GlobalKey _gridKey = GlobalKey();
+  bool _showPatternLines = true;
+  bool _isPatternEyeVisible = true;
+
+  List<CurrencyPrice> _currencies = [];
+
+  TextEditingController _currencySearchController = TextEditingController();
+  List<CurrencyPrice> _filteredCurrencies = [];
+
+  // Verification State
+  final TextEditingController _verificationEmailController =
+      TextEditingController();
+  bool _showEmailCodeSent = false;
+  bool _showSMSCodeSent = false;
+  bool _showAuthCodeSent = false;
+
+  List<TextEditingController> _emailCodeControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  List<FocusNode> _emailFocusNodes = List.generate(6, (_) => FocusNode());
+  List<String> _emailCode = List.generate(6, (_) => '');
+
+  List<TextEditingController> _smsCodeControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  List<FocusNode> _smsFocusNodes = List.generate(6, (_) => FocusNode());
+  List<String> _smsCode = List.generate(6, (_) => '');
+
+  List<TextEditingController> _authCodeControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  List<FocusNode> _authFocusNodes = List.generate(6, (_) => FocusNode());
+  List<String> _authCode = List.generate(6, (_) => '');
+
+  Map<String, bool> isCodeCorrectMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  Map<String, bool> isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
+
+  Map<String, int> _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
+  Map<String, Timer?> _timers = {'email': null, 'sms': null, 'auth': null};
+  String? _activeCodeType;
+  bool _codeDisabled = false;
+
+  // Verification PIN state
+  final List<String> _verificationPin = [];
+  bool _obscureVerificationPin = true;
+  List<String> _verificationNumbers = List.generate(10, (i) => i.toString());
 
   late AnimationController _wiggleController;
   late Animation<double> _wiggleAnimation;
@@ -35,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   String _selectedLanguage = 'English (English)';
   String _selectedCurrency = 'USD(\$)';
 
-  // Added freeze account reasons
+  // Freeze account reasons
   final List<String> _freezeReasons = [
     'Temporarily not using account',
     'Security concerns',
@@ -44,22 +149,37 @@ class _SettingsScreenState extends State<SettingsScreen>
     'Other',
   ];
   String? _selectedFreezeReason;
+  // Freeze account controller
+  TextEditingController _freezeTextController = TextEditingController();
+  bool _showCheckImage = false;
 
-  // Added currency data
-  final List<Map<String, String>> _currencies = [
-    {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
-    {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
-    {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
-    {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
-    {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
-    {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
-    {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
-    {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
-  ];
+  bool _areFreezeConditionsMet() {
+    return _freezeTextController.text == 'FREEZE ACCOUNT' && _pin.length == 4;
+  }
+
+  void _handleFreezeNextTap() {
+    if (_areFreezeConditionsMet()) {
+      _openPatternMenu();
+    } else {
+      // Show appropriate error message
+      if (_freezeTextController.text != 'FREEZE ACCOUNT') {
+        _errorStackKey.currentState?.showError(
+          'Please enter "FREEZE ACCOUNT" first',
+        );
+      } else if (_pin.length < 4) {
+        _errorStackKey.currentState?.showError('Enter 4 digits PIN first');
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadCurrencies();
+
+    // Shuffle numbers for security
+    _numbers.shuffle();
+    _verificationNumbers.shuffle();
 
     // Initialize languages
     _filteredLanguages = LanguagesService.getLanguages();
@@ -83,6 +203,251 @@ class _SettingsScreenState extends State<SettingsScreen>
     _wiggleTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (mounted) _wiggleController.forward(from: 0);
     });
+
+    // Listen to freeze text field changes
+    _freezeTextController.addListener(_onFreezeTextChanged);
+
+    _currencySearchController = TextEditingController();
+    _currencySearchController.addListener(() {
+      _searchCurrencies(_currencySearchController.text);
+    });
+  }
+
+  void _searchCurrencies(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _filteredCurrencies = List.from(_currencies);
+      });
+    } else {
+      setState(() {
+        _filteredCurrencies = _currencies.where((currency) {
+          return currency.code.toLowerCase().contains(query.toLowerCase()) ||
+              currency.name.toLowerCase().contains(query.toLowerCase()) ||
+              currency.symbol.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      });
+    }
+  }
+
+  Future<void> _loadCurrencies() async {
+    try {
+      final currencies = await _currencyService.getCurrencies();
+      setState(() {
+        _currencies = currencies;
+        _filteredCurrencies = List.from(currencies);
+      });
+    } catch (e) {
+      print("Failed to load currencies: $e");
+    }
+  }
+
+  void _onFreezeTextChanged() {
+    final text = _freezeTextController.text;
+    setState(() {
+      _showCheckImage = text == 'FREEZE ACCOUNT';
+    });
+  }
+
+  // Verification Methods
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
+
+  void _fetchCode(String type) async {
+    // Disable if ANY type is active
+    if (_activeCodeType != null && _activeCodeType != type) return;
+
+    if (_countdowns[type]! > 0) return;
+
+    if (_verificationEmailController.text.isEmpty) {
+      _errorStackKey.currentState?.showError("Please enter your EID / Email");
+      return;
+    }
+
+    final identifier = _verificationEmailController.text.trim();
+
+    try {
+      Map<String, dynamic> data;
+
+      if (type == "auth") {
+        data = await AuthService.generateTOTP(identifier);
+      } else {
+        data = await AuthService.sendResetCode(identifier);
+      }
+
+      final int cooldown = data["cooldown"] ?? 60;
+
+      // Show "Code Sent"
+      _setCodeSentFlag(type, true);
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _setCodeSentFlag(type, false);
+      });
+
+      // Start cooldown + disable ALL buttons
+      setState(() {
+        _activeCodeType = type;
+        _countdowns[type] = cooldown;
+        _codeDisabled = true;
+      });
+
+      _timers[type]?.cancel();
+      _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
+
+        setState(() {
+          if (_countdowns[type]! > 0) {
+            _countdowns[type] = _countdowns[type]! - 1;
+          } else {
+            timer.cancel();
+            _timers[type] = null;
+            _activeCodeType = null;
+            _codeDisabled = false;
+          }
+        });
+      });
+    } catch (e) {
+      _errorStackKey.currentState?.showError(
+        "Failed to send code. Please try again.",
+      );
+    }
+  }
+
+  void _setCodeSentFlag(String type, bool value) {
+    setState(() {
+      if (type == 'email') _showEmailCodeSent = value;
+      if (type == 'sms') _showSMSCodeSent = value;
+      if (type == 'auth') _showAuthCodeSent = value;
+    });
+  }
+
+  void _onVerificationCodeChanged(
+    String value,
+    int index,
+    List<String> codeList,
+    List<FocusNode> focusNodes,
+    String type,
+  ) async {
+    codeList[index] = value.isEmpty ? '' : value[0];
+
+    if (value.isNotEmpty && index < focusNodes.length - 1) {
+      focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      focusNodes[index - 1].requestFocus();
+    }
+
+    // Reset validity while typing
+    setState(() {
+      isCodeValidMap[type] = true;
+      isCodeCorrectMap[type] = false;
+    });
+
+    // Only verify when all digits are filled
+    if (codeList.every((c) => c.isNotEmpty)) {
+      final email = _verificationEmailController.text.trim();
+      bool valid = false;
+
+      try {
+        if (type == 'auth') {
+          valid = await AuthService.verifyTOTP(
+            email: email,
+            code: codeList.join(),
+          );
+        } else {
+          valid = await AuthService.verifyResetCode(
+            identifier: email,
+            code: codeList.join(),
+          );
+        }
+
+        if (valid) {
+          setState(() {
+            isCodeCorrectMap[type] = true;
+            isCodeValidMap[type] = true;
+          });
+          _timers[type]?.cancel();
+          _timers[type] = null;
+          _countdowns[type] = 0;
+        } else {
+          // Show error for 3 seconds, then reset
+          setState(() {
+            isCodeValidMap[type] = false;
+            isCodeCorrectMap[type] = false;
+          });
+
+          Timer(const Duration(seconds: 3), () {
+            if (!mounted) return;
+            setState(() {
+              List<TextEditingController> controllers;
+              switch (type) {
+                case 'email':
+                  controllers = _emailCodeControllers;
+                  break;
+                case 'sms':
+                  controllers = _smsCodeControllers;
+                  break;
+                case 'auth':
+                  controllers = _authCodeControllers;
+                  break;
+                default:
+                  return;
+              }
+
+              for (var i = 0; i < controllers.length; i++) {
+                controllers[i].clear();
+                codeList[i] = '';
+              }
+              isCodeValidMap[type] = true;
+              isCodeCorrectMap[type] = false;
+            });
+            focusNodes[0].requestFocus();
+          });
+        }
+      } catch (e) {
+        // On error, show red for 3 seconds, then reset
+        setState(() {
+          isCodeValidMap[type] = false;
+          isCodeCorrectMap[type] = false;
+        });
+
+        Timer(const Duration(seconds: 3), () {
+          if (!mounted) return;
+          setState(() {
+            List<TextEditingController> controllers;
+            switch (type) {
+              case 'email':
+                controllers = _emailCodeControllers;
+                break;
+              case 'sms':
+                controllers = _smsCodeControllers;
+                break;
+              case 'auth':
+                controllers = _authCodeControllers;
+                break;
+              default:
+                return;
+            }
+
+            for (var i = 0; i < controllers.length; i++) {
+              controllers[i].clear();
+              codeList[i] = '';
+            }
+            isCodeValidMap[type] = true;
+            isCodeCorrectMap[type] = false;
+          });
+          focusNodes[0].requestFocus();
+        });
+      }
+    }
+
+    setState(() {});
   }
 
   void _toggleNotificationsMenu() {
@@ -93,6 +458,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
     });
   }
 
@@ -104,6 +471,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
     });
   }
 
@@ -115,6 +484,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
     });
   }
 
@@ -126,8 +497,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showFontSizeMenu = false;
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
 
-      // Reset search when opening menu
       if (_showLanguageMenu) {
         _languageSearchController.clear();
         _filteredLanguages = LanguagesService.getLanguages();
@@ -143,10 +515,162 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showFontSizeMenu = false;
       _showLanguageMenu = false;
       _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
+
+      if (_showCurrencyMenu) {
+        // Clear search and reset filtered list when menu opens
+        _currencySearchController.clear();
+        _filteredCurrencies = List.from(_currencies);
+      }
     });
   }
 
-  // Added freeze account menu toggle
+  void _togglePatternMenu() {
+    setState(() {
+      _showPatternMenu = !_showPatternMenu;
+      _showNotificationsMenu = false;
+      _showProfileMenu = false;
+      _showFontSizeMenu = false;
+      _showLanguageMenu = false;
+      _showCurrencyMenu = false;
+      _showFreezeAccountMenu = false;
+      _showVerificationMenu = false;
+
+      if (_showPatternMenu) {
+        _selectedPatternDots = [];
+        _patternCompleted = false;
+        _showPatternLines = true;
+        _isPatternEyeVisible = true;
+      }
+    });
+  }
+
+  void _toggleVerificationMenu() {
+    setState(() {
+      _showVerificationMenu = !_showVerificationMenu;
+      _showNotificationsMenu = false;
+      _showProfileMenu = false;
+      _showFontSizeMenu = false;
+      _showLanguageMenu = false;
+      _showCurrencyMenu = false;
+      _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+
+      if (_showVerificationMenu) {
+        _verificationPin.clear();
+        _verificationNumbers.shuffle();
+        // Reset all verification states
+        _verificationEmailController.clear();
+        _showEmailCodeSent = false;
+        _showSMSCodeSent = false;
+        _showAuthCodeSent = false;
+        for (var c in _emailCodeControllers) c.clear();
+        for (var c in _smsCodeControllers) c.clear();
+        for (var c in _authCodeControllers) c.clear();
+        _emailCode = List.generate(6, (_) => '');
+        _smsCode = List.generate(6, (_) => '');
+        _authCode = List.generate(6, (_) => '');
+        isCodeCorrectMap = {'email': false, 'sms': false, 'auth': false};
+        isCodeValidMap = {'email': true, 'sms': true, 'auth': true};
+        _countdowns = {'email': 0, 'sms': 0, 'auth': 0};
+        _activeCodeType = null;
+        _codeDisabled = false;
+      }
+    });
+  }
+
+  // Pattern Grid Methods
+  void _onPatternPanStart(DragStartDetails details) {
+    setState(() {
+      _selectedPatternDots = [];
+      _patternCompleted = false;
+    });
+  }
+
+  void _onPatternPanUpdate(DragUpdateDetails details) {
+    RenderBox? box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    Offset localPos = box.globalToLocal(details.globalPosition);
+    double cellSize = box.size.width / _patternGridSize;
+    int row = (localPos.dy / cellSize).floor();
+    int col = (localPos.dx / cellSize).floor();
+    int idx = row * _patternGridSize + col;
+
+    if (row >= 0 &&
+        row < _patternGridSize &&
+        col >= 0 &&
+        col < _patternGridSize &&
+        !_selectedPatternDots.contains(idx)) {
+      setState(() {
+        _selectedPatternDots.add(idx);
+      });
+    }
+  }
+
+  void _onPatternPanEnd(DragEndDetails details) {
+    if (_selectedPatternDots.length >= 4) {
+      setState(() {
+        _patternCompleted = true;
+      });
+      print("Pattern entered: $_selectedPatternDots");
+    } else {
+      _errorStackKey.currentState?.showError("Minimum 4 dots required");
+      setState(() {
+        _selectedPatternDots = [];
+        _patternCompleted = false;
+      });
+    }
+  }
+
+  // PIN Input Methods
+  void _onKeyTap(String value) {
+    setState(() {
+      if (value == 'Clear') {
+        _pin.clear();
+      } else if (value == 'leftArrow') {
+        _closeAllMenus();
+      } else {
+        if (_pin.length < 4) _pin.add(value);
+      }
+    });
+  }
+
+  void _onVerificationKeyTap(String value) {
+    setState(() {
+      if (value == 'Clear') {
+        _verificationPin.clear();
+      } else if (value == 'leftArrow') {
+        _closeAllMenus();
+      } else {
+        if (_verificationPin.length < 4) _verificationPin.add(value);
+      }
+    });
+  }
+
+  void _onFreezeConfirm() {
+    final enteredPin = _pin.join();
+
+    if (_freezeTextController.text != 'FREEZE ACCOUNT') {
+      _errorStackKey.currentState?.showError(
+        "Please type 'FREEZE ACCOUNT' in all capital letters",
+      );
+      return;
+    }
+
+    if (enteredPin.length < 4) {
+      _errorStackKey.currentState?.showError("Please enter 4 digits");
+      return;
+    }
+
+    print("PIN entered: $enteredPin");
+    _closeAllMenus();
+    _pin.clear();
+    _freezeTextController.clear();
+    print("Account freeze process initiated");
+  }
+
   void _toggleFreezeAccountMenu() {
     setState(() {
       _showFreezeAccountMenu = !_showFreezeAccountMenu;
@@ -155,10 +679,15 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showFontSizeMenu = false;
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
 
-      // Reset selection when opening menu
       if (_showFreezeAccountMenu) {
         _selectedFreezeReason = null;
+        _pin.clear();
+        _numbers.shuffle();
+        _freezeTextController.clear();
+        _showCheckImage = false;
       }
     });
   }
@@ -171,6 +700,30 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showLanguageMenu = false;
       _showCurrencyMenu = false;
       _showFreezeAccountMenu = false;
+      _showPatternMenu = false;
+      _showVerificationMenu = false;
+    });
+  }
+
+  void _openPatternMenu() {
+    setState(() {
+      _showFreezeAccountMenu = false;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _showPatternMenu = true;
+        });
+      });
+    });
+  }
+
+  void _openVerificationMenuFromPattern() {
+    setState(() {
+      _showPatternMenu = false;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _showVerificationMenu = true;
+        });
+      });
     });
   }
 
@@ -184,17 +737,42 @@ class _SettingsScreenState extends State<SettingsScreen>
     setState(() {
       _selectedLanguage = language;
     });
-    print('Selected language: $language');
     _closeAllMenus();
   }
 
-  void _selectCurrency(String currencyCode, String currencySymbol) {
+  final CurrencyService _currencyService = CurrencyService();
+  double? _selectedPrice;
+
+  void _selectCurrency(String currencyCode, String currencySymbol) async {
     setState(() {
       _selectedCurrency = '$currencyCode($currencySymbol)';
     });
+
+    // Build the Binance symbol (ex: BTC → BTCUSDT)
+    final currencies = await _currencyService.getCurrencies();
+
+    final selected = currencies.firstWhere(
+      (c) => c.symbol == currencyCode,
+      orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0),
+    );
+
+    setState(() {
+      _selectedPrice = selected.price;
+    });
+
     print('Selected currency: $currencyCode');
+    print('Price: $_selectedPrice');
+
     _closeAllMenus();
   }
+
+  // void _selectCurrency(String currencyCode, String currencySymbol) {
+  //   setState(() {
+  //     _selectedCurrency = '$currencyCode($currencySymbol)';
+  //   });
+  //   print('Selected currency: $currencyCode');
+  //   _closeAllMenus();
+  // }
 
   void _searchLanguages(String query) {
     setState(() {
@@ -206,11 +784,41 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
+  void _handlePatternNextTap() {
+    if (_selectedPatternDots.length >= 4) {
+      print("Pattern entered: $_selectedPatternDots");
+
+      // Clear the pattern lines before opening verification menu
+      setState(() {
+        _selectedPatternDots = [];
+        _patternCompleted = false;
+      });
+
+      _openVerificationMenuFromPattern();
+    } else {
+      _errorStackKey.currentState?.showError("Minimum 4 dots required");
+      // Clear the pattern so user has to start fresh
+      setState(() {
+        _selectedPatternDots = [];
+        _patternCompleted = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _wiggleController.dispose();
     _wiggleTimer?.cancel();
     _languageSearchController.dispose();
+    _freezeTextController.dispose();
+    _verificationEmailController.dispose();
+    for (var c in _emailCodeControllers) c.dispose();
+    for (var f in _emailFocusNodes) f.dispose();
+    for (var c in _smsCodeControllers) c.dispose();
+    for (var f in _smsFocusNodes) f.dispose();
+    for (var c in _authCodeControllers) c.dispose();
+    for (var f in _authFocusNodes) f.dispose();
+    _currencySearchController.dispose();
     super.dispose();
   }
 
@@ -222,14 +830,16 @@ class _SettingsScreenState extends State<SettingsScreen>
     final fontSizeMenuHeight = screenHeight * 0.35;
     final languageMenuHeight = screenHeight * 0.7;
     final currencyMenuHeight = screenHeight * 0.5;
-    final freezeAccountMenuHeight =
-        screenHeight * 0.5; // Added freeze account menu height
+    final freezeAccountMenuHeight = screenHeight * 0.9;
+    final patternMenuHeight = screenHeight * 0.62;
+    final verificationMenuHeight = screenHeight * 0.7;
     final fontProvider = Provider.of<FontSizeProvider>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
         children: [
+          // Main content
           Padding(
             padding: const EdgeInsets.only(
               left: 15,
@@ -459,8 +1069,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       fontWeight: FontWeight.w600,
                       fontSize: fontProvider.getScaledSize(15),
                       borderRadius: 10,
-                      onTap:
-                          _toggleFreezeAccountMenu, // Updated to open freeze menu
+                      onTap: _toggleFreezeAccountMenu,
                     ),
                     CustomButton(
                       text: "Delete Account",
@@ -544,13 +1153,15 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
 
-          // Overlay - Include freeze account menu in overlay
+          // Overlay
           if (_showNotificationsMenu ||
               _showProfileMenu ||
               _showFontSizeMenu ||
               _showLanguageMenu ||
               _showCurrencyMenu ||
-              _showFreezeAccountMenu)
+              _showFreezeAccountMenu ||
+              _showPatternMenu ||
+              _showVerificationMenu)
             GestureDetector(
               onTap: _closeAllMenus,
               child: Container(
@@ -565,6 +1176,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: notificationsMenuHeight,
             isVisible: _showNotificationsMenu,
             onToggle: _toggleNotificationsMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -572,44 +1184,63 @@ class _SettingsScreenState extends State<SettingsScreen>
               fit: BoxFit.contain,
             ),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              constraints: BoxConstraints(maxHeight: notificationsMenuHeight),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Notifications',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 30,
-                          color: Colors.white,
+                  // Header - Fixed height
+                  Container(
+                    height: 49,
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      top: 16,
+                      right: 16,
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Notifications',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 30,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      CustomButton(
-                        text: 'Clear',
-                        width: 106,
-                        height: 40,
-                        onTap: () {
-                          print('Clear notifications tapped');
-                        },
-                        backgroundColor: Colors.transparent,
-                        borderColor: const Color(0xFF00F0FF),
-                        textColor: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        borderRadius: 8,
-                        fontSize: 20,
-                      ),
-                    ],
+                        CustomButton(
+                          text: 'Clear',
+                          width: 106,
+                          height: 35,
+                          onTap: () {
+                            print('Clear notifications tapped');
+                          },
+                          backgroundColor: Colors.transparent,
+                          borderColor: const Color(0xFF00F0FF),
+                          textColor: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          borderRadius: 8,
+                          fontSize: 18,
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: notificationsMenuHeight * 0.76,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [_buildNotificationItem("11:52 AM")],
+
+                  const SizedBox(height: 1.7),
+
+                  // ListView - Takes remaining space
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(
+                        top: 25, // Add top padding for gap
+                        bottom: 10,
                       ),
+                      itemCount: 20,
+                      itemBuilder: (context, index) {
+                        return _buildNotificationItem(
+                          index % 2 == 0 ? "11:52 AM" : "Yesterday",
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -618,69 +1249,102 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
 
           // Profile Menu
+          // Profile Menu - SIMPLER SCROLLABLE APPROACH
           SlideUpMenu(
             menuHeight: profileMenuHeight,
             isVisible: _showProfileMenu,
             onToggle: _toggleProfileMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
               height: 9,
               fit: BoxFit.contain,
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+            child: SizedBox(
+              height: profileMenuHeight,
+              child: Stack(
                 children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Select an Account',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: profileMenuHeight * 0.67,
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          AccountFrame(
-                            firstName: "Sara",
-                            lastName: "Jones",
-                            eid: "123456789",
-                            imagePath: "assets/images/image1.png",
-                            onTap: () {
-                              print("Sara Jones account selected");
-                              _closeAllMenus();
-                            },
-                            isTablet: false,
-                          ),
-                          AccountFrame(
-                            firstName: "John",
-                            lastName: "Smith",
-                            eid: "987654321",
-                            imagePath: "assets/images/image2.png",
-                            onTap: () {
-                              print("John Smith account selected");
-                              _closeAllMenus();
-                            },
-                            isTablet: false,
-                          ),
-                        ],
+                  // Header - Fixed at top
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                      child: const Text(
+                        'Select an Account',
+                        textAlign: TextAlign.center, // Add this
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  AddNewProfileButton(
-                    isTablet: false,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/sign-in');
-                    },
+
+                  // Button - Fixed at bottom
+                  Positioned(
+                    bottom: 50,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: AddNewProfileButton(
+                        isTablet: false,
+                        onTap: () {
+                          Navigator.pushNamed(context, '/sign-in');
+                        },
+                      ),
+                    ),
+                  ),
+
+                  // Scrollable content between header and button
+                  Positioned(
+                    top: 60, // Height of header
+                    bottom: 130, // Height of button + padding
+                    left: 0,
+                    right: 0,
+                    child: SingleChildScrollView(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AccountFrame(
+                              firstName: "Sara",
+                              lastName: "Jones",
+                              eid: "123456789",
+                              imagePath: "assets/images/image1.png",
+                              onTap: () {
+                                print("Sara Jones account selected");
+                                _closeAllMenus();
+                              },
+                              isTablet: false,
+                              includeSpacing: false,
+                            ),
+                            const SizedBox(height: 16),
+                            AccountFrame(
+                              firstName: "John",
+                              lastName: "Smith",
+                              eid: "987654321",
+                              imagePath: "assets/images/image1.png",
+                              onTap: () {
+                                print("John Smith account selected");
+                                _closeAllMenus();
+                              },
+                              isTablet: false,
+                              includeSpacing: false,
+                            ),
+                            // Add more accounts here
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -688,10 +1352,14 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
 
           // Font Size Menu
-          SlideUpMenu(
-            menuHeight: fontSizeMenuHeight,
+          // In your SettingsScreen class, update the SimpleSlideUpMenu widget instantiation:
+
+          // Font Size Menu
+          SimpleSlideUpMenu(
+            menuHeight: 300, // Make sure this is enough height
             isVisible: _showFontSizeMenu,
-            onToggle: _toggleFontSizeMenu,
+            onClose: _closeAllMenus, // This is already there
+            onToggle: _toggleFontSizeMenu, // ADD THIS LINE
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -699,11 +1367,13 @@ class _SettingsScreenState extends State<SettingsScreen>
               fit: BoxFit.contain,
             ),
             child: Container(
+              // Don't set height here, let it be constrained by parent
               padding: const EdgeInsets.all(16),
               child: Column(
+                mainAxisSize:
+                    MainAxisSize.min, // CRITICAL: This prevents overflow
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 16),
                   const Text(
                     'Font Size',
                     style: TextStyle(
@@ -716,16 +1386,19 @@ class _SettingsScreenState extends State<SettingsScreen>
                   _buildFontSizeOption('Medium', fontProvider),
                   const SizedBox(height: 12),
                   _buildFontSizeOption('Large', fontProvider),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
           ),
 
           // Language Menu
+          // Language Menu - UPDATED with same structure as main.dart but keeping vLine.svg
           SlideUpMenu(
             menuHeight: languageMenuHeight,
             isVisible: _showLanguageMenu,
             onToggle: _toggleLanguageMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -733,11 +1406,15 @@ class _SettingsScreenState extends State<SettingsScreen>
               fit: BoxFit.contain,
             ),
             child: Container(
+              constraints: BoxConstraints(maxHeight: languageMenuHeight),
               child: Column(
                 children: [
                   // SEARCH FIELD
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 50),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 50,
+                      vertical: 5,
+                    ),
                     child: TextField(
                       controller: _languageSearchController,
                       onChanged: _searchLanguages,
@@ -752,30 +1429,43 @@ class _SettingsScreenState extends State<SettingsScreen>
                           color: Colors.white.withOpacity(0.5),
                         ),
                         border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ),
-                  const Divider(color: Colors.white24, thickness: 0.5),
 
-                  // LANGUAGE LIST
+                  // DIVIDER
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 50),
+                    child: Divider(
+                      color: Colors.white24,
+                      thickness: 0.5,
+                      height: 1,
+                    ),
+                  ),
+
+                  const SizedBox(height: 0),
+
+                  // LANGUAGE LIST - Takes remaining space
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
+                        horizontal: 50,
+                        vertical: 8,
                       ),
                       itemCount: _filteredLanguages.length,
+                      physics: const ClampingScrollPhysics(),
                       itemBuilder: (context, index) {
                         final language = _filteredLanguages[index];
                         return GestureDetector(
                           onTap: () {
                             _selectLanguage(language['name']!);
                           },
-                          child: Padding(
+                          child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Row(
                               children: [
-                                // Language flag
                                 Container(
                                   width: 40,
                                   height: 30,
@@ -835,57 +1525,620 @@ class _SettingsScreenState extends State<SettingsScreen>
             menuHeight: currencyMenuHeight,
             isVisible: _showCurrencyMenu,
             onToggle: _toggleCurrencyMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
               height: 9,
               fit: BoxFit.contain,
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Select Currency',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _currencies.length,
-                      itemBuilder: (context, index) {
-                        final currency = _currencies[index];
-                        final displayText =
-                            '${currency['code']}(${currency['symbol']}) - ${currency['name']}';
-                        final isSelected =
-                            _selectedCurrency ==
-                            '${currency['code']}(${currency['symbol']})';
-
-                        return _buildCurrencyOption(
-                          displayText,
-                          isSelected,
-                          () => _selectCurrency(
-                            currency['code']!,
-                            currency['symbol']!,
+            child: SingleChildScrollView(
+              // Wrap with SingleChildScrollView
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // Use min to fit content
+                  children: [
+                    // Search row with icon and text field
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Stack(
+                        children: [
+                          // Gradient border at bottom
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              height: 0.3,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF0B1320).withOpacity(0),
+                                    Colors.white,
+                                    const Color(0xFF0B1320).withOpacity(0),
+                                  ],
+                                  stops: const [0.0, 0.5, 1.0],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                              ),
+                            ),
                           ),
-                        );
-                      },
+
+                          // Search content
+                          Container(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                // Search icon - using Icon widget as fallback
+                                SvgPicture.asset(
+                                  'assets/images/searchIcon.svg',
+                                  width: 13,
+                                  height: 13,
+                                  colorFilter: ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Search text field
+                                Expanded(
+                                  child: TextField(
+                                    controller: _currencySearchController,
+                                    decoration: InputDecoration(
+                                      hintText: 'Search Currency',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withOpacity(0.5),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    cursorColor: const Color(0xFF00F0FF),
+                                    onChanged: (value) {
+                                      _searchCurrencies(value);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 10),
+
+                    // Currency list - USING _filteredCurrencies INSTEAD OF _currencies
+                    Container(
+                      constraints: BoxConstraints(
+                        maxHeight:
+                            currencyMenuHeight, // Adjust based on your menu height
+                      ),
+                      child: _filteredCurrencies.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Text(
+                                  'No currencies found',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap:
+                                  true, // Important for nested scrolling
+                              physics:
+                                  const AlwaysScrollableScrollPhysics(), // Ensures it's always scrollable
+                              padding: EdgeInsets.zero,
+                              itemCount: _filteredCurrencies.length,
+                              itemBuilder: (context, index) {
+                                final currency =
+                                    _filteredCurrencies[index]; // Use filtered list
+                                final displayText =
+                                    '${currency.code}(${currency.symbol}) - ${currency.name}';
+                                final isSelected =
+                                    _selectedCurrency ==
+                                    '${currency.code}(${currency.symbol})';
+
+                                return _buildCurrencyOption(
+                                  displayText,
+                                  isSelected,
+                                  () => _selectCurrency(
+                                    currency.code,
+                                    currency.symbol,
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          // Freeze Account Menu - NEW
+
+          // Freeze Account Menu
           SlideUpMenu(
             menuHeight: freezeAccountMenuHeight,
             isVisible: _showFreezeAccountMenu,
             onToggle: _toggleFreezeAccountMenu,
+            onClose: _closeAllMenus,
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: SingleChildScrollView(
+              // Add this
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/images/freezeIcon.svg',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Freeze Account',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'All activity will stop until you unfreeze it',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Please type "',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'FREEZE ACCOUNT',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Color(0xFF00FEFF),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '" below to freeze your account',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Container(
+                        width: double.infinity,
+                        alignment: Alignment.centerLeft,
+                        child: Stack(
+                          children: [
+                            Container(
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.white,
+                                    width: 1.1,
+                                  ),
+                                ),
+                              ),
+                              child: TextField(
+                                controller: _freezeTextController,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.left,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.only(bottom: 8),
+                                ),
+                              ),
+                            ),
+                            if (_showCheckImage)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                bottom: 8,
+                                child: Image.asset(
+                                  'assets/images/blueCircleCheck.png',
+                                  width: 24,
+                                  height: 24,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // PIN Input Section
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Enter PIN To Continue',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 28,
+                                color: Colors.white,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  setState(() => _obscurePin = !_obscurePin),
+                              icon: Icon(
+                                _obscurePin
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (index) {
+                            final filled = index < _pin.length;
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              width: 50,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.9),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                filled ? (_obscurePin ? '*' : _pin[index]) : '',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: fontProvider.getScaledSize(24),
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 30),
+
+                        _buildFreezeAccountKeypad(),
+
+                        const SizedBox(height: 20),
+
+                        // UPDATED: Using CustomNavigationWidget for Freeze Account
+                        CustomNavigationWidget(
+                          onCancel: _closeAllMenus,
+                          onNext:
+                              _handleFreezeNextTap, // Always call this method
+                          cancelText: "Cancel",
+                          nextText: "Next",
+                          cancelButtonWidth: 106,
+                          cancelButtonHeight: 40,
+                          cancelFontSize: 20,
+                          cancelFontWeight: FontWeight.w600,
+                          cancelTextColor: Colors.white,
+                          cancelBorderColor: const Color(0xFF00F0FF),
+                          cancelBackgroundColor: Colors.transparent,
+                          cancelBorderRadius: 10,
+                          nextButtonWidth: 106,
+                          nextButtonHeight: 40,
+                          nextFontSize: 20,
+                          nextFontWeight: FontWeight.w600,
+                          nextTextColor: _areFreezeConditionsMet()
+                              ? Colors.white
+                              : const Color(0xFF718096),
+                          nextBorderColor: _areFreezeConditionsMet()
+                              ? const Color(0xFF00F0FF)
+                              : const Color(0xFF4A5568),
+                          nextBackgroundColor: Colors.transparent,
+                          nextBorderRadius: 10,
+                          lineHeight: 4,
+                          lineRadius: 11,
+                          spacing: 16,
+                          startGradientColor: const Color(0xFF00F0FF),
+                          endGradientColor: const Color(0xFF0B1320),
+                          // New properties
+                          isNextEnabled: _areFreezeConditionsMet(),
+                          nextDisabledTextColor: const Color(0xFF718096),
+                          nextDisabledBorderColor: const Color(0xFF4A5568),
+                          // This callback is called when disabled Next button is tapped
+                          onNextDisabledTap: () {
+                            // Show appropriate error message
+                            if (_freezeTextController.text !=
+                                'FREEZE ACCOUNT') {
+                              _errorStackKey.currentState?.showError(
+                                'Please enter "FREEZE ACCOUNT" first',
+                              );
+                            } else if (_pin.length < 4) {
+                              _errorStackKey.currentState?.showError(
+                                'Please Enter 4 digits PIN first',
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Pattern Menu
+          SlideUpMenu(
+            menuHeight: patternMenuHeight,
+            isVisible: _showPatternMenu,
+            onToggle: _togglePatternMenu,
+            onClose: _closeAllMenus,
+            dragHandle: SvgPicture.asset(
+              'assets/images/vLine.svg',
+              width: 90,
+              height: 9,
+              fit: BoxFit.contain,
+            ),
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 16),
+
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Enter Pattern To Continue',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 25,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _showPatternLines = !_showPatternLines;
+                              _isPatternEyeVisible = !_isPatternEyeVisible;
+                            });
+                          },
+                          child: Image.asset(
+                            _isPatternEyeVisible
+                                ? 'assets/images/whiteEye.png'
+                                : 'assets/images/whiteEyeSlash.png',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    Center(
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: Container(
+                          key: _gridKey,
+                          width: 280,
+                          height: 280,
+                          child: GestureDetector(
+                            onPanStart: _onPatternPanStart,
+                            onPanUpdate: _onPatternPanUpdate,
+                            onPanEnd: _onPatternPanEnd,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                double cellSize =
+                                    constraints.maxWidth / _patternGridSize;
+                                List<Offset> dotCenters = [];
+                                for (
+                                  int row = 0;
+                                  row < _patternGridSize;
+                                  row++
+                                ) {
+                                  for (
+                                    int col = 0;
+                                    col < _patternGridSize;
+                                    col++
+                                  ) {
+                                    double x = (col + 0.5) * cellSize;
+                                    double y = (row + 0.5) * cellSize;
+                                    dotCenters.add(Offset(x, y));
+                                  }
+                                }
+
+                                return Stack(
+                                  children: [
+                                    Opacity(
+                                      opacity: _patternCompleted ? 0.7 : 1.0,
+                                      child: Stack(
+                                        children: [
+                                          if (_showPatternLines)
+                                            CustomPaint(
+                                              size: Size.infinite,
+                                              painter: _PatternPainter(
+                                                selectedDots:
+                                                    _selectedPatternDots,
+                                                dotCenters: dotCenters,
+                                              ),
+                                            ),
+                                          for (
+                                            int i = 0;
+                                            i < dotCenters.length;
+                                            i++
+                                          )
+                                            Positioned(
+                                              left:
+                                                  dotCenters[i].dx -
+                                                  _patternDotSize / 2,
+                                              top:
+                                                  dotCenters[i].dy -
+                                                  _patternDotSize / 2,
+                                              child: Container(
+                                                width: _patternDotSize,
+                                                height: _patternDotSize,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: _showPatternLines
+                                                      ? (_selectedPatternDots
+                                                                .contains(i)
+                                                            ? const Color(
+                                                                0xFF00F0FF,
+                                                              )
+                                                            : Colors.white)
+                                                      : Colors.white,
+                                                  boxShadow:
+                                                      (_showPatternLines &&
+                                                          _selectedPatternDots
+                                                              .contains(i))
+                                                      ? [
+                                                          BoxShadow(
+                                                            color: const Color(
+                                                              0xFF00F0FF,
+                                                            ).withOpacity(0.7),
+                                                            blurRadius: 7,
+                                                          ),
+                                                        ]
+                                                      : [],
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // UPDATED: Using CustomNavigationWidget for Pattern Menu
+                    CustomNavigationWidget(
+                      onCancel: _closeAllMenus,
+                      onNext: _handlePatternNextTap, // Use the new method
+                      cancelText: "Cancel",
+                      nextText: "Next",
+                      cancelButtonWidth: 106,
+                      cancelButtonHeight: 40,
+                      cancelFontSize: 20,
+                      cancelFontWeight: FontWeight.w600,
+                      cancelTextColor: Colors.white,
+                      cancelBorderColor: const Color(0xFF00F0FF),
+                      cancelBackgroundColor: Colors.transparent,
+                      cancelBorderRadius: 10,
+                      nextButtonWidth: 106,
+                      nextButtonHeight: 40,
+                      nextFontSize: 20,
+                      nextFontWeight: FontWeight.w600,
+                      nextTextColor: _selectedPatternDots.length >= 4
+                          ? Colors.white
+                          : const Color(0xFF718096),
+                      nextBorderColor: _selectedPatternDots.length >= 4
+                          ? const Color(0xFF00F0FF)
+                          : const Color(0xFF4A5568),
+                      nextBackgroundColor: Colors.transparent,
+                      nextBorderRadius: 10,
+                      lineHeight: 4,
+                      lineRadius: 11,
+                      spacing: 16,
+                      startGradientColor: const Color(0xFF00F0FF),
+                      endGradientColor: const Color(0xFF0B1320),
+                      // New properties for disable state
+                      isNextEnabled: _selectedPatternDots.length >= 4,
+                      nextDisabledTextColor: const Color(0xFF718096),
+                      nextDisabledBorderColor: const Color(0xFF4A5568),
+                      onNextDisabledTap: () {
+                        _errorStackKey.currentState?.showError(
+                          "Minimum 4 dots required",
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // VERIFICATION MENU
+          SlideUpMenu(
+            menuHeight: verificationMenuHeight,
+            isVisible: _showVerificationMenu,
+            onToggle: _toggleVerificationMenu,
+            onClose: _closeAllMenus,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -894,50 +2147,612 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             child: Container(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Freeze account row with icon and text - centered horizontally
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment
-                        .center, // This centers the row horizontally
-                    children: [
-                      SvgPicture.asset(
-                        'assets/images/freezeIcon.svg',
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.contain,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
+
+                    // Title
+                    const Text(
+                      'Verification',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Freeze Account',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          // Add other text styling as needed
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 16,
-                  ), // Space between row and centered text
-                  // Centered confirmation text
-                  const Text(
-                    'Are you sure you want to freeze your account?\nAll activity will stop until you unfreeze it',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey, // Optional: make it less prominent
-                      // Add other text styling as needed
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+
+                    // Description
+                    Text(
+                      'Please enter your email address or EID\nfor verification.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white,
+                        fontSize: fontProvider.getScaledSize(15),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // Email/EID Input
+                    Center(child: _buildVerificationEmailInput()),
+                    const SizedBox(height: 30),
+
+                    // Verification Sections
+                    _buildVerificationSection(
+                      title: 'Email Verification',
+                      showCodeSent: _showEmailCodeSent,
+                      codeControllers: _emailCodeControllers,
+                      focusNodes: _emailFocusNodes,
+                      codeList: _emailCode,
+                      type: 'email',
+                      codeDisabled: _codeDisabled,
+                    ),
+                    const SizedBox(height: 10),
+
+                    _buildVerificationSection(
+                      title: 'SMS Verification',
+                      showCodeSent: _showSMSCodeSent,
+                      codeControllers: _smsCodeControllers,
+                      focusNodes: _smsFocusNodes,
+                      codeList: _smsCode,
+                      type: 'sms',
+                      codeDisabled: _codeDisabled,
+                    ),
+                    const SizedBox(height: 10),
+
+                    _buildVerificationSection(
+                      title: 'Authenticator App',
+                      showCodeSent: _showAuthCodeSent,
+                      codeControllers: _authCodeControllers,
+                      focusNodes: _authFocusNodes,
+                      codeList: _authCode,
+                      type: 'auth',
+                      codeDisabled: _codeDisabled,
+                    ),
+                    const SizedBox(height: 15),
+
+                    // UPDATED: Using CustomNavigationWidget for Verification Menu
+                    CustomNavigationWidget(
+                      onCancel: _closeAllMenus,
+                      onNext: () {
+                        // TODO: Add your Next button functionality for verification
+                        print("Next button tapped in verification menu");
+                      },
+                      cancelText: "Cancel",
+                      nextText: "Next",
+                      cancelButtonWidth: 106,
+                      cancelButtonHeight: 40,
+                      cancelFontSize: 20,
+                      cancelFontWeight: FontWeight.w600,
+                      cancelTextColor: Colors.white,
+                      cancelBorderColor: const Color(0xFF00F0FF),
+                      cancelBackgroundColor: Colors.transparent,
+                      cancelBorderRadius: 10,
+                      nextButtonWidth: 106,
+                      nextButtonHeight: 40,
+                      nextFontSize: 20,
+                      nextFontWeight: FontWeight.w600,
+                      nextTextColor: Colors.white,
+                      nextBorderColor: const Color(0xFF00F0FF),
+                      nextBackgroundColor: Colors.transparent,
+                      nextBorderRadius: 10,
+                      lineHeight: 4,
+                      lineRadius: 11,
+                      spacing: 16,
+                      startGradientColor: const Color(0xFF00F0FF),
+                      endGradientColor: const Color(0xFF0B1320),
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
+
+          // Error Stack
+          ErrorStack(key: _errorStackKey),
         ],
       ),
+    );
+  }
+
+  // Email Input for Verification Menu
+  Widget _buildVerificationEmailInput() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth * 0.92;
+    bool hasText = _verificationEmailController.text.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: containerWidth,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1320),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF00F0FF)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 5),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Image.asset(
+                    'assets/images/SVGRepo_iconCarrier.png',
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _verificationEmailController,
+                    style: const TextStyle(
+                      color: Color(0xFF00F0FF),
+                      fontSize: 20,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'EID / Email',
+                      hintStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (value) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                CustomButton(
+                  text: hasText ? 'Clear' : 'Paste',
+                  width: 65,
+                  height: 32,
+                  fontSize: 15,
+                  textColor: Colors.white,
+                  backgroundColor: const Color(0xFF0B1320),
+                  borderColor: const Color(0xFF00F0FF),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  onTap: () async {
+                    if (hasText) {
+                      _verificationEmailController.clear();
+                    } else {
+                      final clipboardData = await Clipboard.getData(
+                        'text/plain',
+                      );
+                      final text = clipboardData?.text;
+                      if (text != null) {
+                        _verificationEmailController.text = text;
+                      }
+                    }
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+          ),
+          if (hasText)
+            Positioned(
+              left: 15,
+              top: -12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                color: const Color(0xFF0B1320),
+                child: const Text(
+                  'E-mail',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Verification Section
+  Widget _buildVerificationSection({
+    required String title,
+    required bool showCodeSent,
+    required List<TextEditingController> codeControllers,
+    required List<FocusNode> focusNodes,
+    required List<String> codeList,
+    required String type,
+    required bool codeDisabled,
+  }) {
+    bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
+    bool isCodeValid = isCodeValidMap[type] ?? true;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      child: SizedBox(
+        height: 85,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Title
+            Positioned(
+              top: -4,
+              left: -1,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  height: 1.0,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            // "Code Sent" indicator
+            if (showCodeSent)
+              Positioned(
+                top: 25,
+                left: 50,
+                child: Container(
+                  width: 110,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00F0FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    "Code Sent",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+
+            // OTP Fields
+            if (!showCodeSent)
+              Positioned(
+                top: 12,
+                left: 0,
+                child: Row(
+                  children: [
+                    ...List.generate(6, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 35,
+                              height: 35,
+                              child: TextField(
+                                controller: codeControllers[index],
+                                focusNode: focusNodes[index],
+                                showCursor: !codeDisabled,
+                                enabled: !codeDisabled,
+                                readOnly: codeDisabled,
+                                textAlign: TextAlign.center,
+                                maxLength: 1,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(
+                                  color: codeDisabled
+                                      ? Colors.grey
+                                      : isCodeCorrect
+                                      ? const Color(0xFF00F0FF)
+                                      : (isCodeValid == false
+                                            ? Colors.red
+                                            : Colors.white),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                cursorColor: codeDisabled
+                                    ? Colors.grey
+                                    : isCodeCorrect
+                                    ? const Color(0xFF00F0FF)
+                                    : (isCodeValid == false
+                                          ? Colors.red
+                                          : Colors.white),
+                                decoration: const InputDecoration(
+                                  counterText: "",
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (value) =>
+                                    _onVerificationCodeChanged(
+                                      value,
+                                      index,
+                                      codeList,
+                                      focusNodes,
+                                      type,
+                                    ),
+                              ),
+                            ),
+
+                            // Underline
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 35,
+                              height: isCodeCorrect ? 0 : 2,
+                              color: codeDisabled
+                                  ? Colors.grey
+                                  : isCodeCorrect
+                                  ? Colors.transparent
+                                  : (isCodeValid == false
+                                        ? Colors.red
+                                        : Colors.white),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // ✅ or ❌ icon
+                    if (isCodeCorrect || isCodeValid == false)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6, top: 10),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isCodeCorrect
+                                ? const Color(0xFF00F0FF)
+                                : Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isCodeCorrect ? Icons.check : Icons.close,
+                            color: isCodeCorrect ? Colors.black : Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+            // Get Code button
+            Positioned(
+              top: 21,
+              left: 280,
+              child: GestureDetector(
+                onTap: (_activeCodeType == null || _activeCodeType == type)
+                    ? () {
+                        if (_verificationEmailController.text.isEmpty) {
+                          _errorStackKey.currentState?.showError(
+                            "Please enter your EID / Email",
+                          );
+                          return;
+                        }
+                        _fetchCode(type);
+                      }
+                    : null,
+                child: Container(
+                  width: 94,
+                  height: 23,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00F0FF).withOpacity(1),
+                        blurRadius: 11.5,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: _countdowns[type]! > 0
+                      ? Text(
+                          formatCooldown(_countdowns[type]!),
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text(
+                          "Get Code",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Keypad for Freeze Account Menu
+  Widget _buildFreezeAccountKeypad() {
+    if (_numbers.isEmpty) {
+      _numbers = List.generate(10, (i) => i.toString())..shuffle();
+    }
+
+    final buttons = [
+      [_numbers[0], _numbers[1], _numbers[2]],
+      [_numbers[3], _numbers[4], _numbers[5]],
+      [_numbers[6], _numbers[7], _numbers[8]],
+      ['Clear', _numbers[9], 'leftArrow'],
+    ];
+
+    return Column(
+      children: buttons.map((row) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: row.map((text) {
+              final isLeftArrow = text == 'leftArrow';
+              final isClear = text == 'Clear';
+
+              return GestureDetector(
+                onTap: () => _onKeyTap(text),
+                child: Container(
+                  width: 104,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isLeftArrow
+                          ? const Color(0xFF00F0FF)
+                          : (isClear
+                                ? const Color(0xFFFF0000)
+                                : const Color(0xFF00F0FF)),
+                      width: isLeftArrow || isClear ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: isLeftArrow
+                      ? SvgPicture.asset(
+                          'assets/images/leftArrowWhite.svg',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        )
+                      : isClear
+                      ? Text(
+                          'clear',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 20,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          text,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // Keypad for Verification PIN
+  Widget _buildVerificationKeypad() {
+    if (_verificationNumbers.isEmpty) {
+      _verificationNumbers = List.generate(10, (i) => i.toString())..shuffle();
+    }
+
+    final buttons = [
+      [
+        _verificationNumbers[0],
+        _verificationNumbers[1],
+        _verificationNumbers[2],
+      ],
+      [
+        _verificationNumbers[3],
+        _verificationNumbers[4],
+        _verificationNumbers[5],
+      ],
+      [
+        _verificationNumbers[6],
+        _verificationNumbers[7],
+        _verificationNumbers[8],
+      ],
+      ['Clear', _verificationNumbers[9], 'leftArrow'],
+    ];
+
+    return Column(
+      children: buttons.map((row) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: row.map((text) {
+              final isLeftArrow = text == 'leftArrow';
+              final isClear = text == 'Clear';
+
+              return GestureDetector(
+                onTap: () => _onVerificationKeyTap(text),
+                child: Container(
+                  width: 104,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isLeftArrow
+                          ? const Color(0xFF00F0FF)
+                          : (isClear
+                                ? const Color(0xFFFF0000)
+                                : const Color(0xFF00F0FF)),
+                      width: isLeftArrow || isClear ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: isLeftArrow
+                      ? SvgPicture.asset(
+                          'assets/images/leftArrowWhite.svg',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        )
+                      : isClear
+                      ? Text(
+                          'clear',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 20,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          text,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -951,7 +2766,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 0),
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFF00F0FF).withOpacity(0.2)
@@ -962,56 +2777,16 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              text,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
-            if (isSelected)
-              const Icon(Icons.check, color: Color(0xFF00F0FF), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLanguageOption(String language, FontSizeProvider fontProvider) {
-    bool isSelected = _selectedLanguage == language;
-
-    return GestureDetector(
-      onTap: () => _selectLanguage(language),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF00F0FF).withOpacity(0.2)
-              : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? const Color(0xFF00F0FF) : Colors.transparent,
-            width: 1,
           ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              language,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: fontProvider.getScaledSize(16),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (isSelected) const Icon(Icons.check, color: Color(0xFF00F0FF)),
-          ],
         ),
       ),
     );
@@ -1135,27 +2910,41 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Widget _buildNotificationItem(String time) {
-    return SizedBox(
-      width: double.infinity,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'You have received a notification',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 19.0, // Static font size
-              fontWeight: FontWeight.w500,
-            ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
           ),
-          Text(
-            time,
-            style: TextStyle(
-              color: Color(0xFFA5A6A8),
-              fontSize: 19.0, // Static font size
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'You have received a notification',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Text(
+              time,
+              style: const TextStyle(color: Color(0xFFA5A6A8), fontSize: 18.0),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import '../widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -25,6 +27,7 @@ class _SignInPageState extends State<SignInPage> {
 
   bool _showPassword = false;
   bool _rememberMe = false;
+  bool _isClicked = false; // Added for button animation
 
   bool get _isEmailNotEmpty => _controller.text.isNotEmpty;
   bool get _isPasswordNotEmpty => _passwordController.text.isNotEmpty;
@@ -34,10 +37,14 @@ class _SignInPageState extends State<SignInPage> {
   bool _tooManyAttempts = false;
   bool isCodeCorrect = false;
   bool? _isCodeValid;
+  bool _codeDisabled = false;
+  bool _showCodeSent = false;
+  bool _hasCodeBeenSentBefore = false;
 
   @override
   void initState() {
     super.initState();
+    //  _restoreCooldown();
     _controller.addListener(() => setState(() {}));
     _passwordController.addListener(() => setState(() {}));
     _emailFocus.addListener(() => setState(() {}));
@@ -59,7 +66,7 @@ class _SignInPageState extends State<SignInPage> {
     _passwordFocus.dispose();
     _codecontrollers.forEach((c) => c.dispose());
     _focusNodes.forEach((f) => f.dispose());
-
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -70,62 +77,84 @@ class _SignInPageState extends State<SignInPage> {
   List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   List<String> code = List.generate(6, (_) => "");
   int _secondsLeft = 0;
-
   int _getCodeAttempts = 0;
 
-  void fetchCodeFromGo() async {
-    final identifier = _controller.text.trim();
+  final _storage = const FlutterSecureStorage();
+  Timer? _timer;
+  int _attempts = 0;
 
-    if (identifier.isEmpty) {
+  Future<void> fetchCodeFromGo() async {
+    final identifier = _controller.text.trim();
+    final password = _passwordController.text.trim();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    if (identifier.isEmpty || password.isEmpty) {
       errorStackKey.currentState?.showError(
-        'Please enter your eid/email first',
+        'Please enter your eid/email and password first',
+        duration: const Duration(seconds: 5),
+      );
+      return;
+    }
+
+    final credentialsValid = await AuthService.validateCredentials(
+      identifier: identifier,
+      password: password,
+    );
+
+    if (!credentialsValid) {
+      errorStackKey.currentState?.showError(
+        "Incorrect password. Please try again.",
         duration: const Duration(seconds: 5),
       );
       return;
     }
 
     try {
-      if (_getCodeAttempts >= 4) {
-        errorStackKey.currentState?.showError(
-          "Too many attempts. Please try again in 10 minutes.",
-          duration: const Duration(seconds: 5),
-        );
+      _timer?.cancel();
+      final data = await AuthService.sendCode(identifier: identifier);
 
-        Timer(const Duration(minutes: 10), () {
-          setState(() => _getCodeAttempts = 0);
-        });
-        return;
-      }
-
-      await AuthService.sendCode(identifier: identifier);
       setState(() {
-        _getCodeAttempts++;
-        _hideInputFields = true;
-        isCodeCorrect = false;
-        _isCodeValid = null;
         code = List.generate(6, (_) => "");
         _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = null;
+        isCodeCorrect = false;
+        _codeDisabled = true;
       });
 
-      Timer(const Duration(seconds: 2), () {
-        setState(() {
-          _hideInputFields = false;
-        });
+      Future.delayed(Duration(milliseconds: 150), () {
+        if (mounted) _focusNodes[0].requestFocus();
       });
 
-      _secondsLeft = 120;
-      Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_secondsLeft <= 0) {
-          timer.cancel();
+      serverCode = data['code'];
+      _attempts = data['attempts'] ?? 0;
+      int cooldown = data['cooldown'] ?? 0;
+
+      setState(() {
+        _showCodeSent = true;
+        _codeDisabled = true; // grey input fields
+        _secondsLeft = cooldown;
+        _hasCodeBeenSentBefore = true;
+      });
+
+      // hide "Code Sent" after 2s
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _showCodeSent = false);
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_secondsLeft > 0) {
+          setState(() => _secondsLeft--);
         } else {
-          setState(() {
-            _secondsLeft--;
+          timer.cancel();
+          if (mounted) setState(() => _codeDisabled = false); // enable fields
+          Future.delayed(const Duration(milliseconds: 20), () {
+            if (mounted) _focusNodes[0].requestFocus();
           });
         }
       });
     } catch (e) {
       errorStackKey.currentState?.showError(
-        'Failed to send code',
+        'Failed to send code. Please try again.',
         duration: const Duration(seconds: 5),
       );
     }
@@ -134,21 +163,35 @@ class _SignInPageState extends State<SignInPage> {
   String getEnteredCode() => _codecontrollers.map((c) => c.text.trim()).join();
 
   void _onChanged(String value, int index) async {
-    setState(() {
-      code[index] = value;
-      if (value.isNotEmpty && index < 5) {
-        _focusNodes[index + 1].requestFocus();
-      } else if (value.isEmpty && index > 0) {
-        _focusNodes[index - 1].requestFocus();
-      }
-    });
+    final digits = value.replaceAll(RegExp(r'\D'), '');
 
-    if (getEnteredCode().length == 6 &&
-        getEnteredCode().split('').every((d) => d.isNotEmpty)) {
+    if (digits.isEmpty) {
+      code[index] = '';
+      setState(() {});
+      return;
+    }
+
+    for (int i = 0; i < 6; i++) {
+      if (i >= index && (i - index) < digits.length) {
+        _codecontrollers[i].text = digits[i - index];
+        code[i] = digits[i - index];
+      }
+    }
+
+    final nextIndex = code.indexWhere((c) => c.isEmpty);
+    if (nextIndex != -1) {
+      _focusNodes[nextIndex].requestFocus();
+    } else {
+      _focusNodes[5].unfocus();
+    }
+
+    setState(() {});
+
+    if (code.every((c) => c.isNotEmpty)) {
       try {
         final res = await AuthService.verifyCode(
           identifier: _controller.text.trim(),
-          code: getEnteredCode(),
+          code: code.join(),
         );
 
         setState(() {
@@ -164,37 +207,49 @@ class _SignInPageState extends State<SignInPage> {
             duration: const Duration(seconds: 5),
           );
 
-          // Clear input fields and hide red container after 2 seconds
-          Timer(const Duration(seconds: 2), () {
-            setState(() {
-              code = List.generate(6, (_) => "");
-              _codecontrollers.forEach((c) => c.clear());
-              _isCodeValid = null; // hide red container
-            });
-          });
+          _resetCodeInputs();
         }
       } catch (e) {
         setState(() {
           isCodeCorrect = false;
           _isCodeValid = false;
         });
+
         final msg = e.toString().contains('expired')
             ? 'Code expired. Please request a new one'
             : 'Incorrect code. Try again';
+
         errorStackKey.currentState?.showError(
           msg,
           duration: const Duration(seconds: 5),
         );
 
-        // Clear input fields and hide red container after 2 seconds
-        Timer(const Duration(seconds: 2), () {
-          setState(() {
-            code = List.generate(6, (_) => "");
-            _codecontrollers.forEach((c) => c.clear());
-            _isCodeValid = null; // hide red container
-          });
-        });
+        _resetCodeInputs();
       }
+    }
+  }
+
+  void _resetCodeInputs() {
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      setState(() {
+        code = List.generate(6, (_) => "");
+        _codecontrollers.forEach((c) => c.clear());
+        _isCodeValid = null;
+        isCodeCorrect = false;
+      });
+
+      _focusNodes[0].requestFocus();
+    });
+  }
+
+  void _handleBackspace(int index) {
+    if (code[index].isEmpty && index > 0) {
+      _codecontrollers[index - 1].clear();
+      code[index - 1] = '';
+      _focusNodes[index - 1].requestFocus();
+      setState(() {});
     }
   }
 
@@ -226,6 +281,28 @@ class _SignInPageState extends State<SignInPage> {
                   setState(() => _rememberMe = value),
               onFetchCode: fetchCodeFromGo,
               onCodeChanged: _onChanged,
+              showCodeSent: _showCodeSent,
+              codeDisabled: _codeDisabled,
+              tooManyAttempts: _tooManyAttempts,
+              isClicked: _isClicked,
+              onButtonClick: () {
+                // Show visual feedback
+                setState(() {
+                  _isClicked = true;
+                });
+
+                // Call your function
+                fetchCodeFromGo();
+
+                // Reset after short delay (200ms is good for visual feedback)
+                Future.delayed(Duration(milliseconds: 200), () {
+                  if (mounted) {
+                    setState(() {
+                      _isClicked = false;
+                    });
+                  }
+                });
+              },
             );
           } else {
             return MobileSignInPage(
@@ -248,9 +325,34 @@ class _SignInPageState extends State<SignInPage> {
               onRememberMeChanged: (value) =>
                   setState(() => _rememberMe = value),
               onFetchCode: fetchCodeFromGo,
+              handleBackspace: _handleBackspace,
               onCodeChanged: _onChanged,
-              emailFocus: _emailFocus, // <-- add this
+
+              emailFocus: _emailFocus,
               passwordFocus: _passwordFocus,
+              tooManyAttempts: _tooManyAttempts,
+              codeDisabled: _codeDisabled,
+              showCodeSent: _showCodeSent,
+              isClicked: _isClicked,
+              hasCodeBeenSentBefore: _hasCodeBeenSentBefore,
+              onButtonClick: () {
+                // Show visual feedback
+                setState(() {
+                  _isClicked = true;
+                });
+
+                // Call your function
+                fetchCodeFromGo();
+
+                // Reset after short delay (200ms is good for visual feedback)
+                Future.delayed(Duration(milliseconds: 200), () {
+                  if (mounted) {
+                    setState(() {
+                      _isClicked = false;
+                    });
+                  }
+                });
+              },
             );
           }
         },
@@ -260,6 +362,18 @@ class _SignInPageState extends State<SignInPage> {
 }
 
 class MobileSignInPage extends StatelessWidget {
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
+
   final TextEditingController controller;
   final TextEditingController passwordController;
   final bool showPassword;
@@ -277,9 +391,16 @@ class MobileSignInPage extends StatelessWidget {
   final ValueChanged<bool> onShowPasswordChanged;
   final ValueChanged<bool> onRememberMeChanged;
   final VoidCallback onFetchCode;
-  final void Function(String, int) onCodeChanged; // Fixed type
+  final void Function(int) handleBackspace;
+  final void Function(String, int) onCodeChanged;
   final FocusNode emailFocus;
   final FocusNode passwordFocus;
+  final bool tooManyAttempts;
+  final bool codeDisabled;
+  final bool showCodeSent;
+  final bool isClicked;
+  final bool hasCodeBeenSentBefore;
+  final VoidCallback onButtonClick;
 
   const MobileSignInPage({
     super.key,
@@ -300,9 +421,16 @@ class MobileSignInPage extends StatelessWidget {
     required this.onShowPasswordChanged,
     required this.onRememberMeChanged,
     required this.onFetchCode,
+    required this.handleBackspace,
     required this.onCodeChanged,
     required this.emailFocus,
     required this.passwordFocus,
+    required this.tooManyAttempts,
+    required this.codeDisabled,
+    required this.showCodeSent,
+    required this.isClicked,
+    required this.hasCodeBeenSentBefore,
+    required this.onButtonClick,
   });
 
   @override
@@ -310,17 +438,23 @@ class MobileSignInPage extends StatelessWidget {
     return Stack(
       children: [
         SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 50),
+          // physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
-              Image.asset(
-                'assets/images/egetyPerfectStar.png',
-                width: 111,
-                height: 126,
-                fit: BoxFit.contain,
-              ),
+              // const SizedBox(height: 0),           
+            Transform.translate(
+  offset: const Offset(0, 16),
+  child: Image.asset(
+    'assets/images/egetyPerfectStar.png',
+    width: 111,
+    height: 126,
+    fit: BoxFit.contain,
+  ),
+),
               const SizedBox(height: 0),
               const Text(
                 'Egety Trust',
@@ -360,20 +494,27 @@ class MobileSignInPage extends StatelessWidget {
               _buildRememberMe(),
               const SizedBox(height: 10),
               _buildEmailVerification(),
-              _buildSignInButton(context),
-              const SizedBox(height: 20),
-              const Text(
-                'You built your vault \nNow unlock it',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+              Transform.translate(
+                offset: const Offset(0, -28),
+                child: Column(
+                  children: [
+                    _buildSignInButton(context),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'You built your vault \nNow unlock it',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FooterWidget(),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              FooterWidget(),
             ],
           ),
         ),
@@ -675,7 +816,7 @@ class MobileSignInPage extends StatelessWidget {
                 ),
               ),
             ),
-            if (hideInputFields)
+            if (showCodeSent)
               Positioned(
                 top: 21,
                 left: 50,
@@ -701,7 +842,7 @@ class MobileSignInPage extends StatelessWidget {
                   ),
                 ),
               ),
-            if (!hideInputFields)
+            if (!showCodeSent)
               Positioned(
                 top: 22,
                 left: 0,
@@ -714,38 +855,57 @@ class MobileSignInPage extends StatelessWidget {
                           SizedBox(
                             width: 30,
                             height: 24,
-                            child: TextField(
-                              controller: codecontrollers[index],
-                              focusNode: focusNodes[index],
-                              showCursor: !(code.every((c) => c.isNotEmpty)),
-                              textAlign: TextAlign.center,
-                              maxLength: 1,
-                              keyboardType: TextInputType.number,
-                              style: TextStyle(
-                                color: isCodeCorrect
+                            child: RawKeyboardListener(
+                              focusNode: FocusNode(), // must be separate
+                              onKey: (event) {
+                                if (event is RawKeyDownEvent &&
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.backspace) {
+                                  handleBackspace(index);
+                                }
+                              },
+                              child: TextField(
+                                controller: codecontrollers[index],
+                                focusNode: focusNodes[index],
+                                enabled: !codeDisabled,
+                                readOnly: codeDisabled,
+                                showCursor: !codeDisabled,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(
+                                  color: codeDisabled
+                                      ? Colors.grey
+                                      : isCodeCorrect
+                                      ? const Color(0xFF00F0FF)
+                                      : (isCodeValid == false
+                                            ? Colors.red
+                                            : Colors.white),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                cursorColor: codeDisabled
+                                    ? Colors.grey
+                                    : isCodeCorrect
                                     ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
                                           : Colors.white),
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                decoration: const InputDecoration(
+                                  counterText: "",
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (value) =>
+                                    onCodeChanged(value, index),
                               ),
-                              cursorColor: isCodeCorrect
-                                  ? const Color(0xFF00F0FF)
-                                  : (isCodeValid == false
-                                        ? Colors.red
-                                        : Colors.white),
-                              decoration: const InputDecoration(
-                                counterText: "",
-                                border: InputBorder.none,
-                              ),
-                              onChanged: (value) => onCodeChanged(value, index),
                             ),
                           ),
+
                           Container(
                             width: 30,
                             height: 2,
-                            color: code[index].isEmpty
+                            color: codeDisabled
+                                ? Colors.grey
+                                : code[index].isEmpty
                                 ? Colors.white
                                 : Colors.transparent,
                           ),
@@ -780,44 +940,62 @@ class MobileSignInPage extends StatelessWidget {
               top: 21,
               left: 270,
               child: GestureDetector(
-                onTap: (secondsLeft == 0) ? onFetchCode : null,
-                child: Container(
+                onTap: (secondsLeft == 0 && !tooManyAttempts)
+                    ? onButtonClick
+                    : null,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 100),
                   width: 100,
-                  height: 26,
+                  height: 30,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withOpacity(0.8),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
+                    boxShadow: isClicked
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.8),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Center(
                     child: secondsLeft > 0
                         ? Text(
-                            "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
-                            style: const TextStyle(
+                            formatCooldown(secondsLeft),
+                            style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
                               fontSize: 18,
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
-                            "Get Code",
+                        : Text(
+                            tooManyAttempts
+                                ? "Locked"
+                                : (hasCodeBeenSentBefore
+                                      ? "Send Again"
+                                      : "Get Code"),
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
-                              color: Colors.black,
+                              fontSize: 16,
+                              color: tooManyAttempts
+                                  ? Colors.black
+                                  : Colors.white,
                             ),
                           ),
                   ),
@@ -904,7 +1082,28 @@ class MobileSignInPage extends StatelessWidget {
               );
 
               if (success) {
-                Navigator.pushReplacementNamed(context, '/register-pin');
+                // 🟢 Give storage time to write values
+                await Future.delayed(const Duration(milliseconds: 100));
+
+                final pinRegistered =
+                    (await AuthService.storage.read(key: 'pinRegistered')) ==
+                    'true';
+
+                final patternRegistered =
+                    (await AuthService.storage.read(
+                      key: 'patternRegistered',
+                    )) ==
+                    'true';
+
+                print("PIN: $pinRegistered, PATTERN: $patternRegistered");
+
+                if (!pinRegistered && !patternRegistered) {
+                  Navigator.pushReplacementNamed(context, '/register-pin');
+                } else if (pinRegistered && !patternRegistered) {
+                  Navigator.pushReplacementNamed(context, '/register-pattern');
+                } else {
+                  Navigator.pushReplacementNamed(context, '/sign-in-pin');
+                }
               }
             } catch (e) {
               print('Sign in error: $e');
@@ -989,7 +1188,7 @@ class MobileSignInPage extends StatelessWidget {
           fontFamily: 'Inter',
           fontWeight: FontWeight.w600,
           onTap: () {
-            Navigator.pushNamed(context, '/register');
+            Navigator.pushNamed(context, '/sign-up');
           },
         ),
       ],
@@ -1015,7 +1214,12 @@ class TabletSignInPage extends StatelessWidget {
   final ValueChanged<bool> onShowPasswordChanged;
   final ValueChanged<bool> onRememberMeChanged;
   final VoidCallback onFetchCode;
-  final void Function(String, int) onCodeChanged; // Fixed type
+  final void Function(String, int) onCodeChanged;
+  final bool showCodeSent;
+  final bool codeDisabled;
+  final bool tooManyAttempts;
+  final bool isClicked;
+  final VoidCallback onButtonClick;
 
   const TabletSignInPage({
     super.key,
@@ -1037,7 +1241,24 @@ class TabletSignInPage extends StatelessWidget {
     required this.onRememberMeChanged,
     required this.onFetchCode,
     required this.onCodeChanged,
+    required this.showCodeSent,
+    required this.codeDisabled,
+    required this.tooManyAttempts,
+    required this.isClicked,
+    required this.onButtonClick,
   });
+
+  String formatCooldown(int secondsLeft) {
+    if (secondsLeft >= 3600) {
+      int hours = secondsLeft ~/ 3600;
+      int minutes = (secondsLeft % 3600) ~/ 60;
+      return "${hours}h ${minutes}m";
+    } else {
+      int minutes = secondsLeft ~/ 60;
+      int seconds = secondsLeft % 60;
+      return "${minutes}m ${seconds}s";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1055,13 +1276,12 @@ class TabletSignInPage extends StatelessWidget {
               Expanded(
                 child: Stack(
                   children: [
-                    // Scrollable content
-                    SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
+                    // Non-scrollable content
+                    Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: screenWidth * 0.1,
-                          vertical: screenHeight * 0.05,
+                          vertical: screenHeight * 0.00,
                         ),
                         child: Center(
                           child: ConstrainedBox(
@@ -1130,9 +1350,9 @@ class TabletSignInPage extends StatelessWidget {
                                   _buildRememberMe(),
                                   const SizedBox(height: 20),
                                   _buildEmailVerification(),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 0),
                                   _buildSignInButton(context),
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: 10),
                                   const Text(
                                     'You built your vault\nNow unlock it',
                                     textAlign: TextAlign.center,
@@ -1143,7 +1363,7 @@ class TabletSignInPage extends StatelessWidget {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 10),
                                   FooterWidget(),
                                 ],
                               ),
@@ -1314,7 +1534,7 @@ class TabletSignInPage extends StatelessWidget {
                     textAlignVertical:
                         TextAlignVertical.center, // ✅ aligns text with icon
                     style: const TextStyle(
-                      color: Color(0xFF00F0FF),
+                      color: const Color(0xFF00F0FF),
                       fontSize: 18,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
@@ -1492,7 +1712,7 @@ class TabletSignInPage extends StatelessWidget {
                 ),
               ),
             ),
-            if (hideInputFields)
+            if (showCodeSent)
               Positioned(
                 top: 20,
                 left: 80,
@@ -1518,7 +1738,7 @@ class TabletSignInPage extends StatelessWidget {
                   ),
                 ),
               ),
-            if (!hideInputFields)
+            if (!showCodeSent)
               Positioned(
                 top: 10,
                 left: -5,
@@ -1534,12 +1754,16 @@ class TabletSignInPage extends StatelessWidget {
                             child: TextField(
                               controller: codecontrollers[index],
                               focusNode: focusNodes[index],
-                              showCursor: !(code.every((c) => c.isNotEmpty)),
+                              enabled: !codeDisabled,
+                              readOnly: codeDisabled,
+                              showCursor: !codeDisabled,
                               textAlign: TextAlign.center,
-                              maxLength: 1,
+                              // maxLength: 1,
                               keyboardType: TextInputType.number,
                               style: TextStyle(
-                                color: isCodeCorrect
+                                color: codeDisabled
+                                    ? Colors.grey
+                                    : isCodeCorrect
                                     ? const Color(0xFF00F0FF)
                                     : (isCodeValid == false
                                           ? Colors.red
@@ -1547,7 +1771,9 @@ class TabletSignInPage extends StatelessWidget {
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                               ),
-                              cursorColor: isCodeCorrect
+                              cursorColor: codeDisabled
+                                  ? Colors.grey
+                                  : isCodeCorrect
                                   ? const Color(0xFF00F0FF)
                                   : (isCodeValid == false
                                         ? Colors.red
@@ -1556,14 +1782,15 @@ class TabletSignInPage extends StatelessWidget {
                                 counterText: "",
                                 border: InputBorder.none,
                               ),
-                              onChanged: (value) =>
-                                  onCodeChanged(value, index), // Fixed
+                              onChanged: (value) => onCodeChanged(value, index),
                             ),
                           ),
                           Container(
                             width: 35,
                             height: 3,
-                            color: code[index].isEmpty
+                            color: codeDisabled
+                                ? Colors.grey
+                                : code[index].isEmpty
                                 ? Colors.white
                                 : Colors.transparent,
                           ),
@@ -1573,22 +1800,34 @@ class TabletSignInPage extends StatelessWidget {
                   }),
                 ),
               ),
-            if (isCodeCorrect)
-              const Positioned(
+            if (isCodeCorrect || isCodeValid == false)
+              Positioned(
                 top: 20,
                 left: 257,
-                child: CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Color(0xFF00F0FF),
-                  child: Icon(Icons.check, color: Colors.white, size: 16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: isCodeCorrect ? const Color(0xFF00F0FF) : Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isCodeCorrect ? Icons.check : Icons.close,
+                    color: isCodeCorrect ? Colors.black : Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             Positioned(
               top: 20,
               left: 285,
               child: GestureDetector(
-                onTap: (secondsLeft == 0) ? onFetchCode : null,
-                child: Container(
+                onTap: (secondsLeft == 0 && !tooManyAttempts)
+                    ? onButtonClick
+                    : null,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 100),
                   width: 94,
                   height: 23,
                   decoration: BoxDecoration(
@@ -1597,20 +1836,29 @@ class TabletSignInPage extends StatelessWidget {
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withOpacity(0.8),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
+                    boxShadow: isClicked
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.8),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Center(
                     child: secondsLeft > 0
                         ? Text(
-                            "${secondsLeft ~/ 60}m ${secondsLeft % 60}s",
+                            formatCooldown(secondsLeft),
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -1618,9 +1866,9 @@ class TabletSignInPage extends StatelessWidget {
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
-                            "Get Code",
-                            style: TextStyle(
+                        : Text(
+                            tooManyAttempts ? "Locked" : "Get Code",
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
                               fontSize: 15,

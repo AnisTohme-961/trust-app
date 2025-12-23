@@ -25,7 +25,7 @@ type User struct {
 	LastFailedAt     time.Time          `bson:"lastFailedAt,omitempty" json:"lastFailedAt"`
 	AccountLockUntil time.Time          `bson:"accountLockUntil,omitempty" json:"accountLockUntil"`
 	Pin              string             `bson:"pin,omitempty" json:"pin,omitempty"`
-	Pattern          string             `bson:"pattern,omitempty" json:"pattern,omitempty"`
+	PatternHash      string             `bson:"patternHash,omitempty" json:"patternHash,omitempty"`
 	Phone            string             `bson:"phone,omitempty" json:"phone,omitempty"`
 	TwoFASecret      string             `bson:"twofa_secret,omitempty" json:"twofa_secret,omitempty"`
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-class SlideUpMenu extends StatefulWidget {
+class SimpleSlideUpMenu extends StatefulWidget {
   final double menuHeight;
   final Color backgroundColor;
   final Color shadowColor;
+  final Color borderColor;
   final double borderRadius;
   final Duration duration;
   final Curve curve;
@@ -13,16 +14,17 @@ class SlideUpMenu extends StatefulWidget {
   final bool initiallyVisible;
   final bool? isVisible;
   final Widget? child;
-  final double minHeight; // Minimum height when dragged
-  final double maxHeight; // Maximum height (screen height - top margin)
+  final double minHeight;
+  final double maxHeight;
 
-  const SlideUpMenu({
+  const SimpleSlideUpMenu({
     Key? key,
     required this.menuHeight,
     this.minHeight = 100,
     this.maxHeight = double.infinity,
     this.backgroundColor = const Color(0xFF0B1320),
     this.shadowColor = const Color(0xFF00F0FF),
+    this.borderColor = const Color(0xFF00F0FF),
     this.borderRadius = 20.0,
     this.duration = const Duration(milliseconds: 400),
     this.curve = Curves.easeOut,
@@ -35,10 +37,10 @@ class SlideUpMenu extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SlideUpMenu> createState() => _SlideUpMenuState();
+  State<SimpleSlideUpMenu> createState() => _SimpleSlideUpMenuState();
 }
 
-class _SlideUpMenuState extends State<SlideUpMenu>
+class _SimpleSlideUpMenuState extends State<SimpleSlideUpMenu>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _animation;
@@ -72,7 +74,7 @@ class _SlideUpMenuState extends State<SlideUpMenu>
   }
 
   @override
-  void didUpdateWidget(covariant SlideUpMenu oldWidget) {
+  void didUpdateWidget(covariant SimpleSlideUpMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (widget.isVisible != oldWidget.isVisible) {
@@ -83,7 +85,6 @@ class _SlideUpMenuState extends State<SlideUpMenu>
         _animationController.forward();
       } else if (widget.isVisible == false && !_closingNormally) {
         // When closing from external (normal close), animate down
-        // This happens when user taps outside, taps language item, etc.
         _animationController.reverse();
       }
       // If isVisible == false and _closingNormally is true,
@@ -107,11 +108,6 @@ class _SlideUpMenuState extends State<SlideUpMenu>
   }
 
   void _closeFromDrag() {
-    // For drag-to-bottom closing:
-    // 1. Mark that we're closing from drag (not normal close)
-    // 2. Immediately hide the menu
-    // 3. Call onClose to update external state
-
     _closingNormally = false;
 
     // Immediately set animation to 0 to hide
@@ -125,11 +121,6 @@ class _SlideUpMenuState extends State<SlideUpMenu>
   }
 
   void _closeNormally() {
-    // For normal closing (tap handle, tap outside, etc.):
-    // 1. Mark that we're closing normally
-    // 2. Let the animation controller reverse naturally
-    // 3. The external state change will trigger didUpdateWidget
-
     _closingNormally = true;
     _animationController.reverse();
   }
@@ -184,8 +175,6 @@ class _SlideUpMenuState extends State<SlideUpMenu>
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -193,9 +182,6 @@ class _SlideUpMenuState extends State<SlideUpMenu>
         if (!_closingNormally && _animationController.value == 0) {
           return const SizedBox.shrink();
         }
-
-        // If widget.isVisible is false but we're animating (normal close), still render
-        // This allows the slide-down animation to complete
 
         // Use dragged height when dragging, otherwise use appropriate height
         double displayHeight;
@@ -211,8 +197,7 @@ class _SlideUpMenuState extends State<SlideUpMenu>
           displayHeight = _currentHeight;
         }
 
-        final bottomPosition =
-            -(widget.menuHeight) + (_animation.value * widget.menuHeight);
+        final bottomPosition = displayHeight * (_animation.value - 1);
 
         return Positioned(
           bottom: bottomPosition,
@@ -227,6 +212,11 @@ class _SlideUpMenuState extends State<SlideUpMenu>
               height: displayHeight,
               decoration: BoxDecoration(
                 color: widget.backgroundColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(widget.borderRadius),
+                  topRight: Radius.circular(widget.borderRadius),
+                ),
+                // REMOVED the border completely
                 boxShadow:
                     _animation.value > 0.1 && displayHeight > widget.minHeight
                     ? [
@@ -237,36 +227,55 @@ class _SlideUpMenuState extends State<SlideUpMenu>
                         ),
                       ]
                     : [],
+              ),
+              child: ClipRRect(
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(widget.borderRadius),
                   topRight: Radius.circular(widget.borderRadius),
                 ),
-              ),
-              child: Column(
-                children: [
-                  // Drag handle with visual feedback
-                  GestureDetector(
-                    onTap: () {
-                      // For normal close when tapping handle
-                      if (_animationController.status ==
-                          AnimationStatus.completed) {
-                        _closeNormally();
-                        widget.onToggle?.call();
-                      } else {
-                        _toggleMenu();
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 15),
-                      child: Center(
-                        child: widget.dragHandle ?? _defaultDragHandle(),
+                child: Stack(
+                  children: [
+                    // Drag handle (fixed at top)
+                    Positioned(
+                      top: 15,
+                      left: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () {
+                          // For normal close when tapping handle
+                          if (_animationController.status ==
+                              AnimationStatus.completed) {
+                            _closeNormally();
+                            widget.onToggle?.call();
+                          } else {
+                            _toggleMenu();
+                          }
+                        },
+                        child: Center(
+                          child: widget.dragHandle ?? _defaultDragHandle(),
+                        ),
                       ),
                     ),
-                  ),
-                  // Menu content - FIXED: Removed ConstrainedBox, just use Expanded
-                  if (displayHeight > 50)
-                    Expanded(child: widget.child ?? _defaultContent()),
-                ],
+
+                    // Content area - positioned below drag handle
+                    Positioned(
+                      top: 40, // Space for drag handle
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        height: displayHeight > 40 ? displayHeight - 40 : 0,
+                        child: displayHeight > 40
+                            ? SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                child: widget.child ?? _defaultContent(),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -287,8 +296,11 @@ class _SlideUpMenuState extends State<SlideUpMenu>
   }
 
   Widget _defaultContent() {
-    return const Center(
-      child: Text('Menu Content', style: TextStyle(color: Colors.white)),
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Center(
+        child: Text('Menu Content', style: TextStyle(color: Colors.white)),
+      ),
     );
   }
 }

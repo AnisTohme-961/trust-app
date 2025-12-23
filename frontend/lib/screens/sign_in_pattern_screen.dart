@@ -14,7 +14,7 @@ class SignInPatternScreen extends StatefulWidget {
 }
 
 class _SignInPatternScreenState extends State<SignInPatternScreen> {
-  bool isEyeVisible = true; 
+  bool isEyeVisible = true;
   static const int gridCount = 3;
   static const double dotSize = 18.0;
   final GlobalKey _gridKey = GlobalKey();
@@ -52,39 +52,53 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
     });
   }
 
-  void _showError(String message) {
-    final overlay = Overlay.of(context);
-    if (overlay == null) return;
+  // void _showError(String message) {
+  //   final overlay = Overlay.of(context);
+  //   if (overlay == null) return;
 
-    final overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        bottom: 0,
-        left: 0,
-        right: 0,
-        child: Material(
-          color: Colors.transparent,
-          child: ErrorBanner(message: message),
-        ),
-      ),
-    );
+  //   final overlayEntry = OverlayEntry(
+  //     builder: (context) => Positioned(
+  //       top: 0,
+  //       left: 0,
+  //       right: 0,
+  //       child: Material(
+  //         color: Colors.transparent,
+  //         child: ErrorBanner(message: message),
+  //       ),
+  //     ),
+  //   );
 
-    overlay.insert(overlayEntry);
+  //   overlay.insert(overlayEntry);
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      overlayEntry.remove();
-    });
-  }
+  //   Future.delayed(const Duration(milliseconds: 3000), () {
+  //     overlayEntry.remove();
+  //   });
+  // }
+  // void _validatePattern() async {
+  //   if (selectedDots.length < 4) {
+  //     _showError("Please draw a pattern of at least 4 dots.");
+  //     _clearPatternDelayed(1000);
+  //     return;
+  //   }
 
-  void _validatePattern() {
-    if (selectedDots.length < 4) {
-      _showError("Please draw a pattern of at least 4 dots.");
-      _clearPatternDelayed(1000);
-      return;
-    }
+  //   try {
+  //     bool isValid = await AuthService.validatePattern(selectedDots);
 
-    // TODO: Add your authentication logic
-    _clearPatternDelayed(500);
-  }
+  //     if (!isValid) {
+  //       _showError("Incorrect Pattern. Try Again.");
+  //       _clearPatternDelayed(1200);
+  //       return;
+  //     }
+
+  //     // SUCCESS
+  //     debugPrint("✅ Correct Pattern!");
+  //     Navigator.pushNamed(context, '/settings');
+  //   } catch (e) {
+  //     _showError("Error validating pattern.");
+  //   }
+
+  //   _clearPatternDelayed(800);
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +113,6 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 8),
               Image.asset(
                 'assets/images/egetyPerfectStar.png',
                 width: 111,
@@ -129,13 +142,13 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 26,
+                          fontSize: 25,
                           color: Colors.white,
                         ),
                         softWrap: false, // 👈 disables wrapping
                         overflow: TextOverflow
                             .visible, // or TextOverflow.ellipsis if needed
-                        maxLines: 1, // 👈 force single line
+                        maxLines: 1, 
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -200,14 +213,14 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                         }
                       }
                     },
-                    onPanEnd: (_) {
-                      if (selectedDots.length >= 4) {
-                        _validatePattern();
-                      } else {
-                        _showError("Pattern too short (min 4 dots).");
-                      }
-                      _clearPatternDelayed(900);
-                    },
+                    // onPanEnd: (_) {
+                    //   if (selectedDots.length >= 4) {
+                    //     _validatePattern();
+                    //   } else {
+                    //     _showError("Pattern too short (min 4 dots).");
+                    //   }
+                    //   _clearPatternDelayed(900);
+                    // },
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final size = min(
@@ -288,7 +301,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      debugPrint('Use Pin Instead tapped');
+                      Navigator.pushNamed(context, '/sign-in-pin');
                     },
                     child: const Text(
                       'Use Pin Instead',
@@ -362,7 +375,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
             borderColor: const Color(0xFF00F0FF),
             backgroundColor: const Color(0xFF0B1320),
             onTap: () async {
-              _logout(); 
+              _logout();
             },
           ),
 

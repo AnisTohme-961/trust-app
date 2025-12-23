@@ -5,27 +5,33 @@ import '../constants/api_constants.dart';
 
 class AuthService {
   // Secure storage instance
-  static final _storage = FlutterSecureStorage();
+  static final _storage = const FlutterSecureStorage();
+
+
+static FlutterSecureStorage get storage => _storage;
 
   // Key for storing the token
   static const _tokenKey = 'auth_token';
   static const _emailKey = 'user_email'; // new
   static const _eidKey = 'user_eid'; // new
 
-  // Send code for sign-in (by EID or email)
-  static Future<void> sendCode({required String identifier}) async {
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/send-code-sign-in"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'identifier': identifier}),
-    );
+  static Future<Map<String, dynamic>> sendCode({required String identifier}) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/get-code-sign-in"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'identifier': identifier}),
+  );
 
-    print('Send code response: ${response.statusCode} ${response.body}');
+  final data = jsonDecode(response.body);
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send code: ${response.body}');
-    }
+  print('Send code response: ${response.statusCode} $data');
+
+  if (response.statusCode != 200) {
+    throw Exception(data['error'] ?? 'Failed to send code');
   }
+
+  return data;
+}
 
   // Verify code (optional - for UI feedback only)
   static Future<bool> verifyCode({
@@ -51,6 +57,7 @@ class AuthService {
       throw Exception('Failed to verify code: ${response.body}');
     }
   }
+
 
   // Sign in
   static Future<bool> signIn({
@@ -83,6 +90,15 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+
+        final user = data['user'];
+
+  final pinRegistered = user['pinRegistered'] ?? false;
+  final patternRegistered = user['patternRegistered'] ?? false;
+
+  // Save them so the UI can read them
+  await _storage.write(key: 'pinRegistered', value: pinRegistered.toString());
+  await _storage.write(key: 'patternRegistered', value: patternRegistered.toString());
 
       // Save token securely
       final token = data['token']; // Make sure your API returns a 'token'
@@ -180,27 +196,40 @@ class AuthService {
     }
   }
 
-  //   static Future<bool> validatePin(String pin) async {
-  //   final token = await _storage.read(key: _tokenKey);
-  //   if (token == null) throw Exception("User not authenticated");
+ // AuthService.validatePin - add to your existing AuthService class
+static Future<bool> validatePin(String pin) async {
+  try {
+    final token = await _storage.read(key: _tokenKey);
+    if (token == null) {
+      // Not authenticated
+      return false;
+    }
 
-  //   final response = await http.post(
-  //     Uri.parse("${ApiConstants.baseUrl}/validate-pin"),
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'Authorization': 'Bearer $token',
-  //     },
-  //     body: jsonEncode({'pin': pin}),
-  //   );
+    final response = await http.post(
+      Uri.parse("${ApiConstants.baseUrl}/validate-pin"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'pin': pin}),
+    );
 
-  //   if (response.statusCode == 200) {
-  //     return true;
-  //   } else if (response.statusCode == 401) {
-  //     return false;
-  //   } else {
-  //     throw Exception('Failed to validate PIN: ${response.body}');
-  //   }
-  // }
+    // server returns 200 for valid, 401 for invalid
+    if (response.statusCode == 200) {
+      return true;
+    } else if (response.statusCode == 401) {
+      return false;
+    } else {
+      // Unexpected server response — bubble up or return false.
+      print('validatePin unexpected status: ${response.statusCode} ${response.body}');
+      return false;
+    }
+  } catch (e) {
+    print("Error validating PIN: $e");
+    return false;
+  }
+}
+
 
   static Future<void> registerPattern(List<int> pattern) async {
     final token = await _storage.read(key: _tokenKey);
@@ -230,16 +259,52 @@ class AuthService {
     }
   }
 
-  static Future<void> sendResetCode(String identifier) async {
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'identifier': identifier}),
-    );
-    if (response.statusCode != 200) {
-      throw Exception(jsonDecode(response.body)['error']);
-    }
+  static Future<bool> validatePattern(List<int> pattern) async {
+  final token = await _storage.read(key: _tokenKey);
+  if (token == null) return false;
+
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/validate-pattern"),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({'pattern': pattern}),
+  );
+
+  if (response.statusCode == 200) return true;
+  if (response.statusCode == 401) return false;
+
+  return false;
+}
+
+
+static Future<Map<String, dynamic>> sendResetCode(String identifier) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'identifier': identifier}),
+  );
+
+  final data = jsonDecode(response.body);
+
+  if (response.statusCode != 200) {
+    throw Exception(data['error'] ?? "Unknown error occurred");
   }
+
+  return data;  // MUST return the full JSON
+}
+
+  // static Future<void> sendResetCode(String identifier) async {
+  //   final response = await http.post(
+  //     Uri.parse("${ApiConstants.baseUrl}/send-reset-code"),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'identifier': identifier}),
+  //   );
+  //   if (response.statusCode != 200) {
+  //     throw Exception(jsonDecode(response.body)['error']);
+  //   }
+  // }
 
   static Future<bool> verifyResetCode({
     required String identifier,
@@ -325,21 +390,38 @@ class AuthService {
     }
   }
 
-  static Future<String> sendEidCode(String email) async {
-    final response = await http.post(
-      Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
+static Future<Map<String, dynamic>> sendEidCode(String email) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'email': email}),
+  );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['code']; // return server-generated code
-    } else {
-      final error = jsonDecode(response.body)['error'] ?? 'Failed to send code';
-      throw Exception(error);
-    }
+  final data = jsonDecode(response.body);
+
+
+  if (response.statusCode != 200) {
+    throw Exception(data['error'] ?? "Unknown error occurred"); 
   }
+
+  return data;
+}
+
+  // static Future<String> sendEidCode(String email) async {
+  //   final response = await http.post(
+  //     Uri.parse("${ApiConstants.baseUrl}/send-eid-code"),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'email': email}),
+  //   );
+
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body);
+  //     return data['code']; // return server-generated code
+  //   } else {
+  //     final error = jsonDecode(response.body)['error'] ?? 'Failed to send code';
+  //     throw Exception(error);
+  //   }
+  // }
 
   // verify EID code
   static Future<bool> verifyEidCode({
@@ -398,6 +480,29 @@ static Future<bool> checkEidExists(String eid) async {
 
   // If server returns error → treat as not existing
   return false;
+}
+
+static Future<bool> validateCredentials({
+  required String identifier,
+  required String password,
+}) async {
+  final response = await http.post(
+    Uri.parse("${ApiConstants.baseUrl}/validate-credentials"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'identifier': identifier,
+      'password': password,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return data['valid'] == true;   // true = password matches
+  } else if (response.statusCode == 401) {
+    return false; // wrong password
+  } else {
+    throw Exception("Validation failed: ${response.body}");
+  }
 }
 
 
