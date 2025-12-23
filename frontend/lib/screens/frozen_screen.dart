@@ -70,35 +70,35 @@ class _FreezeAccountState extends State<FreezeAccount> {
                 padding: const EdgeInsets.symmetric(horizontal: 1.0),
                 child: CustomNavigationWidget(
                   // Left button: Delete Account
-                  cancelText: 'Delete Account',
-                  onCancel: () {
+                  leftText: 'Delete Account',
+                  onClickLeftButton: () {
                     // Add your delete account logic here
                     print('Delete Account button tapped');
                   },
                   // Right button: Switch Account
-                  nextText: 'Switch Account',
-                  onNext: () {
+                  rightText: 'Switch Account',
+                  onClickRightButton: () {
                     // Add your switch account logic here
                     print('Switch Account button tapped');
                   },
                   // Styling for Delete Account button
-                  cancelButtonWidth: 155,
-                  cancelButtonHeight: 40,
-                  cancelFontSize: 20,
-                  cancelFontWeight: FontWeight.w600,
-                  cancelTextColor: Colors.white,
-                  cancelBorderColor: const Color(0xFF00F0FF),
-                  cancelBackgroundColor: Colors.transparent,
-                  cancelBorderRadius: 10,
+                  leftButtonWidth: 155,
+                  leftButtonHeight: 40,
+                  leftFontSize: 20,
+                  leftFontWeight: FontWeight.w600,
+                  leftTextColor: Colors.white,
+                  leftBorderColor: const Color(0xFF00F0FF),
+                  leftBackgroundColor: Colors.transparent,
+                  leftBorderRadius: 10,
                   // Styling for Switch Account button
-                  nextButtonWidth: 162,
-                  nextButtonHeight: 40,
-                  nextFontSize: 20,
-                  nextFontWeight: FontWeight.w600,
-                  nextTextColor: Colors.white,
-                  nextBorderColor: const Color(0xFF00F0FF),
-                  nextBackgroundColor: Colors.transparent,
-                  nextBorderRadius: 10,
+                  rightButtonWidth: 162,
+                  rightButtonHeight: 40,
+                  rightFontSize: 20,
+                  rightFontWeight: FontWeight.w600,
+                  rightTextColor: Colors.white,
+                  rightBorderColor: const Color(0xFF00F0FF),
+                  rightBackgroundColor: Colors.transparent,
+                  rightBorderRadius: 10,
                   // Line styling
                   lineHeight: 4,
                   lineRadius: 11,
