@@ -92,25 +92,40 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showSMSCodeSent = false;
   bool _showAuthCodeSent = false;
 
-  List<TextEditingController> _emailCodeControllers = List.generate(
+  bool _pinError = false;
+
+  // Add these to your existing state variables
+  final Map<String, bool> _isButtonClickedMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  final Map<String, bool> _hasCodeBeenSentMap = {
+    'email': false,
+    'sms': false,
+    'auth': false,
+  };
+
+  final List<TextEditingController> _emailCodeControllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
-  List<FocusNode> _emailFocusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> _emailFocusNodes = List.generate(6, (_) => FocusNode());
   List<String> _emailCode = List.generate(6, (_) => '');
 
-  List<TextEditingController> _smsCodeControllers = List.generate(
+  final List<TextEditingController> _smsCodeControllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
-  List<FocusNode> _smsFocusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> _smsFocusNodes = List.generate(6, (_) => FocusNode());
   List<String> _smsCode = List.generate(6, (_) => '');
 
-  List<TextEditingController> _authCodeControllers = List.generate(
+  final List<TextEditingController> _authCodeControllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
-  List<FocusNode> _authFocusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> _authFocusNodes = List.generate(6, (_) => FocusNode());
   List<String> _authCode = List.generate(6, (_) => '');
 
   Map<String, bool> isCodeCorrectMap = {
@@ -150,18 +165,60 @@ class _SettingsScreenState extends State<SettingsScreen>
   ];
   String? _selectedFreezeReason;
   // Freeze account controller
-  TextEditingController _freezeTextController = TextEditingController();
+  final TextEditingController _freezeTextController = TextEditingController();
   bool _showCheckImage = false;
 
   bool _areFreezeConditionsMet() {
-    return _freezeTextController.text == 'FREEZE ACCOUNT' && _pin.length == 4;
+    return _freezeTextController.text == 'FREEZE ACCOUNT' &&
+        _pin.length == 4 &&
+        !_pinError;
+  }
+
+  bool _verifyFreezeAccountPin() {
+    // This is a mock verification. Replace with your actual PIN verification logic
+    const correctPin =
+        '1234'; // Replace with actual PIN from your backend/secure storage
+
+    if (_pin.join() == correctPin) {
+      // PIN is correct
+      setState(() {
+        _pinError = false;
+      });
+      print("PIN verified successfully");
+      return true;
+    } else {
+      // PIN is incorrect
+      setState(() {
+        _pinError = true;
+      });
+
+      _errorStackKey.currentState?.showError("Incorrect Pin. Try Again.");
+
+      // Clear PIN fields after showing error
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _pin.clear();
+          });
+        }
+      });
+      return false;
+    }
   }
 
   void _handleFreezeNextTap() {
     if (_areFreezeConditionsMet()) {
-      _openPatternMenu();
+      // First check if PIN is 4 digits and correct
+      if (_pin.length == 4 && !_pinError) {
+        // PIN is valid, proceed to pattern menu
+        _openPatternMenu();
+      } else if (_pin.length < 4) {
+        _errorStackKey.currentState?.showError('Enter 4 digits PIN first');
+      } else if (_pinError) {
+        _errorStackKey.currentState?.showError('Incorrect PIN. Try again.');
+      }
     } else {
-      // Show appropriate error message
+      // Show appropriate error message for incomplete conditions
       if (_freezeTextController.text != 'FREEZE ACCOUNT') {
         _errorStackKey.currentState?.showError(
           'Please enter "FREEZE ACCOUNT" first',
@@ -371,6 +428,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           setState(() {
             isCodeCorrectMap[type] = true;
             isCodeValidMap[type] = true;
+            // Removed: Reset failed attempts on successful verification
           });
           _timers[type]?.cancel();
           _timers[type] = null;
@@ -629,10 +687,22 @@ class _SettingsScreenState extends State<SettingsScreen>
     setState(() {
       if (value == 'Clear') {
         _pin.clear();
+        _pinError = false; // Reset error when clearing
       } else if (value == 'leftArrow') {
-        _closeAllMenus();
+        if (_pin.isNotEmpty) {
+          _pin.removeLast();
+        }
+        _pinError = false; // Reset error when deleting
       } else {
-        if (_pin.length < 4) _pin.add(value);
+        if (_pin.length < 4) {
+          _pin.add(value);
+          _pinError = false; // Reset error when adding new digit
+
+          // Automatically validate when PIN reaches 4 digits
+          if (_pin.length == 4) {
+            _verifyFreezeAccountPin();
+          }
+        }
       }
     });
   }
@@ -642,7 +712,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (value == 'Clear') {
         _verificationPin.clear();
       } else if (value == 'leftArrow') {
-        _closeAllMenus();
+        if (_verificationPin.isNotEmpty) {
+          _verificationPin.removeLast();
+        }
       } else {
         if (_verificationPin.length < 4) _verificationPin.add(value);
       }
@@ -688,6 +760,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         _numbers.shuffle();
         _freezeTextController.clear();
         _showCheckImage = false;
+        _pinError = false;
       }
     });
   }
@@ -1848,10 +1921,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                               height: 60,
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.9),
-                                  width: 1,
+                                  color: _pinError && filled
+                                      ? const Color(
+                                          0xFFFF0000,
+                                        ) // Red border for error
+                                      : Colors.white.withOpacity(0.9),
+                                  width: _pinError && filled ? 2 : 1,
                                 ),
                                 borderRadius: BorderRadius.circular(3),
+                                color: Colors
+                                    .transparent, // Ensure background stays transparent
                               ),
                               alignment: Alignment.center,
                               child: Text(
@@ -1860,7 +1939,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
                                   fontSize: fontProvider.getScaledSize(24),
-                                  color: Colors.white,
+                                  color: _pinError && filled
+                                      ? const Color(
+                                          0xFFFF0000,
+                                        ) // Red text when error
+                                      : Colors.white,
                                 ),
                               ),
                             );
@@ -1874,42 +1957,41 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                         // UPDATED: Using CustomNavigationWidget for Freeze Account
                         CustomNavigationWidget(
-                          onCancel: _closeAllMenus,
-                          onNext:
-                              _handleFreezeNextTap, // Always call this method
-                          cancelText: "Cancel",
-                          nextText: "Next",
-                          cancelButtonWidth: 106,
-                          cancelButtonHeight: 40,
-                          cancelFontSize: 20,
-                          cancelFontWeight: FontWeight.w600,
-                          cancelTextColor: Colors.white,
-                          cancelBorderColor: const Color(0xFF00F0FF),
-                          cancelBackgroundColor: Colors.transparent,
-                          cancelBorderRadius: 10,
-                          nextButtonWidth: 106,
-                          nextButtonHeight: 40,
-                          nextFontSize: 20,
-                          nextFontWeight: FontWeight.w600,
-                          nextTextColor: _areFreezeConditionsMet()
+                          onClickLeftButton: _closeAllMenus,
+                          onClickRightButton: _handleFreezeNextTap,
+                          leftText: "Cancel",
+                          rightText: "Next",
+                          leftButtonWidth: 106,
+                          leftButtonHeight: 40,
+                          leftFontSize: 20,
+                          leftFontWeight: FontWeight.w600,
+                          leftTextColor: Colors.white,
+                          leftBorderColor: const Color(0xFF00F0FF),
+                          leftBackgroundColor: Colors.transparent,
+                          leftBorderRadius: 10,
+                          rightButtonWidth: 106,
+                          rightButtonHeight: 40,
+                          rightFontSize: 20,
+                          rightFontWeight: FontWeight.w600,
+                          rightTextColor: _areFreezeConditionsMet()
                               ? Colors.white
                               : const Color(0xFF718096),
-                          nextBorderColor: _areFreezeConditionsMet()
+                          rightBorderColor: _areFreezeConditionsMet()
                               ? const Color(0xFF00F0FF)
                               : const Color(0xFF4A5568),
-                          nextBackgroundColor: Colors.transparent,
-                          nextBorderRadius: 10,
+                          rightBackgroundColor: Colors.transparent,
+                          rightBorderRadius: 10,
                           lineHeight: 4,
                           lineRadius: 11,
                           spacing: 16,
                           startGradientColor: const Color(0xFF00F0FF),
                           endGradientColor: const Color(0xFF0B1320),
                           // New properties
-                          isNextEnabled: _areFreezeConditionsMet(),
-                          nextDisabledTextColor: const Color(0xFF718096),
-                          nextDisabledBorderColor: const Color(0xFF4A5568),
+                          isRightButtonEnabled: _areFreezeConditionsMet(),
+                          rightDisabledTextColor: const Color(0xFF718096),
+                          rightDisabledBorderColor: const Color(0xFF4A5568),
                           // This callback is called when disabled Next button is tapped
-                          onNextDisabledTap: () {
+                          onRightButtonDisabledTap: () {
                             // Show appropriate error message
                             if (_freezeTextController.text !=
                                 'FREEZE ACCOUNT') {
@@ -1919,6 +2001,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             } else if (_pin.length < 4) {
                               _errorStackKey.currentState?.showError(
                                 'Please Enter 4 digits PIN first',
+                              );
+                            } else if (_pinError) {
+                              _errorStackKey.currentState?.showError(
+                                'Incorrect PIN. Try again.',
                               );
                             }
                           },
@@ -2088,40 +2174,41 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                     // UPDATED: Using CustomNavigationWidget for Pattern Menu
                     CustomNavigationWidget(
-                      onCancel: _closeAllMenus,
-                      onNext: _handlePatternNextTap, // Use the new method
-                      cancelText: "Cancel",
-                      nextText: "Next",
-                      cancelButtonWidth: 106,
-                      cancelButtonHeight: 40,
-                      cancelFontSize: 20,
-                      cancelFontWeight: FontWeight.w600,
-                      cancelTextColor: Colors.white,
-                      cancelBorderColor: const Color(0xFF00F0FF),
-                      cancelBackgroundColor: Colors.transparent,
-                      cancelBorderRadius: 10,
-                      nextButtonWidth: 106,
-                      nextButtonHeight: 40,
-                      nextFontSize: 20,
-                      nextFontWeight: FontWeight.w600,
-                      nextTextColor: _selectedPatternDots.length >= 4
+                      onClickLeftButton: _closeAllMenus,
+                      onClickRightButton:
+                          _handlePatternNextTap, // Use the new method
+                      leftText: "Cancel",
+                      rightText: "Next",
+                      leftButtonWidth: 106,
+                      leftButtonHeight: 40,
+                      leftFontSize: 20,
+                      leftFontWeight: FontWeight.w600,
+                      leftTextColor: Colors.white,
+                      leftBorderColor: const Color(0xFF00F0FF),
+                      leftBackgroundColor: Colors.transparent,
+                      leftBorderRadius: 10,
+                      rightButtonWidth: 106,
+                      rightButtonHeight: 40,
+                      rightFontSize: 20,
+                      rightFontWeight: FontWeight.w600,
+                      rightTextColor: _selectedPatternDots.length >= 4
                           ? Colors.white
                           : const Color(0xFF718096),
-                      nextBorderColor: _selectedPatternDots.length >= 4
+                      rightBorderColor: _selectedPatternDots.length >= 4
                           ? const Color(0xFF00F0FF)
                           : const Color(0xFF4A5568),
-                      nextBackgroundColor: Colors.transparent,
-                      nextBorderRadius: 10,
+                      rightBackgroundColor: Colors.transparent,
+                      rightBorderRadius: 10,
                       lineHeight: 4,
                       lineRadius: 11,
                       spacing: 16,
                       startGradientColor: const Color(0xFF00F0FF),
                       endGradientColor: const Color(0xFF0B1320),
                       // New properties for disable state
-                      isNextEnabled: _selectedPatternDots.length >= 4,
-                      nextDisabledTextColor: const Color(0xFF718096),
-                      nextDisabledBorderColor: const Color(0xFF4A5568),
-                      onNextDisabledTap: () {
+                      isRightButtonEnabled: _selectedPatternDots.length >= 4,
+                      rightDisabledTextColor: const Color(0xFF718096),
+                      rightDisabledBorderColor: const Color(0xFF4A5568),
+                      onRightButtonDisabledTap: () {
                         _errorStackKey.currentState?.showError(
                           "Minimum 4 dots required",
                         );
@@ -2186,68 +2273,67 @@ class _SettingsScreenState extends State<SettingsScreen>
                     // Verification Sections
                     _buildVerificationSection(
                       title: 'Email Verification',
-                      showCodeSent: _showEmailCodeSent,
                       codeControllers: _emailCodeControllers,
                       focusNodes: _emailFocusNodes,
                       codeList: _emailCode,
                       type: 'email',
-                      codeDisabled: _codeDisabled,
                     ),
                     const SizedBox(height: 10),
 
                     _buildVerificationSection(
                       title: 'SMS Verification',
-                      showCodeSent: _showSMSCodeSent,
                       codeControllers: _smsCodeControllers,
                       focusNodes: _smsFocusNodes,
                       codeList: _smsCode,
                       type: 'sms',
-                      codeDisabled: _codeDisabled,
                     ),
                     const SizedBox(height: 10),
 
                     _buildVerificationSection(
                       title: 'Authenticator App',
-                      showCodeSent: _showAuthCodeSent,
                       codeControllers: _authCodeControllers,
                       focusNodes: _authFocusNodes,
                       codeList: _authCode,
                       type: 'auth',
-                      codeDisabled: _codeDisabled,
                     ),
                     const SizedBox(height: 15),
 
                     // UPDATED: Using CustomNavigationWidget for Verification Menu
+                    // In your build method, find the Verification Menu section and update the CustomNavigationWidget:
+
+                    // UPDATED: Using CustomNavigationWidget for Verification Menu with navigation
                     CustomNavigationWidget(
-                      onCancel: _closeAllMenus,
-                      onNext: () {
-                        // TODO: Add your Next button functionality for verification
-                        print("Next button tapped in verification menu");
+                      onClickLeftButton: _closeAllMenus,
+                      onClickRightButton: () {
+                        // Navigate to frozen screen when Next is clicked
+                        Navigator.pushNamed(context, '/frozen-screen');
                       },
-                      cancelText: "Cancel",
-                      nextText: "Next",
-                      cancelButtonWidth: 106,
-                      cancelButtonHeight: 40,
-                      cancelFontSize: 20,
-                      cancelFontWeight: FontWeight.w600,
-                      cancelTextColor: Colors.white,
-                      cancelBorderColor: const Color(0xFF00F0FF),
-                      cancelBackgroundColor: Colors.transparent,
-                      cancelBorderRadius: 10,
-                      nextButtonWidth: 106,
-                      nextButtonHeight: 40,
-                      nextFontSize: 20,
-                      nextFontWeight: FontWeight.w600,
-                      nextTextColor: Colors.white,
-                      nextBorderColor: const Color(0xFF00F0FF),
-                      nextBackgroundColor: Colors.transparent,
-                      nextBorderRadius: 10,
+                      leftText: "Cancel",
+                      rightText: "Next",
+                      leftButtonWidth: 106,
+                      leftButtonHeight: 40,
+                      leftFontSize: 20,
+                      leftFontWeight: FontWeight.w600,
+                      leftTextColor: Colors.white,
+                      leftBorderColor: const Color(0xFF00F0FF),
+                      leftBackgroundColor: Colors.transparent,
+                      leftBorderRadius: 10,
+                      rightButtonWidth: 106,
+                      rightButtonHeight: 40,
+                      rightFontSize: 20,
+                      rightFontWeight: FontWeight.w600,
+                      rightTextColor: Colors.white,
+                      rightBorderColor: const Color(0xFF00F0FF),
+                      rightBackgroundColor: Colors.transparent,
+                      rightBorderRadius: 10,
                       lineHeight: 4,
                       lineRadius: 11,
                       spacing: 16,
                       startGradientColor: const Color(0xFF00F0FF),
                       endGradientColor: const Color(0xFF0B1320),
                     ),
+
+                    const SizedBox(height: 20),
 
                     const SizedBox(height: 20),
                   ],
@@ -2370,17 +2456,112 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   // Verification Section
+  // Verification Section - UPDATED WITHOUT LOCK LOGIC
   Widget _buildVerificationSection({
     required String title,
-    required bool showCodeSent,
     required List<TextEditingController> codeControllers,
     required List<FocusNode> focusNodes,
     required List<String> codeList,
     required String type,
-    required bool codeDisabled,
   }) {
     bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
     bool isCodeValid = isCodeValidMap[type] ?? true;
+    bool showCodeSent = type == 'email'
+        ? _showEmailCodeSent
+        : type == 'sms'
+        ? _showSMSCodeSent
+        : _showAuthCodeSent;
+    int secondsLeft = _countdowns[type] ?? 0;
+    bool isButtonClicked = _isButtonClickedMap[type] ?? false;
+    bool hasCodeBeenSent = _hasCodeBeenSentMap[type] ?? false;
+
+    // Helper function for button click
+    void onButtonClick() async {
+      if (secondsLeft > 0) return; // Only check for cooldown, not lock
+
+      if (_verificationEmailController.text.isEmpty) {
+        _errorStackKey.currentState?.showError("Please enter your EID / Email");
+        return;
+      }
+
+      // Set button clicked state
+      setState(() {
+        _isButtonClickedMap[type] = true;
+      });
+
+      // Reset after animation
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _isButtonClickedMap[type] = false;
+          });
+        }
+      });
+
+      final identifier = _verificationEmailController.text.trim();
+
+      try {
+        Map<String, dynamic> data;
+
+        if (type == "auth") {
+          data = await AuthService.generateTOTP(identifier);
+        } else {
+          data = await AuthService.sendResetCode(identifier);
+        }
+
+        final int cooldown = data["cooldown"] ?? 60;
+
+        // Update code sent state
+        setState(() {
+          _hasCodeBeenSentMap[type] = true;
+        });
+
+        // Show "Code Sent" indicator
+        if (type == 'email') _showEmailCodeSent = true;
+        if (type == 'sms') _showSMSCodeSent = true;
+        if (type == 'auth') _showAuthCodeSent = true;
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              if (type == 'email') _showEmailCodeSent = false;
+              if (type == 'sms') _showSMSCodeSent = false;
+              if (type == 'auth') _showAuthCodeSent = false;
+            });
+          }
+        });
+
+        // Start cooldown
+        setState(() {
+          _activeCodeType = type;
+          _countdowns[type] = cooldown;
+          _codeDisabled = false;
+        });
+
+        // Cancel existing timer
+        _timers[type]?.cancel();
+
+        // Start new timer
+        _timers[type] = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) return;
+
+          setState(() {
+            if (_countdowns[type]! > 0) {
+              _countdowns[type] = _countdowns[type]! - 1;
+            } else {
+              timer.cancel();
+              _timers[type] = null;
+              _activeCodeType = null;
+              _codeDisabled = false;
+            }
+          });
+        });
+      } catch (e) {
+        _errorStackKey.currentState?.showError(
+          "Failed to send code. Please try again.",
+        );
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
@@ -2449,14 +2630,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                               child: TextField(
                                 controller: codeControllers[index],
                                 focusNode: focusNodes[index],
-                                showCursor: !codeDisabled,
-                                enabled: !codeDisabled,
-                                readOnly: codeDisabled,
+                                showCursor: !_codeDisabled,
+                                enabled: !_codeDisabled,
+                                readOnly: _codeDisabled,
                                 textAlign: TextAlign.center,
                                 maxLength: 1,
                                 keyboardType: TextInputType.number,
                                 style: TextStyle(
-                                  color: codeDisabled
+                                  color: _codeDisabled
                                       ? Colors.grey
                                       : isCodeCorrect
                                       ? const Color(0xFF00F0FF)
@@ -2466,7 +2647,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
-                                cursorColor: codeDisabled
+                                cursorColor: _codeDisabled
                                     ? Colors.grey
                                     : isCodeCorrect
                                     ? const Color(0xFF00F0FF)
@@ -2494,7 +2675,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                               duration: const Duration(milliseconds: 250),
                               width: 35,
                               height: isCodeCorrect ? 0 : 2,
-                              color: codeDisabled
+                              color: _codeDisabled
                                   ? Colors.grey
                                   : isCodeCorrect
                                   ? Colors.transparent
@@ -2510,7 +2691,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     // ✅ or ❌ icon
                     if (isCodeCorrect || isCodeValid == false)
                       Padding(
-                        padding: const EdgeInsets.only(left: 6, top: 10),
+                        padding: const EdgeInsets.only(left: 4, top: 10),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           width: 24,
@@ -2535,56 +2716,60 @@ class _SettingsScreenState extends State<SettingsScreen>
             // Get Code button
             Positioned(
               top: 21,
-              left: 280,
+              left: 277,
               child: GestureDetector(
-                onTap: (_activeCodeType == null || _activeCodeType == type)
-                    ? () {
-                        if (_verificationEmailController.text.isEmpty) {
-                          _errorStackKey.currentState?.showError(
-                            "Please enter your EID / Email",
-                          );
-                          return;
-                        }
-                        _fetchCode(type);
-                      }
-                    : null,
-                child: Container(
-                  width: 94,
-                  height: 23,
+                onTap: (secondsLeft == 0) ? onButtonClick : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 100),
+                  width: 90,
+                  height: 26,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [Color(0xFF00F0FF), Color(0xFF0177B3)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
+                    boxShadow: isButtonClicked
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 0),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF00F0FF).withOpacity(0.8),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
                     borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withOpacity(1),
-                        blurRadius: 11.5,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 0),
-                      ),
-                    ],
                   ),
-                  alignment: Alignment.center,
-                  child: _countdowns[type]! > 0
-                      ? Text(
-                          formatCooldown(_countdowns[type]!),
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: Colors.black,
+                  child: Center(
+                    child: secondsLeft > 0
+                        ? Text(
+                            formatCooldown(secondsLeft),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                          )
+                        : Text(
+                            hasCodeBeenSent ? "Send Again" : "Get Code",
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                              color:
+                                  Colors.white, // Always white when clickable
+                            ),
                           ),
-                        )
-                      : const Text(
-                          "Get Code",
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: Colors.black,
-                          ),
-                        ),
+                  ),
                 ),
               ),
             ),

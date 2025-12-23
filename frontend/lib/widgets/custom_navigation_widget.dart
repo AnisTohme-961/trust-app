@@ -3,36 +3,36 @@ import 'package:flutter/material.dart';
 import 'custom_button.dart';
 
 class CustomNavigationWidget extends StatefulWidget {
-  final String cancelText;
-  final String nextText;
-  final VoidCallback onCancel;
-  final VoidCallback? onNext;
+  final String leftText;
+  final String rightText;
+  final VoidCallback onClickLeftButton;
+  final VoidCallback? onClickRightButton;
 
   // Cancel button specific styling
-  final double cancelButtonWidth;
-  final double cancelButtonHeight;
-  final double cancelFontSize;
-  final FontWeight cancelFontWeight;
-  final Color cancelTextColor;
-  final Color cancelBorderColor;
-  final Color cancelBackgroundColor;
-  final double cancelBorderRadius;
-  final Gradient? cancelGradient;
-  final List<BoxShadow>? cancelBoxShadow;
-  final Widget? cancelChild;
+  final double leftButtonWidth;
+  final double leftButtonHeight;
+  final double leftFontSize;
+  final FontWeight leftFontWeight;
+  final Color leftTextColor;
+  final Color leftBorderColor;
+  final Color leftBackgroundColor;
+  final double leftBorderRadius;
+  final Gradient? leftGradient;
+  final List<BoxShadow>? leftBoxShadow;
+  final Widget? leftChild;
 
   // Next button specific styling
-  final double nextButtonWidth;
-  final double nextButtonHeight;
-  final double nextFontSize;
-  final FontWeight nextFontWeight;
-  final Color nextTextColor;
-  final Color nextBorderColor;
-  final Color nextBackgroundColor;
-  final double nextBorderRadius;
-  final Gradient? nextGradient;
-  final List<BoxShadow>? nextBoxShadow;
-  final Widget? nextChild;
+  final double rightButtonWidth;
+  final double rightButtonHeight;
+  final double rightFontSize;
+  final FontWeight rightFontWeight;
+  final Color rightTextColor;
+  final Color rightBorderColor;
+  final Color rightBackgroundColor;
+  final double rightBorderRadius;
+  final Gradient? rightGradient;
+  final List<BoxShadow>? rightBoxShadow;
+  final Widget? rightChild;
 
   // Line styling
   final double lineHeight;
@@ -42,46 +42,46 @@ class CustomNavigationWidget extends StatefulWidget {
   final Color endGradientColor;
 
   // New properties for disable state and error handling
-  final bool isNextEnabled;
-  final Color nextDisabledTextColor;
-  final Color nextDisabledBorderColor;
+  final bool isRightButtonEnabled;
+  final Color rightDisabledTextColor;
+  final Color rightDisabledBorderColor;
   final VoidCallback?
-  onNextDisabledTap; // Callback when disabled Next is tapped
+  onRightButtonDisabledTap; // Callback when disabled Next is tapped
 
   const CustomNavigationWidget({
     Key? key,
     // Common properties
-    this.cancelText = "Cancel",
-    this.nextText = "Next",
-    required this.onCancel,
-    this.onNext,
+    this.leftText = "Cancel",
+    this.rightText = "Next",
+    required this.onClickLeftButton,
+    this.onClickRightButton,
     this.spacing = 16,
 
-    // Cancel button defaults
-    this.cancelButtonWidth = 106,
-    this.cancelButtonHeight = 40,
-    this.cancelFontSize = 20,
-    this.cancelFontWeight = FontWeight.w600,
-    this.cancelTextColor = Colors.white,
-    this.cancelBorderColor = const Color(0xFF00F0FF),
-    this.cancelBackgroundColor = Colors.transparent,
-    this.cancelBorderRadius = 10,
-    this.cancelGradient,
-    this.cancelBoxShadow,
-    this.cancelChild,
+    // Left button defaults
+    this.leftButtonWidth = 106,
+    this.leftButtonHeight = 40,
+    this.leftFontSize = 20,
+    this.leftFontWeight = FontWeight.w600,
+    this.leftTextColor = Colors.white,
+    this.leftBorderColor = const Color(0xFF00F0FF),
+    this.leftBackgroundColor = Colors.transparent,
+    this.leftBorderRadius = 10,
+    this.leftGradient,
+    this.leftBoxShadow,
+    this.leftChild,
 
-    // Next button defaults
-    this.nextButtonWidth = 106,
-    this.nextButtonHeight = 40,
-    this.nextFontSize = 20,
-    this.nextFontWeight = FontWeight.w600,
-    this.nextTextColor = Colors.white,
-    this.nextBorderColor = const Color(0xFF00F0FF),
-    this.nextBackgroundColor = Colors.transparent,
-    this.nextBorderRadius = 10,
-    this.nextGradient,
-    this.nextBoxShadow,
-    this.nextChild,
+    // Right button defaults
+    this.rightButtonWidth = 106,
+    this.rightButtonHeight = 40,
+    this.rightFontSize = 20,
+    this.rightFontWeight = FontWeight.w600,
+    this.rightTextColor = Colors.white,
+    this.rightBorderColor = const Color(0xFF00F0FF),
+    this.rightBackgroundColor = Colors.transparent,
+    this.rightBorderRadius = 10,
+    this.rightGradient,
+    this.rightBoxShadow,
+    this.rightChild,
 
     // Line defaults
     this.lineHeight = 4,
@@ -90,10 +90,10 @@ class CustomNavigationWidget extends StatefulWidget {
     this.endGradientColor = const Color(0xFF0B1320),
 
     // New properties
-    this.isNextEnabled = true,
-    this.nextDisabledTextColor = const Color(0xFF718096),
-    this.nextDisabledBorderColor = const Color(0xFF4A5568),
-    this.onNextDisabledTap,
+    this.isRightButtonEnabled = true,
+    this.rightDisabledTextColor = const Color(0xFF718096),
+    this.rightDisabledBorderColor = const Color(0xFF4A5568),
+    this.onRightButtonDisabledTap,
   }) : super(key: key);
 
   @override
@@ -104,10 +104,10 @@ class _CustomNavigationWidgetState extends State<CustomNavigationWidget> {
   bool _isNextHovered = false;
 
   void _handleNextTap() {
-    if (widget.isNextEnabled) {
-      widget.onNext?.call();
+    if (widget.isRightButtonEnabled) {
+      widget.onClickRightButton?.call();
     } else {
-      widget.onNextDisabledTap?.call();
+      widget.onRightButtonDisabledTap?.call();
     }
   }
 
@@ -139,19 +139,19 @@ class _CustomNavigationWidgetState extends State<CustomNavigationWidget> {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: CustomButton(
-              text: widget.cancelText,
-              child: widget.cancelChild,
-              width: widget.cancelButtonWidth,
-              height: widget.cancelButtonHeight,
-              fontSize: widget.cancelFontSize,
-              fontWeight: widget.cancelFontWeight,
-              textColor: widget.cancelTextColor,
-              backgroundColor: widget.cancelBackgroundColor,
-              borderColor: widget.cancelBorderColor,
-              borderRadius: widget.cancelBorderRadius,
-              gradient: widget.cancelGradient,
-              boxShadow: widget.cancelBoxShadow,
-              onTap: widget.onCancel,
+              text: widget.leftText,
+              child: widget.leftChild,
+              width: widget.leftButtonWidth,
+              height: widget.leftButtonHeight,
+              fontSize: widget.leftFontSize,
+              fontWeight: widget.leftFontWeight,
+              textColor: widget.leftTextColor,
+              backgroundColor: widget.leftBackgroundColor,
+              borderColor: widget.leftBorderColor,
+              borderRadius: widget.leftBorderRadius,
+              gradient: widget.leftGradient,
+              boxShadow: widget.leftBoxShadow,
+              onTap: widget.onClickLeftButton,
             ),
           ),
 
@@ -159,36 +159,36 @@ class _CustomNavigationWidgetState extends State<CustomNavigationWidget> {
 
           // Next button with hover effects and disable state
           MouseRegion(
-            onEnter: (_) => widget.isNextEnabled
+            onEnter: (_) => widget.isRightButtonEnabled
                 ? setState(() => _isNextHovered = true)
                 : null,
             onExit: (_) => setState(() => _isNextHovered = false),
-            cursor: widget.isNextEnabled
+            cursor: widget.isRightButtonEnabled
                 ? SystemMouseCursors.click
                 : SystemMouseCursors.forbidden,
             child: GestureDetector(
               onTap: _handleNextTap,
               child: CustomButton(
-                text: widget.nextText,
-                child: widget.nextChild,
-                width: widget.nextButtonWidth,
-                height: widget.nextButtonHeight,
-                fontSize: widget.nextFontSize,
-                fontWeight: widget.nextFontWeight,
-                textColor: widget.isNextEnabled
-                    ? widget.nextTextColor
-                    : widget.nextDisabledTextColor,
-                backgroundColor: widget.isNextEnabled
+                text: widget.rightText,
+                child: widget.rightChild,
+                width: widget.rightButtonWidth,
+                height: widget.rightButtonHeight,
+                fontSize: widget.rightFontSize,
+                fontWeight: widget.rightFontWeight,
+                textColor: widget.isRightButtonEnabled
+                    ? widget.rightTextColor
+                    : widget.rightDisabledTextColor,
+                backgroundColor: widget.isRightButtonEnabled
                     ? (_isNextHovered
                           ? const Color(0xFF00F0FF).withOpacity(0.15)
-                          : widget.nextBackgroundColor)
-                    : widget.nextBackgroundColor,
-                borderColor: widget.isNextEnabled
-                    ? widget.nextBorderColor
-                    : widget.nextDisabledBorderColor,
-                borderRadius: widget.nextBorderRadius,
-                gradient: widget.nextGradient,
-                boxShadow: widget.nextBoxShadow,
+                          : widget.rightBackgroundColor)
+                    : widget.rightBackgroundColor,
+                borderColor: widget.isRightButtonEnabled
+                    ? widget.rightBorderColor
+                    : widget.rightDisabledBorderColor,
+                borderRadius: widget.rightBorderRadius,
+                gradient: widget.rightGradient,
+                boxShadow: widget.rightBoxShadow,
                 onTap: null, // Handled by parent GestureDetector
               ),
             ),
