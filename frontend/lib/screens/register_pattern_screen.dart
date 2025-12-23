@@ -1449,16 +1449,19 @@ class _ProgressSteps extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: 8),
+          if (label.isNotEmpty)
           Text(
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
-              fontSize: 15,
+              fontSize: 14,
               height: 1.0,
               color: Colors.white,
             ),
+             maxLines: 2,
+             overflow: TextOverflow.visible,
           ),
         ],
       ),

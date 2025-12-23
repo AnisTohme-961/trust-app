@@ -52,53 +52,58 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
     });
   }
 
-  // void _showError(String message) {
-  //   final overlay = Overlay.of(context);
-  //   if (overlay == null) return;
+  void _showError(String message) {
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
 
-  //   final overlayEntry = OverlayEntry(
-  //     builder: (context) => Positioned(
-  //       top: 0,
-  //       left: 0,
-  //       right: 0,
-  //       child: Material(
-  //         color: Colors.transparent,
-  //         child: ErrorBanner(message: message),
-  //       ),
-  //     ),
-  //   );
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: Material(
+          color: Colors.transparent,
+          child: ErrorBanner(
+            message: message,
+            onDismiss: () {},
+            onTap: (_, __) {},
+          ),
+        ),
+      ),
+    );
 
-  //   overlay.insert(overlayEntry);
+    overlay.insert(overlayEntry);
 
-  //   Future.delayed(const Duration(milliseconds: 3000), () {
-  //     overlayEntry.remove();
-  //   });
-  // }
-  // void _validatePattern() async {
-  //   if (selectedDots.length < 4) {
-  //     _showError("Please draw a pattern of at least 4 dots.");
-  //     _clearPatternDelayed(1000);
-  //     return;
-  //   }
+    Future.delayed(const Duration(milliseconds: 3000), () {
+      overlayEntry.remove();
+    });
+  }
 
-  //   try {
-  //     bool isValid = await AuthService.validatePattern(selectedDots);
+  void _validatePattern() async {
+    if (selectedDots.length < 4) {
+      _showError("Please draw a pattern of at least 4 dots.");
+      _clearPatternDelayed(1000);
+      return;
+    }
 
-  //     if (!isValid) {
-  //       _showError("Incorrect Pattern. Try Again.");
-  //       _clearPatternDelayed(1200);
-  //       return;
-  //     }
+    try {
+      bool isValid = await AuthService.validatePattern(selectedDots);
 
-  //     // SUCCESS
-  //     debugPrint("✅ Correct Pattern!");
-  //     Navigator.pushNamed(context, '/settings');
-  //   } catch (e) {
-  //     _showError("Error validating pattern.");
-  //   }
+      if (!isValid) {
+        _showError("Incorrect Pattern. Try Again.");
+        _clearPatternDelayed(1200);
+        return;
+      }
 
-  //   _clearPatternDelayed(800);
-  // }
+      // SUCCESS
+      debugPrint("✅ Correct Pattern!");
+      Navigator.pushNamed(context, '/settings');
+    } catch (e) {
+      _showError("Error validating pattern.");
+    }
+
+    _clearPatternDelayed(800);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +153,7 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                         softWrap: false, // 👈 disables wrapping
                         overflow: TextOverflow
                             .visible, // or TextOverflow.ellipsis if needed
-                        maxLines: 1, 
+                        maxLines: 1,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -213,14 +218,14 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
                         }
                       }
                     },
-                    // onPanEnd: (_) {
-                    //   if (selectedDots.length >= 4) {
-                    //     _validatePattern();
-                    //   } else {
-                    //     _showError("Pattern too short (min 4 dots).");
-                    //   }
-                    //   _clearPatternDelayed(900);
-                    // },
+                    onPanEnd: (_) {
+                      if (selectedDots.length >= 4) {
+                        _validatePattern();
+                      } else {
+                        _showError("Pattern too short (min 4 dots).");
+                      }
+                      _clearPatternDelayed(900);
+                    },
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final size = min(

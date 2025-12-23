@@ -1205,6 +1205,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w600,
                             fontSize: 30,
+                            height: 1.0,
                             color: Colors.white,
                           ),
                         ),
