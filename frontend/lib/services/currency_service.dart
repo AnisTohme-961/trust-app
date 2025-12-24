@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/currency_price_model.dart';
 import '../constants/api_constants.dart';
+import 'auth_service.dart';
 
 class CurrencyService {
   Future<List<CurrencyPrice>> getCurrencies() async {
@@ -17,16 +18,20 @@ class CurrencyService {
     throw Exception("Failed to load currencies");
   }
 
-  Future<void> updateUserCurrency(String userId, String currencyCode) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}/users/$userId/currency');
-    final response = await http.put(
-      url,
-      body: jsonEncode({"currencyCode": currencyCode}),
-      headers: {'Content-Type': 'application/json'},
-    );
+ Future<void> updateUserCurrency(String currencyCode) async {
+  final token = await AuthService.getToken();
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update currency');
-    }
+  final response = await http.put(
+    Uri.parse('${ApiConstants.baseUrl}/users/currency'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({"currencyCode": currencyCode}),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to update currency');
   }
+}
 }

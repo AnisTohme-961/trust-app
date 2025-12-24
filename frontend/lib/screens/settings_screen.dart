@@ -815,45 +815,39 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   final CurrencyService _currencyService = CurrencyService();
-  double? _selectedPrice;
+double? _selectedPrice;
 
-  void _selectCurrency(String currencyCode, String currencySymbol) async {
-    
-    setState(() {
-      _selectedCurrency = '$currencyCode($currencySymbol)';
-    });
+void _selectCurrency(String currencyCode, String currencySymbol) async {
+  setState(() {
+    _selectedCurrency = '$currencyCode($currencySymbol)';
+  });
 
- try {
-    // get userId from provider
-   final eid = await AuthService.getEID(); // get it from secure storage
-   print('Retrieved EID: $eid');
-if (eid != null && eid.isNotEmpty) {
-  await _currencyService.updateUserCurrency(eid, currencyCode);
-  print("Currency updated on backend");
-} else {
-  print("EID not found");
-}
+  try {
+    // 🔐 JWT already identifies the user
+    await _currencyService.updateUserCurrency(currencyCode);
+    print("Currency updated on backend");
   } catch (e) {
     print("Failed to update currency: $e");
   }
 
-    // Build the Binance symbol (ex: BTC → BTCUSDT)
-    final currencies = await _currencyService.getCurrencies();
+  // Fetch prices
+  final currencies = await _currencyService.getCurrencies();
 
-    final selected = currencies.firstWhere(
-      (c) => c.symbol == currencyCode,
-      orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0),
-    );
+  final selected = currencies.firstWhere(
+    (c) => c.symbol == currencyCode,
+    orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0),
+  );
 
-    setState(() {
-      _selectedPrice = selected.price;
-    });
+  setState(() {
+    _selectedPrice = selected.price;
+  });
 
-    print('Selected currency: $currencyCode');
-    print('Price: $_selectedPrice');
+  print('Selected currency: $currencyCode');
+  print('Price: $_selectedPrice');
 
-    _closeAllMenus();
-  }
+  _closeAllMenus();
+}
+
 
   // void _selectCurrency(String currencyCode, String currencySymbol) {
   //   setState(() {

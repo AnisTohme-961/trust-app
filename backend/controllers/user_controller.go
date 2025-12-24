@@ -189,7 +189,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pquerna/otp/totp"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -1175,23 +1174,33 @@ func (uc *UserController) CheckEID(c *gin.Context) {
 }
 
 func (uc *UserController) SetCurrency(c *gin.Context) {
-	userID := c.Param("id") // or get from JWT token
+	eid, exists := c.Get("eid") // get eid from AuthMiddleware
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	var body struct {
 		CurrencyCode string `json:"currencyCode"`
 	}
+
 	if err := c.BindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	objID, _ := primitive.ObjectIDFromHex(userID)
-	_, err := uc.UserCollection.UpdateOne(
-		context.TODO(),
-		bson.M{"_id": objID},
-		bson.M{"$set": bson.M{"currencyCode": body.CurrencyCode}},
-	)
+	// Use EID to update
+	filter := bson.M{"eid": eid.(string)}
+	update := bson.M{"$set": bson.M{"currencyCode": body.CurrencyCode}}
+
+	result, err := uc.UserCollection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if result.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
