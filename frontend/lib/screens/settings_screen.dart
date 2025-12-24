@@ -2299,9 +2299,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                     const SizedBox(height: 15),
 
-                    // UPDATED: Using CustomNavigationWidget for Verification Menu
-                    // In your build method, find the Verification Menu section and update the CustomNavigationWidget:
-
                     // UPDATED: Using CustomNavigationWidget for Verification Menu with navigation
                     CustomNavigationWidget(
                       onClickLeftButton: _closeAllMenus,
