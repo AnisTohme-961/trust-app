@@ -454,8 +454,45 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                               child: TextField(
                                 controller: _firstNameController,
                                 focusNode: _firstFocusNode,
+                                inputFormatters: [
+                                  // Capitalize first letter of every word
+                                  TextInputFormatter.withFunction((
+                                    oldValue,
+                                    newValue,
+                                  ) {
+                                    if (newValue.text.isEmpty) {
+                                      return newValue;
+                                    }
+
+                                    // Capitalize first letter of each word
+                                    final text = newValue.text;
+                                    final words = text.split(' ');
+                                    final capitalizedWords = words.map((word) {
+                                      if (word.isEmpty) return '';
+                                      return word[0].toUpperCase() +
+                                          word.substring(1);
+                                    }).toList();
+
+                                    final capitalizedText = capitalizedWords
+                                        .join(' ');
+
+                                    // Return new text with proper cursor position
+                                    return TextEditingValue(
+                                      text: capitalizedText,
+                                      selection: newValue.selection.copyWith(
+                                        baseOffset:
+                                            newValue.selection.baseOffset +
+                                            (capitalizedText.length -
+                                                text.length),
+                                        extentOffset:
+                                            newValue.selection.extentOffset +
+                                            (capitalizedText.length -
+                                                text.length),
+                                      ),
+                                    );
+                                  }),
+                                ],
                                 onChanged: (value) {
-                                  // No auto-capitalization - preserve user's exact input
                                   context.read<UserProvider>().setFirstName(
                                     value,
                                   );
@@ -516,8 +553,45 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                               child: TextField(
                                 controller: _lastNameController,
                                 focusNode: _lastFocusNode,
+                                inputFormatters: [
+                                  // Capitalize first letter of every word
+                                  TextInputFormatter.withFunction((
+                                    oldValue,
+                                    newValue,
+                                  ) {
+                                    if (newValue.text.isEmpty) {
+                                      return newValue;
+                                    }
+
+                                    // Capitalize first letter of each word
+                                    final text = newValue.text;
+                                    final words = text.split(' ');
+                                    final capitalizedWords = words.map((word) {
+                                      if (word.isEmpty) return '';
+                                      return word[0].toUpperCase() +
+                                          word.substring(1);
+                                    }).toList();
+
+                                    final capitalizedText = capitalizedWords
+                                        .join(' ');
+
+                                    // Return new text with proper cursor position
+                                    return TextEditingValue(
+                                      text: capitalizedText,
+                                      selection: newValue.selection.copyWith(
+                                        baseOffset:
+                                            newValue.selection.baseOffset +
+                                            (capitalizedText.length -
+                                                text.length),
+                                        extentOffset:
+                                            newValue.selection.extentOffset +
+                                            (capitalizedText.length -
+                                                text.length),
+                                      ),
+                                    );
+                                  }),
+                                ],
                                 onChanged: (value) {
-                                  // No auto-capitalization - preserve user's exact input
                                   context.read<UserProvider>().setLastName(
                                     value,
                                   );
