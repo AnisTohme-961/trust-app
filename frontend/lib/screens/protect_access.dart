@@ -830,7 +830,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.559;
+    final double dropdownHeight = screenHeight * 0.9;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -1847,6 +1847,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // SEARCH FIELD
+                    // SEARCH FIELD
                     Container(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 50,
@@ -1854,6 +1855,35 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                       ),
                       child: TextField(
                         controller: _countrySearchController,
+                        inputFormatters: [
+                          // Capitalize first letter of every word
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            if (newValue.text.isEmpty) {
+                              return newValue;
+                            }
+
+                            final text = newValue.text;
+                            final words = text.split(' ');
+                            final capitalizedWords = words.map((word) {
+                              if (word.isEmpty) return '';
+                              return word[0].toUpperCase() + word.substring(1);
+                            }).toList();
+
+                            final capitalizedText = capitalizedWords.join(' ');
+
+                            return TextEditingValue(
+                              text: capitalizedText,
+                              selection: newValue.selection.copyWith(
+                                baseOffset:
+                                    newValue.selection.baseOffset +
+                                    (capitalizedText.length - text.length),
+                                extentOffset:
+                                    newValue.selection.extentOffset +
+                                    (capitalizedText.length - text.length),
+                              ),
+                            );
+                          }),
+                        ],
                         onChanged: _filterCountries,
                         style: const TextStyle(
                           color: Colors.white,

@@ -1491,6 +1491,35 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                     child: TextField(
                       controller: _languageSearchController,
+                      inputFormatters: [
+                        // Capitalize first letter of every word
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          if (newValue.text.isEmpty) {
+                            return newValue;
+                          }
+
+                          final text = newValue.text;
+                          final words = text.split(' ');
+                          final capitalizedWords = words.map((word) {
+                            if (word.isEmpty) return '';
+                            return word[0].toUpperCase() + word.substring(1);
+                          }).toList();
+
+                          final capitalizedText = capitalizedWords.join(' ');
+
+                          return TextEditingValue(
+                            text: capitalizedText,
+                            selection: newValue.selection.copyWith(
+                              baseOffset:
+                                  newValue.selection.baseOffset +
+                                  (capitalizedText.length - text.length),
+                              extentOffset:
+                                  newValue.selection.extentOffset +
+                                  (capitalizedText.length - text.length),
+                            ),
+                          );
+                        }),
+                      ],
                       onChanged: _searchLanguages,
                       style: const TextStyle(
                         color: Colors.white,
@@ -1663,6 +1692,49 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 Expanded(
                                   child: TextField(
                                     controller: _currencySearchController,
+                                    inputFormatters: [
+                                      // Capitalize first letter of every word
+                                      TextInputFormatter.withFunction((
+                                        oldValue,
+                                        newValue,
+                                      ) {
+                                        if (newValue.text.isEmpty) {
+                                          return newValue;
+                                        }
+
+                                        final text = newValue.text;
+                                        final words = text.split(' ');
+                                        final capitalizedWords = words.map((
+                                          word,
+                                        ) {
+                                          if (word.isEmpty) return '';
+                                          return word[0].toUpperCase() +
+                                              word.substring(1);
+                                        }).toList();
+
+                                        final capitalizedText = capitalizedWords
+                                            .join(' ');
+
+                                        return TextEditingValue(
+                                          text: capitalizedText,
+                                          selection: newValue.selection
+                                              .copyWith(
+                                                baseOffset:
+                                                    newValue
+                                                        .selection
+                                                        .baseOffset +
+                                                    (capitalizedText.length -
+                                                        text.length),
+                                                extentOffset:
+                                                    newValue
+                                                        .selection
+                                                        .extentOffset +
+                                                    (capitalizedText.length -
+                                                        text.length),
+                                              ),
+                                        );
+                                      }),
+                                    ],
                                     decoration: InputDecoration(
                                       hintText: 'Search Currency',
                                       hintStyle: TextStyle(

@@ -16,6 +16,8 @@ import 'widgets/footer_widgets.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
 import 'screens/settings_screen.dart';
+import 'package:flutter/services.dart';
+import './screens/protect_access.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +52,7 @@ class MyApp extends StatelessWidget {
                 cursorColor: Color(0xFF00F0FF),
               ),
             ),
-            home: SettingsScreen(),
+            home: ResponsiveProtectAccess(),
             routes: appRoutes(),
           );
         },
@@ -135,7 +137,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.7;
+    final double dropdownHeight = screenHeight * 0.9;
 
     return Consumer<FontSizeProvider>(
       builder: (context, fontProvider, child) {
@@ -370,92 +372,152 @@ class _MobileHomePageState extends State<MobileHomePage> {
                         painter: VLinePainter(),
                       ),
                     ),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Use LayoutBuilder to get available space
-                        return Column(
-                          children: [
-                            // SEARCH FIELD - Fixed height
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 50,
-                                vertical: 5,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // SEARCH FIELD - Fixed height
+                          Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 50,
+                              vertical: 5,
+                            ),
+                            child: TextField(
+                              controller: _languageSearchController,
+                              inputFormatters: [
+                                // Capitalize first letter of every word
+                                TextInputFormatter.withFunction((
+                                  oldValue,
+                                  newValue,
+                                ) {
+                                  if (newValue.text.isEmpty) {
+                                    return newValue;
+                                  }
+
+                                  // Capitalize first letter of each word
+                                  final text = newValue.text;
+                                  final words = text.split(' ');
+                                  final capitalizedWords = words.map((word) {
+                                    if (word.isEmpty) return '';
+                                    return word[0].toUpperCase() +
+                                        word.substring(1).toLowerCase();
+                                  }).toList();
+
+                                  final capitalizedText = capitalizedWords.join(
+                                    ' ',
+                                  );
+
+                                  // Return new text with proper cursor position
+                                  return TextEditingValue(
+                                    text: capitalizedText,
+                                    selection: newValue.selection.copyWith(
+                                      baseOffset:
+                                          newValue.selection.baseOffset +
+                                          (capitalizedText.length -
+                                              text.length),
+                                      extentOffset:
+                                          newValue.selection.extentOffset +
+                                          (capitalizedText.length -
+                                              text.length),
+                                    ),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) {
+                                final query = value.toLowerCase();
+                                setState(() {
+                                  _filteredLanguages = _languages
+                                      .where(
+                                        (c) => c['name']!
+                                            .toLowerCase()
+                                            .contains(query),
+                                      )
+                                      .toList();
+                                });
+                              },
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
                               ),
-                              child: TextField(
-                                controller: _languageSearchController,
-                                onChanged: (value) {
-                                  final query = value.toLowerCase();
-                                  setState(() {
-                                    _filteredLanguages = _languages
-                                        .where(
-                                          (c) => c['name']!
-                                              .toLowerCase()
-                                              .contains(query),
-                                        )
-                                        .toList();
-                                  });
-                                },
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500,
+                              decoration: InputDecoration(
+                                hintText: 'Search Language',
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
                                 ),
-                                decoration: InputDecoration(
-                                  hintText: 'Search Language',
-                                  hintStyle: TextStyle(
-                                    color: Colors.white.withOpacity(0.5),
-                                  ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
                               ),
                             ),
+                          ),
 
-                            // DIVIDER - Fixed height
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 50),
-                              child: Divider(
-                                color: Colors.white24,
-                                thickness: 0.5,
-                                height: 1,
-                              ),
+                          // DIVIDER - Fixed height
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 50),
+                            child: Divider(
+                              color: Colors.white24,
+                              thickness: 0.5,
+                              height: 1,
                             ),
+                          ),
 
-                            const SizedBox(height: 0),
+                          const SizedBox(height: 10),
 
-                            // LANGUAGE LIST - Takes remaining space
-                            Expanded(
-                              child: ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 50,
-                                  vertical: 8,
-                                ),
-                                itemCount: _filteredLanguages.length,
-                                physics: const ClampingScrollPhysics(),
-                                itemBuilder: (context, index) {
-                                  final country = _filteredLanguages[index];
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _languageSearchController.text =
-                                            country['name']!;
-                                        _languageDropdownOpen = false;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0,
+                          // LANGUAGE LIST - Flexible height with max constraint
+                          Container(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                                  dropdownHeight -
+                                  100, // Reserve space for header
+                            ),
+                            child: _filteredLanguages.isEmpty
+                                ? Container(
+                                    height: 100,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'No languages found',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 16,
                                       ),
-                                      child: Row(
-                                        children: [
-                                          SvgPicture.asset(
-                                            country['flag']!,
-                                            width: 30,
-                                            height: 30,
-                                            errorBuilder:
-                                                (context, error, stackTrace) =>
-                                                    Container(
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.only(
+                                      left: 50,
+                                      right: 50,
+                                      bottom: 20,
+                                    ),
+                                    itemCount: _filteredLanguages.length,
+                                    physics: const ClampingScrollPhysics(),
+                                    shrinkWrap: true,
+                                    itemBuilder: (context, index) {
+                                      final country = _filteredLanguages[index];
+                                      return GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _languageSearchController.text =
+                                                country['name']!;
+                                            _languageDropdownOpen = false;
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12.0,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              SvgPicture.asset(
+                                                country['flag']!,
+                                                width: 30,
+                                                height: 30,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) => Container(
                                                       width: 30,
                                                       height: 30,
                                                       color: Colors.grey,
@@ -465,27 +527,26 @@ class _MobileHomePageState extends State<MobileHomePage> {
                                                         color: Colors.white,
                                                       ),
                                                     ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              country['name']!,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
                                               ),
-                                            ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  country['name']!,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
