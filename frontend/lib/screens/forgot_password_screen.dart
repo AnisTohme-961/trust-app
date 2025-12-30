@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'dart:math';
 import 'dart:async' show Timer;
 import '../widgets/custom_button.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
+
 import 'package:gradient_borders/box_borders/gradient_box_border.dart';
 import '../widgets/footer_widgets.dart';
 import '../widgets/error_widgets.dart';
@@ -474,6 +477,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
@@ -497,13 +501,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Please enter your email address or EID \n to reset your password.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -633,6 +637,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required VoidCallback clearOrPaste,
     String hint = "Password",
   }) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -654,19 +660,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: TextField(
                     controller: controller,
                     obscureText: obscureText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF00F0FF),
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                     ),
                     decoration: InputDecoration(
                       hintText: hint,
-                      hintStyle: const TextStyle(
+                      hintStyle: TextStyle(
                         color: Colors.white54,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                       ),
                       border: InputBorder.none,
                       isDense: true,
@@ -729,11 +735,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     alignment: Alignment.center,
                     child: Text(
                       hasTextInPassword ? "Clear" : "Paste",
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                       ),
                     ),
                   ),
@@ -751,9 +757,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   hint, // Display 'Password'
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: fontProvider.getScaledSize(15),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -765,6 +771,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget buildConfirmAndGenerateRow() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Row(
@@ -798,19 +806,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: TextField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
-                          style: const TextStyle(
+                          style: TextStyle( // It was 16
                             color: Color(0xFF00F0FF),
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
-                            fontSize: 16,
+                            fontSize: fontProvider.getScaledSize(15),
                           ),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: "Confirm Password",
                             hintStyle: TextStyle(
                               color: Colors.white54,
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: fontProvider.getScaledSize(15),
                             ),
                             border: InputBorder.none,
                             isDense: true,
@@ -856,11 +864,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Container(
                       color: const Color(0xFF0B1320),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: const Text(
+                      child: Text(
                         "Confirm Password",
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: fontProvider.getScaledSize(15),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -908,14 +916,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       height: 32,
                     ),
                     const SizedBox(width: 4),
-                    const Flexible(
+                    Flexible(
                       child: Text(
                         'Generate',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
-                          fontSize: 15,
+                          fontSize: fontProvider.getScaledSize(15),
                           color: Colors.white,
                         ),
                       ),
@@ -931,6 +939,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget buildPasswordRules() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 20),
       child: Container(
@@ -940,12 +949,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 50.0),
-              child: const Text(
+              child: Text(
                 "Your password should contain at least",
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   height: 1.0,
                   color: Colors.white,
                 ),
@@ -989,6 +998,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget buildBullet(String text, bool condition) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Row(
       crossAxisAlignment:
           CrossAxisAlignment.start, // Align top of icon with first line
@@ -1007,7 +1017,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
-              fontSize: 15,
+              fontSize: fontProvider.getScaledSize(15),
               color: bulletColor(condition),
               letterSpacing: -0.03 * 20,
               height: 1.2, // adjust spacing for multi-line
@@ -1021,6 +1031,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget buildEmailInput() {
     final screenWidth = MediaQuery.of(context).size.width;
     final containerWidth = screenWidth * 0.92;
+
+    final fontProvider = Provider.of<FontSizeProvider>(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0),
@@ -1058,11 +1070,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'EID / Email ',
                       hintStyle: TextStyle(
                         color: Colors.white54,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -1075,7 +1087,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   text: _isEmailNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   textColor: Colors.white,
                   backgroundColor: const Color(0xFF0B1320),
                   borderColor: const Color(0xFF00F0FF),
@@ -1130,6 +1142,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }) {
     bool isCodeCorrect = isCodeCorrectMap[type] ?? false;
     bool isCodeValid = isCodeValidMap[type] ?? true;
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 0),
       child: SizedBox(
@@ -1166,13 +1179,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     color: const Color(0xFF00F0FF),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                  child: Text(
                     "Code Sent",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       color: Colors.black,
                     ),
                   ),
@@ -1414,7 +1427,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
-                            fontSize: 15,
+                            fontSize: fontProvider.getScaledSize(15),
                             color: _countdowns[type]! > 0
                                 ? const Color(0xFF0B1320)
                                 : (_buttonClickedMap[type]!
@@ -1429,7 +1442,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
-                            fontSize: 15,
+                            fontSize: fontProvider.getScaledSize(15),
                             color: _buttonClickedMap[type]!
                                 ? Colors.white
                                 : Colors.black,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../widgets/error_widgets.dart';
 import 'dart:convert'; // Added for jsonDecode
@@ -233,6 +235,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
@@ -270,12 +273,12 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Text(
+                Text(
                   'Please enter your credentials to continue',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: fontProvider.getScaledSize(15),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -358,6 +361,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildEmailInput() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -393,11 +397,11 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'EID / Email ',
                       hintStyle: TextStyle(
                         color: Colors.white54,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -410,7 +414,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                   text: _isEmailNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   textColor: Colors.white,
                   backgroundColor: const Color(0xFF0B1320),
                   borderColor: const Color(0xFF00F0FF),
@@ -457,6 +461,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildPasswordInput() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -490,11 +495,11 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Password',
                       hintStyle: TextStyle(
                         color: Colors.white54,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -515,7 +520,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                   text: _isPasswordNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   textColor: Colors.white,
                   backgroundColor: const Color(0xFF0B1320),
                   borderColor: const Color(0xFF00F0FF),
@@ -562,16 +567,17 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildForgotRow() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Forgot EID?',
             style: TextStyle(
               color: Color(0xFF00F0FF),
-              fontSize: 15,
+              fontSize: fontProvider.getScaledSize(15),
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
             ),
@@ -580,11 +586,11 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
             onTap: () {
               Navigator.pushNamed(context, '/forgot-password');
             },
-            child: const Text(
+            child: Text(
               'Forgot Password?',
               style: TextStyle(
                 color: Color(0xFF00F0FF),
-                fontSize: 15,
+                fontSize: fontProvider.getScaledSize(15),
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
               ),
@@ -596,6 +602,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildRememberMe() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.only(left: 5),
       child: Row(
@@ -612,12 +619,12 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               'Remember Me On This Device',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 15,
+                fontSize: fontProvider.getScaledSize(15),
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
               ),
@@ -629,6 +636,7 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildEmailVerification() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: SizedBox(
@@ -663,13 +671,13 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                     color: const Color(0xFF00F0FF),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                  child: Text(
                     "Code Sent",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       height: 1.0,
                       letterSpacing: -1.6,
                       color: Colors.black,
@@ -778,12 +786,12 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
+                        : Text(
                             "Get Code",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: fontProvider.getScaledSize(15),
                               color: Colors.black,
                             ),
                           ),
@@ -966,6 +974,8 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildAuthenticatorApp() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: SizedBox(
@@ -1152,12 +1162,12 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
+                        : Text(
                             "Get Code",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: fontProvider.getScaledSize(15),
                               color: Colors.black,
                             ),
                           ),
@@ -1172,6 +1182,8 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
   }
 
   Widget buildSMSVerification() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: SizedBox(
@@ -1303,12 +1315,12 @@ class _SignInSecondTimeScreenState extends State<SignInSecondTimeScreen> {
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
+                        : Text(
                             "Get Code",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: fontProvider.getScaledSize(15),
                               color: Colors.black,
                             ),
                           ),

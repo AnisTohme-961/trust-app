@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
 import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
 import 'dart:async';
@@ -24,6 +25,7 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
+
 
   bool _showPassword = false;
   bool _rememberMe = false;
@@ -255,6 +257,7 @@ class _SignInPageState extends State<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: LayoutBuilder(
@@ -435,6 +438,8 @@ class MobileSignInPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+  final fontProvider = Provider.of<FontSizeProvider>(context, listen: false);
+
     return Stack(
       children: [
         SingleChildScrollView(
@@ -456,7 +461,7 @@ class MobileSignInPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 0),
-              const Text(
+              Text(
                 'Egety Trust',
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -468,7 +473,7 @@ class MobileSignInPage extends StatelessWidget {
               const SizedBox(height: 10),
               _buildSignInAndSignUpButtons(context),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 'Welcome back!',
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -477,30 +482,30 @@ class MobileSignInPage extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Text(
+              Text(
                 'Please enter your credentials to continue',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   color: Colors.white,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 15),
-              _buildEmailInput(),
+              _buildEmailInput(context),
               const SizedBox(height: 15),
-              _buildPasswordInput(),
+              _buildPasswordInput(context),
               _buildForgotRow(context),
-              _buildRememberMe(),
+              _buildRememberMe(context),
               const SizedBox(height: 10),
-              _buildEmailVerification(),
+              _buildEmailVerification(context),
               Transform.translate(
                 offset: const Offset(0, -28),
                 child: Column(
                   children: [
                     _buildSignInButton(context),
                     const SizedBox(height: 20),
-                    const Text(
+                     Text(
                       'You built your vault \nNow unlock it',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -523,7 +528,9 @@ class MobileSignInPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmailInput() {
+  Widget _buildEmailInput(BuildContext context) {
+    
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -551,17 +558,17 @@ class MobileSignInPage extends StatelessWidget {
                   child: TextField(
                     controller: controller,
                     focusNode: emailFocus,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF00F0FF),
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'EID / Email',
                       hintStyle: TextStyle(
                         color: Colors.white54,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -573,7 +580,7 @@ class MobileSignInPage extends StatelessWidget {
                   text: isEmailNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   textColor: Colors.white,
                   backgroundColor: const Color(0xFF0B1320),
                   borderColor: const Color(0xFF00F0FF),
@@ -602,11 +609,11 @@ class MobileSignInPage extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 color: const Color(0xFF0B1320),
-                child: const Text(
+                child: Text(
                   'Identifier',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: fontProvider.getScaledSize(15),
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w500,
                   ),
@@ -618,7 +625,9 @@ class MobileSignInPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPasswordInput() {
+  Widget _buildPasswordInput(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -647,17 +656,17 @@ class MobileSignInPage extends StatelessWidget {
                     controller: passwordController,
                     focusNode: passwordFocus,
                     obscureText: !showPassword,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF00F0FF),
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Password',
                       hintStyle: TextStyle(
                         color: Colors.white54,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -677,7 +686,7 @@ class MobileSignInPage extends StatelessWidget {
                   text: isPasswordNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   textColor: Colors.white,
                   backgroundColor: const Color(0xFF0B1320),
                   borderColor: const Color(0xFF00F0FF),
@@ -706,11 +715,11 @@ class MobileSignInPage extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 color: const Color(0xFF0B1320),
-                child: const Text(
+                child: Text(
                   'Password',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: fontProvider.getScaledSize(15),
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w500,
                   ),
@@ -723,6 +732,7 @@ class MobileSignInPage extends StatelessWidget {
   }
 
   Widget _buildForgotRow(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 5),
       child: Row(
@@ -732,11 +742,11 @@ class MobileSignInPage extends StatelessWidget {
             onTap: () {
               Navigator.pushNamed(context, '/forgot-eid');
             },
-            child: const Text(
+            child: Text(
               'Forgot EID?',
               style: TextStyle(
                 color: Color(0xFF00F0FF),
-                fontSize: 15,
+                fontSize: fontProvider.getScaledSize(15),
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
               ),
@@ -746,11 +756,11 @@ class MobileSignInPage extends StatelessWidget {
             onTap: () {
               Navigator.pushNamed(context, '/forgot-password');
             },
-            child: const Text(
+            child: Text(
               'Forgot Password?',
               style: TextStyle(
                 color: Color(0xFF00F0FF),
-                fontSize: 15,
+                fontSize: fontProvider.getScaledSize(15),
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
               ),
@@ -761,7 +771,8 @@ class MobileSignInPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRememberMe() {
+  Widget _buildRememberMe(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.only(left: 5),
       child: Row(
@@ -777,12 +788,12 @@ class MobileSignInPage extends StatelessWidget {
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-          const Expanded(
+           Expanded(
             child: Text(
               'Remember Me On This Device',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 15,
+                fontSize: fontProvider.getScaledSize(15),
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
               ),
@@ -793,7 +804,8 @@ class MobileSignInPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmailVerification() {
+  Widget _buildEmailVerification(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: SizedBox(
@@ -801,7 +813,7 @@ class MobileSignInPage extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            const Positioned(
+             Positioned(
               top: -4,
               left: -1,
               child: Text(
@@ -828,13 +840,13 @@ class MobileSignInPage extends StatelessWidget {
                     color: const Color(0xFF00F0FF),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                  child: Text(
                     "Code Sent",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       height: 1.0,
                       letterSpacing: -1.6,
                       color: Colors.black,
@@ -992,7 +1004,7 @@ class MobileSignInPage extends StatelessWidget {
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                              fontSize: fontProvider.getScaledSize(15),
                               color: tooManyAttempts
                                   ? Colors.black
                                   : Colors.white,
@@ -1009,6 +1021,8 @@ class MobileSignInPage extends StatelessWidget {
   }
 
   Widget _buildSignInButton(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

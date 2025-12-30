@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/footer_widgets.dart';
 import "../services/auth_service.dart";
+import 'package:provider/provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
 import 'dart:async';
 import '../widgets/error_widgets.dart';
 
@@ -247,6 +249,7 @@ class _MobileRegisterPatternScreenState
 
   @override
   Widget build(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return WillPopScope(
       onWillPop: () async {
         // Prevent going back when in confirm mode
@@ -365,10 +368,10 @@ class _MobileRegisterPatternScreenState
                                     ? 'Redraw your pattern to confirm'
                                     : 'Draw a secure pattern (min. 4 dots) \n to protect your account',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 15,
+                                  fontSize: fontProvider.getScaledSize(15),
                                   color: Colors.white,
                                 ),
                               ),

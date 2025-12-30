@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
 import '../providers/signup_data_provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/footer_widgets.dart';
@@ -110,6 +111,8 @@ class _SelectAccountSecondSignInScreenState
   }
 
   Widget userCardAccount(BuildContext context, UserProvider userProvider) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
@@ -160,11 +163,11 @@ class _SelectAccountSecondSignInScreenState
                   const SizedBox(height: 5),
                   Text(
                     'EID: ${userProvider.eid}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       height: 1.0,
                     ),
                   ),

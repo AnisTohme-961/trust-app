@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
+
 import 'protect_access.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_button.dart';
@@ -318,6 +320,8 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   @override
   Widget build(BuildContext context) {
     final signUpData = Provider.of<UserProvider>(context);
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
@@ -464,10 +468,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                     context,
                                   ).requestFocus(_lastFocusNode);
                                 },
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 15,
+                                  fontSize: fontProvider.getScaledSize(15),
                                   color: Color(0xFF00F0FF),
                                 ),
                                 decoration: InputDecoration(
@@ -476,10 +480,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                     vertical: 10,
                                   ),
                                   labelText: "First Name",
-                                  labelStyle: const TextStyle(
+                                  labelStyle: TextStyle(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 15,
+                                    fontSize: fontProvider.getScaledSize(15),
                                     color: Colors.white54,
                                   ),
                                   floatingLabelStyle: const TextStyle(
@@ -524,10 +528,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                   // Remove focus
                                   FocusScope.of(context).unfocus();
                                 },
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 15,
+                                  fontSize: fontProvider.getScaledSize(15),
                                   color: Color(0xFF00F0FF),
                                 ),
                                 decoration: InputDecoration(
@@ -536,10 +540,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                     vertical: 10,
                                   ),
                                   labelText: "Last Name",
-                                  labelStyle: const TextStyle(
+                                  labelStyle: TextStyle(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 15,
+                                    fontSize: fontProvider.getScaledSize(15),
                                     color: Colors.white54,
                                   ),
                                   floatingLabelStyle: const TextStyle(
@@ -604,10 +608,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                   value,
                                 );
                               },
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w500,
-                                fontSize: 15,
+                                fontSize: fontProvider.getScaledSize(15),
                                 color: Color(0xFF00F0FF),
                               ),
                               decoration: InputDecoration(
@@ -617,17 +621,17 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                   vertical: 12,
                                 ),
                                 hintText: "Sponsor Code (Optional)",
-                                hintStyle: const TextStyle(
+                                hintStyle: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 15,
+                                  fontSize: fontProvider.getScaledSize(15),
                                   color: Colors.white54,
                                 ),
                                 labelText: "Sponsor",
-                                labelStyle: const TextStyle(
+                                labelStyle: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 15,
+                                  fontSize: fontProvider.getScaledSize(15),
                                   color: Colors.white54,
                                 ),
                                 floatingLabelStyle: const TextStyle(
@@ -730,7 +734,9 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                         style: TextStyle(
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w500,
-                                          fontSize: 15,
+                                          fontSize: fontProvider.getScaledSize(
+                                            15,
+                                          ),
                                           color: _isButtonHovered
                                               ? Colors.black
                                               : Colors.white,
@@ -1021,6 +1027,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   }
 
   Widget _buildStep(String label, {bool filled = false}) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return SizedBox(
       height: 66,
       child: Column(
@@ -1037,10 +1044,10 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
-              fontSize: 15,
+              fontSize: fontProvider.getScaledSize(15),
               height: 1.0,
               color: Colors.white,
             ),

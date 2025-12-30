@@ -23,6 +23,22 @@ void main() async {
   runApp(const MyApp());
 }
 
+class ZoomablePage extends StatelessWidget {
+  final Widget child;
+  const ZoomablePage({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return InteractiveViewer(
+      panEnabled: true,
+      scaleEnabled: true,
+      minScale: 1.0,
+      maxScale: 3.0,
+      child: child,
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -43,15 +59,22 @@ class MyApp extends StatelessWidget {
           );
           userProvider.loadFromStorage();
 
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              textSelectionTheme: const TextSelectionThemeData(
-                cursorColor: Color(0xFF00F0FF),
+          return ZoomablePage( 
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                textSelectionTheme: const TextSelectionThemeData(
+                  cursorColor: Color(0xFF00F0FF),
+                ),
+              ),
+              home: const ResponsiveHomePage(),
+              routes: appRoutes().map(
+                (key, builder) => MapEntry(
+                  key,
+                  (context) => ZoomablePage(child: builder(context)), 
+                ),
               ),
             ),
-            home: ResponsiveHomePage(),
-            routes: appRoutes(),
           );
         },
       ),
@@ -135,7 +158,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final double dropdownHeight = screenHeight * 0.7;
+    final double dropdownHeight = screenHeight * 0.559;
 
     return Consumer<FontSizeProvider>(
       builder: (context, fontProvider, child) {

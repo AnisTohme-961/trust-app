@@ -121,7 +121,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final double dropdownHeight = screenHeight * 0.75;
+    final double dropdownHeight = screenHeight * 0.559;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),

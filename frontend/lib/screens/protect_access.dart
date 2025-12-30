@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter_project/widgets/footer_widgets.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
 import 'package:flutter_project/widgets/error_widgets.dart';
 import 'package:provider/provider.dart';
 import '../constants/api_constants.dart';
@@ -832,6 +833,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     final screenHeight = MediaQuery.of(context).size.height;
     final double dropdownHeight = screenHeight * 0.559;
 
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
@@ -985,7 +988,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                             for (var i = 0; i < 5; i++)
                               Expanded(
                                 child: _buildStep(
-                                  i == 1 ? "Contact\nand Verify" : "",
+                                  i == 1 ? "Contact and Verify" : "",
                                   filled: i <= 1,
                                   filledColor: i == 1
                                       ? const Color(0xFF0EA0BB)
@@ -1053,17 +1056,17 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                     child: TextField(
                                       controller: _countryFieldController,
                                       readOnly: true,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 15,
+                                        fontSize: fontProvider.getScaledSize(15),
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Inter',
                                       ),
-                                      decoration: const InputDecoration(
+                                      decoration: InputDecoration(
                                         hintText: "Country",
                                         hintStyle: TextStyle(
                                           color: Color(0xFFA5A6A8),
-                                          fontSize: 15,
+                                          fontSize: fontProvider.getScaledSize(15),
                                           fontWeight: FontWeight.w500,
                                           fontFamily: 'Inter',
                                           height: 1.0,
@@ -1166,7 +1169,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                     color: _datePicked
                                         ? Colors.white
                                         : const Color(0xFFA5A6A8),
-                                    fontSize: 15,
+                                    fontSize: fontProvider.getScaledSize(15),
                                     fontWeight: FontWeight.w500,
                                     fontFamily: 'Inter',
                                   ),
@@ -1255,8 +1258,8 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         _validateEmailAndShowError();
                                         FocusScope.of(context).unfocus();
                                       },
-                                      style: const TextStyle(
-                                        fontSize: 15,
+                                      style: TextStyle(
+                                        fontSize: fontProvider.getScaledSize(15),
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Inter',
                                         color: Color(0xFF00F0FF),
@@ -1348,10 +1351,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       _emailController.text.isEmpty
                                           ? "Paste"
                                           : "Clear",
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 15,
+                                        fontSize: fontProvider.getScaledSize(15),
                                         color: Colors.white,
                                         height: 1.0,
                                       ),
@@ -1408,13 +1411,13 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                     color: const Color(0xFF00F0FF),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     "Code Sent",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 15,
+                                      fontSize: fontProvider.getScaledSize(15),
                                       height: 1.0,
                                       letterSpacing: -1.6,
                                       color: Colors.black,
@@ -2286,6 +2289,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   }
 
   Widget _buildStep(String label, {bool filled = false, Color? filledColor}) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return SizedBox(
       height: 83,
       child: Column(
@@ -2304,10 +2308,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
-              fontSize: 15,
+              fontSize: fontProvider.getScaledSize(15),
               height: 1.0,
               letterSpacing: 0,
               color: Colors.white,

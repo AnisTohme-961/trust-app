@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/error_widgets.dart';
 import '../widgets/footer_widgets.dart';
@@ -183,6 +185,8 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
 
   @override
   Widget build(BuildContext context) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+    
     return Stack(
       children: [
         Padding(
@@ -223,14 +227,14 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 10),
                   child: Text(
                     'If any EID is connected to this email, username or \nmobile number, it will be emailed to you.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600,
                     ),
@@ -370,6 +374,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
   }
 
   Widget _buildEmailInput() {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Stack(
@@ -396,17 +401,17 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                 Expanded(
                   child: TextField(
                     controller: widget.controller,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF00F0FF),
-                      fontSize: 15,
+                      fontSize: fontProvider.getScaledSize(15),
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Email',
                       hintStyle: TextStyle(
                         color: Colors.white54,
-                        fontSize: 15,
+                        fontSize: fontProvider.getScaledSize(15),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -419,7 +424,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
                   text: widget.controller.text.isNotEmpty ? 'Clear' : 'Paste',
                   width: 65,
                   height: 32,
-                  fontSize: 15,
+                  fontSize: fontProvider.getScaledSize(15),
                   textColor: Colors.white,
                   backgroundColor: const Color(0xFF0B1320),
                   borderColor: const Color(0xFF00F0FF),

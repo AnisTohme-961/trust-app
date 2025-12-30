@@ -4,6 +4,9 @@ import 'dart:async';
 import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
 import '../widgets/footer_widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
+
 import '../widgets/error_widgets.dart';
 
 class SignInPinScreen extends StatefulWidget {
@@ -262,6 +265,8 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
 
   @override
   Widget build(BuildContext context) {
+    
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: Stack(
@@ -446,11 +451,11 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
                         onTap: () {
                           debugPrint('Forgot Pin tapped');
                         },
-                        child: const Text(
+                        child: Text(
                           'Forgot Pin?',
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 15,
+                            fontSize: fontProvider.getScaledSize(15),
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF00F0FF),
                           ),
@@ -460,11 +465,11 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
                         onTap: () {
                           Navigator.pushNamed(context, '/sign-in-pattern');
                         },
-                        child: const Text(
+                        child: Text(
                           'Use Pattern Instead',
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 15,
+                            fontSize: fontProvider.getScaledSize(15),
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF00F0FF),
                           ),

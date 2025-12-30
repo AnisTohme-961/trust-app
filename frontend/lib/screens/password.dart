@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_project/services/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_project/providers/signup_data_provider.dart';
+import 'package:flutter_project/providers/font_size_provider.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import 'package:flutter_project/routes/routes.dart';
@@ -476,6 +477,9 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    final fontProvider = Provider.of<FontSizeProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
@@ -714,23 +718,23 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                     context,
                                   ).requestFocus(_confirmPasswordFocusNode);
                                 },
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Color(0xFF00F0FF),
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 15,
+                                  fontSize: fontProvider.getScaledSize(15),
                                 ),
                                 decoration: InputDecoration(
                                   labelText: "Password",
-                                  labelStyle: const TextStyle(
+                                  labelStyle: TextStyle(
                                     color: Colors.white70,
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 15,
+                                    fontSize: fontProvider.getScaledSize(15),
                                   ),
-                                  floatingLabelStyle: const TextStyle(
+                                  floatingLabelStyle: TextStyle(
                                     color: Color(0xFF00F0FF),
-                                    fontSize: 15,
+                                    fontSize: fontProvider.getScaledSize(15),
                                     fontWeight: FontWeight.w600,
                                   ),
                                   prefixIcon: Padding(
@@ -798,11 +802,11 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                                 _hasTextInPassword
                                                     ? "Clear"
                                                     : "Paste",
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: Colors.white,
                                                   fontFamily: 'Inter',
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: 15,
+                                                  fontSize: fontProvider.getScaledSize(15),
                                                 ),
                                               ),
                                             ),
@@ -857,23 +861,23 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                         _validateConfirmPasswordAndShowError();
                                         FocusScope.of(context).unfocus();
                                       },
-                                      style: const TextStyle(
-                                        color: Color(0xFF00F0FF),
+                                      style: TextStyle(
+                                        color: const Color(0xFF00F0FF),
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w500,
-                                        fontSize: 15,
+                                        fontSize: fontProvider.getScaledSize(15),
                                       ),
                                       decoration: InputDecoration(
                                         labelText: "Confirm Password",
-                                        labelStyle: const TextStyle(
+                                        labelStyle: TextStyle(
                                           color: Colors.white70,
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w500,
-                                          fontSize: 15,
+                                          fontSize: fontProvider.getScaledSize(15),
                                         ),
-                                        floatingLabelStyle: const TextStyle(
-                                          color: Color(0xFF00F0FF),
-                                          fontSize: 15,
+                                        floatingLabelStyle: TextStyle(
+                                          color: const Color(0xFF00F0FF),
+                                          fontSize: fontProvider.getScaledSize(15),
                                           fontWeight: FontWeight.w600,
                                         ),
                                         prefixIcon: Padding(
@@ -1012,12 +1016,12 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        const Text(
+                                        Text(
                                           "Generate",
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 15,
+                                            fontSize: fontProvider.getScaledSize(15),
                                             color: Colors.white,
                                             letterSpacing: -0.08 * 20,
                                           ),
@@ -1041,12 +1045,12 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                       height: 146,
                       child: Column(
                         children: [
-                          const Text(
+                          Text(
                             "Your password should contain at least",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: fontProvider.getScaledSize(15),
                               height: 1.0,
                               color: Colors.white,
                             ),
@@ -1150,10 +1154,10 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w500,
-                                fontSize: 15,
+                                fontSize: fontProvider.getScaledSize(15),
                                 height: 1,
                                 color: Colors.white,
                               ),
@@ -1364,6 +1368,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   }
 
   Widget _buildRequirement(String text, bool isValid) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return Row(
       children: [
         Icon(Icons.circle, size: 8, color: _getValidationColor(isValid)),
@@ -1373,7 +1378,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
           style: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
-            fontSize: 15,
+            fontSize: fontProvider.getScaledSize(15),
             color: _getValidationTextColor(isValid),
             letterSpacing: -0.03 * 20,
             height: 1.0,
@@ -1384,6 +1389,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   }
 
   Widget _buildStep(String label, {bool filled = false, Color? filledColor}) {
+    final fontProvider = Provider.of<FontSizeProvider>(context);
     return SizedBox(
       height: 66,
       child: Column(
@@ -1402,10 +1408,10 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
-              fontSize: 15,
+              fontSize: fontProvider.getScaledSize(15),
               height: 1.0,
               color: Colors.white,
             ),
