@@ -10,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/language_api_service.dart';
 import '../widgets/slide_up_menu_widget.dart';
 import '../widgets/select_account_slide_up_menu_widget.dart';
+import 'package:flutter/services.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -359,6 +360,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                   child: Column(
                     children: [
                       // SEARCH FIELD - Fixed height
+                      // SEARCH FIELD - Fixed height
                       Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 50,
@@ -366,6 +368,41 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         ),
                         child: TextField(
                           controller: _languageSearchController,
+                          inputFormatters: [
+                            // Capitalize first letter of every word
+                            TextInputFormatter.withFunction((
+                              oldValue,
+                              newValue,
+                            ) {
+                              if (newValue.text.isEmpty) {
+                                return newValue;
+                              }
+
+                              final text = newValue.text;
+                              final words = text.split(' ');
+                              final capitalizedWords = words.map((word) {
+                                if (word.isEmpty) return '';
+                                return word[0].toUpperCase() +
+                                    word.substring(1);
+                              }).toList();
+
+                              final capitalizedText = capitalizedWords.join(
+                                ' ',
+                              );
+
+                              return TextEditingValue(
+                                text: capitalizedText,
+                                selection: newValue.selection.copyWith(
+                                  baseOffset:
+                                      newValue.selection.baseOffset +
+                                      (capitalizedText.length - text.length),
+                                  extentOffset:
+                                      newValue.selection.extentOffset +
+                                      (capitalizedText.length - text.length),
+                                ),
+                              );
+                            }),
+                          ],
                           onChanged: (value) {
                             final query = value.toLowerCase();
                             setState(() {
