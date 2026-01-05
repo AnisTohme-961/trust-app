@@ -1424,7 +1424,7 @@ class _ProgressSteps extends StatelessWidget {
           _buildStep("", filled: true, filledColor: const Color(0xFF0764AD)),
           _buildStep("", filled: true, filledColor: const Color(0xFF01259E)),
           _buildStep(
-            "Register\nPattern",
+            "Register Pattern",
             filled: true,
             filledColor: const Color(0xFF01259E),
           ),
@@ -1453,19 +1453,20 @@ class _ProgressSteps extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (label.isNotEmpty)
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-              height: 1.0,
-              color: Colors.white,
+            Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                height: 1.0,
+                color: Colors.white,
+              ),
             ),
-             maxLines: 2,
-             overflow: TextOverflow.visible,
-          ),
         ],
       ),
     );

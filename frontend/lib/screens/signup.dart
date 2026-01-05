@@ -401,28 +401,85 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
+                        // Background line
                         Positioned(
                           top: 9.5,
-                          left: 32,
-                          right: 32,
-                          child: Container(
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(100),
-                            ),
+                          left: 39,
+                          right: 39,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              const totalSteps = 5;
+                              const completedSteps = 1; // First step
+                              final segmentCount = totalSteps - 1;
+                              final filledSegments = completedSteps > 1
+                                  ? completedSteps - 1
+                                  : 0;
+                              final totalWidth = constraints.maxWidth;
+                              final filledWidth =
+                                  totalWidth * (filledSegments / segmentCount);
+                              final remainingWidth = totalWidth - filledWidth;
+
+                              return Row(
+                                children: [
+                                  // Filled gradient segment (only if > 0)
+                                  if (filledWidth > 0)
+                                    Container(
+                                      width: filledWidth,
+                                      height: 5,
+                                      decoration: const BoxDecoration(
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(100),
+                                          bottomLeft: Radius.circular(100),
+                                        ),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Color(0xFF00F0FF),
+                                            Color(0xFF0EA0BB),
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        ),
+                                      ),
+                                    ),
+                                  // Remaining white segment
+                                  Container(
+                                    width: remainingWidth,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.only(
+                                        topRight: Radius.circular(100),
+                                        bottomRight: Radius.circular(100),
+                                        topLeft: Radius.circular(
+                                          filledWidth == 0 ? 100 : 0,
+                                        ),
+                                        bottomLeft: Radius.circular(
+                                          filledWidth == 0 ? 100 : 0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
+                        // Steps
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 15.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _buildStep("Profile\nStart", filled: true),
-                              _buildStep(" "),
-                              _buildStep(" "),
-                              _buildStep(" "),
-                              _buildStep(" "),
+                              for (var i = 0; i < 5; i++)
+                                Expanded(
+                                  child: _buildStep(
+                                    i == 0 ? "Profile Start" : "",
+                                    filled: i <= 0,
+                                    filledColor: i == 0
+                                        ? const Color(0xFF0EA0BB)
+                                        : null,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -1100,7 +1157,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     );
   }
 
-  Widget _buildStep(String label, {bool filled = false}) {
+  Widget _buildStep(String label, {bool filled = false, Color? filledColor}) {
     final fontProvider = Provider.of<FontSizeProvider>(context);
     return SizedBox(
       height: 66,
@@ -1109,7 +1166,9 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
         children: [
           CircleAvatar(
             radius: 12,
-            backgroundColor: filled ? const Color(0xFF00F0FF) : Colors.white,
+            backgroundColor: filled
+                ? (filledColor ?? const Color(0xFF00F0FF))
+                : Colors.white,
             child: filled
                 ? const Icon(Icons.check, color: Colors.white, size: 16)
                 : null,
@@ -1117,12 +1176,16 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
           const SizedBox(height: 8),
           Text(
             label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
               fontSize: fontProvider.getScaledSize(15),
               height: 1.0,
+              letterSpacing: 0,
               color: Colors.white,
             ),
           ),

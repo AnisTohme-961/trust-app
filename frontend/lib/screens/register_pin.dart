@@ -1497,7 +1497,7 @@ class _ProgressSteps extends StatelessWidget {
           _buildStep("", filled: true, filledColor: Color(0xFF0EA0BB)),
           _buildStep("", filled: true, filledColor: Color(0xFF0764AD)),
           _buildStep(
-            "Register\nLive",
+            "Register Live",
             filled: true,
             filledColor: Color(0xFF01259E),
           ),
@@ -1530,6 +1530,9 @@ class _ProgressSteps extends StatelessWidget {
           if (label.isNotEmpty)
             Text(
               label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'Inter',
@@ -1538,8 +1541,6 @@ class _ProgressSteps extends StatelessWidget {
                 height: 1.2, // better line spacing
                 color: Colors.white,
               ),
-              maxLines: 2, // allow two lines
-              overflow: TextOverflow.visible, // prevent clipping
             ),
         ],
       ),

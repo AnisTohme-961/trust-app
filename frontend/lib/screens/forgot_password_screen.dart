@@ -459,14 +459,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       isCodeCorrectMap[type] = false;
     });
 
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 1), () {
       if (!mounted) return;
 
       setState(() {
-        for (int i = 0; i < controllers.length; i++) {
-          controllers[i].clear();
-          codeList[i] = '';
-        }
+        // for (int i = 0; i < controllers.length; i++) {
+        //   controllers[i].clear();
+        //   codeList[i] = '';
+        // }
         isCodeValidMap[type] = true;
         isCodeCorrectMap[type] = false;
       });

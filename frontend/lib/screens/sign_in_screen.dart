@@ -204,10 +204,10 @@ class _SignInPageState extends State<SignInPage> {
         if (res) {
           _secondsLeft = 0;
         } else {
-          errorStackKey.currentState?.showError(
-            'Incorrect or expired code. Please request a new one',
-            duration: const Duration(seconds: 5),
-          );
+          // errorStackKey.currentState?.showError(
+          //   'Incorrect or expired code. Please request a new one',
+          //   duration: const Duration(seconds: 5),
+          // );
 
           _resetCodeInputs();
         }
@@ -232,12 +232,12 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   void _resetCodeInputs() {
-    Timer(const Duration(seconds: 2), () {
+    Timer(const Duration(seconds: 1), () {
       if (!mounted) return;
 
       setState(() {
-        code = List.generate(6, (_) => "");
-        _codecontrollers.forEach((c) => c.clear());
+        // code = List.generate(6, (_) => "");
+        // _codecontrollers.forEach((c) => c.clear());
         _isCodeValid = null;
         isCodeCorrect = false;
       });

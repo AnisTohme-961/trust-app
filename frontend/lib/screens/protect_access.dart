@@ -645,14 +645,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         // _codeDisabled = true;
       });
     } else {
-      setState(() => _isCodeVerified = false);
+         setState(() {
+      _isCodeVerified = false; // Keep it false to show red glow
+      _codeDisabled = false; // Ensure fields are editable again
+    });
 
-      Timer(const Duration(seconds: 3), () {
+      Timer(const Duration(seconds: 1), () {
         if (!mounted) return;
 
         setState(() {
-          for (var c in _codeControllers) c.clear();
-          _code = ["", "", "", "", "", ""];
           _isCodeVerified = null;
           _codeDisabled = false;
         });
@@ -987,6 +988,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           children: [
                             for (var i = 0; i < 5; i++)
                               Expanded(
+                                
                                 child: _buildStep(
                                   i == 1 ? "Contact and Verify" : "",
                                   filled: i <= 1,
@@ -1053,6 +1055,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                   ),
                                   const SizedBox(width: 18),
                                   Expanded(
+                                    child: IgnorePointer(   // Added IgnorePointer for the dropdown to work as expected
                                     child: TextField(
                                       controller: _countryFieldController,
                                       readOnly: true,
@@ -1076,6 +1079,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       ),
                                     ),
                                   ),
+                                  )
                                 ],
                               ),
                             ),
@@ -1529,15 +1533,16 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                     ),
                                             ),
                                             if (_isCodeVerified != true)
-                                              Container(
-                                                width: 30,
-                                                height: 2,
-                                                color: _codeDisabled
-                                                    ? Colors.grey
-                                                    : (_code[index].isEmpty
-                                                          ? Colors.white
-                                                          : Colors.transparent),
-                                              ),
+                                             Container(
+  width: 30,
+  height: 2,
+  color: _codeDisabled
+      ? Colors.grey
+      : (_isCodeVerified == false
+          ? Colors.red
+          : (_code[index].isEmpty ? Colors.white : Colors.transparent)),
+),
+
                                           ],
                                         ),
                                       ),
@@ -2337,6 +2342,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           const SizedBox(height: 8),
           Text(
             label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Inter',
@@ -3597,7 +3605,7 @@ class _TabletProtectAccessState extends State<TabletProtectAccess> {
                                           Expanded(
                                             child: _buildStep(
                                               i == 1
-                                                  ? "Contact\nand Verify"
+                                                  ? "Contact and Verify"
                                                   : "",
                                               filled: i <= 1,
                                               filledColor: i == 1

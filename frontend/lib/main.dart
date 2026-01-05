@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_project/screens/forgot_password_screen.dart';
+import 'package:flutter_project/screens/password.dart';
+import 'package:flutter_project/screens/register_pattern_screen.dart';
+import 'package:flutter_project/screens/register_pin.dart';
 import 'package:flutter_project/screens/settings_screen.dart';
 import 'package:flutter_project/screens/sign_in_pattern_screen.dart';
 import 'package:flutter_project/screens/sign_in_screen.dart';
