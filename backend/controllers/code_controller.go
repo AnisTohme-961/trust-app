@@ -53,7 +53,7 @@ type CodeController struct {
 func getCooldown(attempt int) time.Duration {
 	switch attempt {
 	case 0:
-		return 59 * time.Second
+		return 5 * time.Second
 	case 1:
 		return 1*time.Minute + 59*time.Second
 	case 2:
