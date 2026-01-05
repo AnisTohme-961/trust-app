@@ -53,7 +53,10 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
 
   // Button hover states
   bool _isBackHovered = false;
+  bool _isBackPressed = false;
   bool _isNextHovered = false;
+
+  bool _isNextPressed = false;
   bool _isGenerateHovered = false;
 
   // Password validation states
@@ -477,7 +480,6 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-
     final fontProvider = Provider.of<FontSizeProvider>(context);
 
     return Scaffold(
@@ -806,7 +808,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                                   color: Colors.white,
                                                   fontFamily: 'Inter',
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: fontProvider.getScaledSize(15),
+                                                  fontSize: fontProvider
+                                                      .getScaledSize(15),
                                                 ),
                                               ),
                                             ),
@@ -865,7 +868,9 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                         color: const Color(0xFF00F0FF),
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w500,
-                                        fontSize: fontProvider.getScaledSize(15),
+                                        fontSize: fontProvider.getScaledSize(
+                                          15,
+                                        ),
                                       ),
                                       decoration: InputDecoration(
                                         labelText: "Confirm Password",
@@ -873,11 +878,15 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                           color: Colors.white70,
                                           fontFamily: 'Inter',
                                           fontWeight: FontWeight.w500,
-                                          fontSize: fontProvider.getScaledSize(15),
+                                          fontSize: fontProvider.getScaledSize(
+                                            15,
+                                          ),
                                         ),
                                         floatingLabelStyle: TextStyle(
                                           color: const Color(0xFF00F0FF),
-                                          fontSize: fontProvider.getScaledSize(15),
+                                          fontSize: fontProvider.getScaledSize(
+                                            15,
+                                          ),
                                           fontWeight: FontWeight.w600,
                                         ),
                                         prefixIcon: Padding(
@@ -1021,7 +1030,8 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontWeight: FontWeight.w500,
-                                            fontSize: fontProvider.getScaledSize(15),
+                                            fontSize: fontProvider
+                                                .getScaledSize(15),
                                             color: Colors.white,
                                             letterSpacing: -0.08 * 20,
                                           ),
@@ -1230,29 +1240,48 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 setState(() => _isBackHovered = false),
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
+                              onTapDown: (_) {
+                                setState(() => _isBackPressed = true);
+                              },
+                              onTapUp: (_) {
+                                setState(() => _isBackPressed = false);
+                                Navigator.of(context).pop();
+                              },
+                              onTapCancel: () {
+                                setState(() => _isBackPressed = false);
+                              },
                               onTap: () => Navigator.of(context).pop(),
-                              child: Container(
-                                width: 106,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: const Color(0xFF00F0FF),
-                                    width: 1,
+                              child: Transform.scale(
+                                scale: _isBackPressed ? 0.95 : 1.0,
+                                child: Container(
+                                  width: 106,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF00F0FF),
+                                      width: 1,
+                                    ),
+                                    color: _isBackHovered
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.15)
+                                        : (_isBackPressed
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.25)
+                                              : const Color(0xFF0B1320)),
                                   ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    "Back",
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 20,
-                                      height: 1.0,
-                                      color: _isBackHovered
-                                          ? const Color(0xFF00F0FF)
-                                          : Colors.white,
+                                  child: Center(
+                                    child: Text(
+                                      "Back",
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20,
+                                        height: 1.0,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1273,39 +1302,67 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 ? SystemMouseCursors.click
                                 : SystemMouseCursors.forbidden,
                             child: GestureDetector(
-                              onTap: _handleNextTap,
-                              child: Container(
-                                width: 105,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: _allFieldsValid
-                                        ? const Color(0xFF00F0FF)
-                                        : const Color(0xFF4A5568),
-                                    width: 1,
-                                  ),
-                                  color: _allFieldsValid
-                                      ? (_isNextHovered
-                                            ? const Color(
-                                                0xFF00F0FF,
-                                              ).withOpacity(0.15)
-                                            : Colors.transparent)
-                                      : Colors.transparent,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    "Next",
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 20,
-                                      height: 1.0,
+                              onTapDown: _allFieldsValid
+                                  ? (_) {
+                                      setState(() => _isNextPressed = true);
+                                    }
+                                  : null,
+                              onTapUp: _allFieldsValid
+                                  ? (_) {
+                                      setState(() => _isNextPressed = false);
+                                    }
+                                  : null,
+                              onTapCancel: _allFieldsValid
+                                  ? () {
+                                      setState(() => _isNextPressed = false);
+                                    }
+                                  : null,
+                              onTap: () {
+                                if (_allFieldsValid) {
+                                  _handleNextTap();
+                                } else {
+                                  _validateAllFieldsAndShowErrors();
+                                }
+                              },
+                              child: Transform.scale(
+                                scale: _allFieldsValid && _isNextPressed
+                                    ? 0.95
+                                    : 1.0,
+                                child: Container(
+                                  width: 106,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
                                       color: _allFieldsValid
-                                          ? (_isNextHovered
-                                                ? const Color(0xFF00F0FF)
-                                                : Colors.white)
-                                          : const Color(0xFF718096),
+                                          ? const Color(0xFF00F0FF)
+                                          : const Color(0xFF4A5568),
+                                      width: 1,
+                                    ),
+                                    color: _allFieldsValid
+                                        ? (_isNextHovered
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.15)
+                                              : _isNextPressed
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.25)
+                                              : const Color(0xFF0B1320))
+                                        : const Color(0xFF0B1320),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "Next",
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20,
+                                        height: 1.0,
+                                        color: _allFieldsValid
+                                            ? Colors.white
+                                            : const Color(0xFF718096),
+                                      ),
                                     ),
                                   ),
                                 ),

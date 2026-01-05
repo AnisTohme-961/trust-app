@@ -105,6 +105,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     'auth': null,
   };
 
+  // New state variables for Back and Change button effects
+  bool _isBackHovered = false;
+  bool _isBackPressed = false;
+  bool _isChangeHovered = false;
+  bool _isChangePressed = false;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -485,8 +491,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 60),
             child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
-
+              physics: const NeverScrollableScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -525,28 +530,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     isClicked: _buttonClickedMap['email'] ?? false,
                   ),
                   const SizedBox(height: 10),
-                  // buildVerificationSection(
-                  //   title: 'SMS Verification',
-                  //   showCodeSent: _showSMSCodeSent,
-                  //   codeControllers: _smsCodeControllers,
-                  //   focusNodes: _smsFocusNodes,
-                  //   codeList: _smsCode,
-                  //   type: 'sms',
-                  //   codeDisabled: codeDisabled,
-                  //   isClicked: _buttonClickedMap['sms'] ?? false,
-                  // ),
-                  // const SizedBox(height: 10),
-                  // buildVerificationSection(
-                  //   title: 'Authenticator App',
-                  //   showCodeSent: _showAuthCodeSent,
-                  //   codeControllers: _authCodeControllers,
-                  //   focusNodes: _authFocusNodes,
-                  //   codeList: _authCode,
-                  //   type: 'auth',
-                  //   codeDisabled: codeDisabled,
-                  //   isClicked: _buttonClickedMap['auth'] ?? false,
-                  // ),
-                  const SizedBox(height: 0),
                   buildPasswordRow(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -680,8 +663,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                     onChanged: (value) {
                       setState(() {
-                        // Update the hasTextInPassword state for floating label
-                        // _hasTextInPassword = value.isNotEmpty;
                         _updatePasswordRules();
                       });
                     },
@@ -772,7 +753,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget buildConfirmAndGenerateRow() {
     final fontProvider = Provider.of<FontSizeProvider>(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
       child: Row(
@@ -806,7 +787,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: TextField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
-                          style: TextStyle( // It was 16
+                          style: TextStyle(
                             color: Color(0xFF00F0FF),
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
@@ -831,7 +812,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               _hasTextInPassword =
                                   _passwordController.text.isNotEmpty ||
                                   _confirmPasswordController.text.isNotEmpty;
-                              _updatePasswordRules(); // Auto validate on change
+                              _updatePasswordRules();
                             });
                           },
                         ),
@@ -976,7 +957,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ],
                   ),
                 ),
-                const Spacer(), 
+                const Spacer(),
                 IntrinsicWidth(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1000,13 +981,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget buildBullet(String text, bool condition) {
     final fontProvider = Provider.of<FontSizeProvider>(context);
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start, // Align top of icon with first line
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(
-            top: 8.0,
-          ), // optional: small vertical adjustment
+          padding: const EdgeInsets.only(top: 8.0),
           child: Icon(Icons.circle, size: 8, color: bulletColor(condition)),
         ),
         const SizedBox(width: 8),
@@ -1020,7 +998,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               fontSize: fontProvider.getScaledSize(15),
               color: bulletColor(condition),
               letterSpacing: -0.03 * 20,
-              height: 1.2, // adjust spacing for multi-line
+              height: 1.2,
             ),
           ),
         ),
@@ -1208,8 +1186,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               width: 35,
                               height: 35,
                               child: RawKeyboardListener(
-                                focusNode:
-                                    FocusNode(), // separate node for listener
+                                focusNode: FocusNode(),
                                 onKey: (event) {
                                   if (event is RawKeyDownEvent &&
                                       event.logicalKey ==
@@ -1254,7 +1231,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     contentPadding: EdgeInsets.zero,
                                   ),
                                   onChanged: (value) async {
-                                    // 1️⃣ Handle typing + paste + focus correctly
                                     _onChanged(
                                       value,
                                       index,
@@ -1263,13 +1239,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                       focusNodes,
                                     );
 
-                                    // 2️⃣ Reset validity while typing
                                     setState(() {
                                       isCodeValidMap[type] = true;
                                       isCodeCorrectMap[type] = false;
                                     });
 
-                                    // 3️⃣ Verify only when ALL digits are filled
                                     if (codeList.every((c) => c.isNotEmpty)) {
                                       final email = _controller.text.trim();
                                       bool valid = false;
@@ -1458,6 +1432,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget buildBackAndChangeButtons() {
+    // Check if all password requirements are met for the Change button
+    bool _allFieldsValid =
+        _has2Caps &&
+        _has2Lower &&
+        _has2Numbers &&
+        _has2Special &&
+        _hasMin10 &&
+        _passwordsMatch;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -1477,105 +1460,163 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(width: 20),
-        CustomButton(
-          text: 'Back',
-          width: 100,
-          height: 45,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          textColor: Colors.white,
-          borderColor: const Color(0xFF00F0FF),
-          backgroundColor: const Color(0xFF0B1320),
-          onTap: () {
-            Navigator.pop(context); // Go back to the previous screen
-          },
+        // Back Button with hover and press effects
+        MouseRegion(
+          onEnter: (_) => setState(() => _isBackHovered = true),
+          onExit: (_) => setState(() => _isBackHovered = false),
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTapDown: (_) {
+              setState(() => _isBackPressed = true);
+            },
+            onTapUp: (_) {
+              setState(() => _isBackPressed = false);
+            },
+            onTapCancel: () {
+              setState(() => _isBackPressed = false);
+            },
+            child: Transform.scale(
+              scale: _isBackPressed ? 0.95 : 1.0,
+              child: CustomButton(
+                text: 'Back',
+                width: 100,
+                height: 45,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                borderRadius: 10,
+                borderColor: const Color(0xFF00F0FF),
+                textColor: Colors.white,
+                backgroundColor: _isBackHovered
+                    ? const Color(0xFF00F0FF).withOpacity(0.15)
+                    : _isBackPressed
+                    ? const Color(0xFF00F0FF).withOpacity(0.25)
+                    : const Color(0xFF0B1320),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ),
         ),
-
         const SizedBox(width: 20),
-        CustomButton(
-          text: 'Change',
-          width: 100,
-          height: 45,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          textColor: Colors.white,
-          borderColor: const Color(0xFF00F0FF),
-          backgroundColor: const Color(0xFF0B1320),
-          onTap: () async {
-            // Only proceed if password is valid
-            if (_has2Caps &&
-                _has2Lower &&
-                _has2Numbers &&
-                _has2Special &&
-                _hasMin10 &&
-                _passwordsMatch) {
-              // Determine which code type to use
-              String type = '';
-              List<String> codeList = [];
-              if (_emailCode.every((c) => c.isNotEmpty)) {
-                type = 'email';
-                codeList = _emailCode;
-              } else if (_smsCode.every((c) => c.isNotEmpty)) {
-                type = 'sms';
-                codeList = _smsCode;
-              } else if (_authCode.every((c) => c.isNotEmpty)) {
-                type = 'auth';
-                codeList = _authCode;
-              } else {
-                _errorStackKey.currentState?.showError(
-                  "Please enter verification code",
-                );
-                return;
-              }
+        // Change Button with hover and press effects
+        MouseRegion(
+          onEnter: (_) =>
+              _allFieldsValid ? setState(() => _isChangeHovered = true) : null,
+          onExit: (_) => setState(() => _isChangeHovered = false),
+          cursor: _allFieldsValid
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.forbidden,
+          child: GestureDetector(
+            onTapDown: _allFieldsValid
+                ? (_) {
+                    setState(() => _isChangePressed = true);
+                  }
+                : null,
+            onTapUp: _allFieldsValid
+                ? (_) {
+                    setState(() => _isChangePressed = false);
+                  }
+                : null,
+            onTapCancel: _allFieldsValid
+                ? () {
+                    setState(() => _isChangePressed = false);
+                  }
+                : null,
+            child: Transform.scale(
+              scale: _allFieldsValid && _isChangePressed ? 0.95 : 1.0,
+              child: CustomButton(
+                text: 'Change',
+                width: 100,
+                height: 45,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                borderRadius: 10,
+                borderColor: _allFieldsValid
+                    ? const Color(0xFF00F0FF)
+                    : const Color(0xFF4A5568),
+                textColor: _allFieldsValid
+                    ? Colors.white
+                    : const Color(0xFF718096),
+                backgroundColor: _allFieldsValid
+                    ? (_isChangeHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : _isChangePressed
+                          ? const Color(0xFF00F0FF).withOpacity(0.25)
+                          : const Color(0xFF0B1320))
+                    : const Color(0xFF0B1320),
+                onTap: () async {
+                  if (_allFieldsValid) {
+                    // Only proceed if password is valid
+                    // Determine which code type to use
+                    String type = '';
+                    List<String> codeList = [];
+                    if (_emailCode.every((c) => c.isNotEmpty)) {
+                      type = 'email';
+                      codeList = _emailCode;
+                    } else if (_smsCode.every((c) => c.isNotEmpty)) {
+                      type = 'sms';
+                      codeList = _smsCode;
+                    } else if (_authCode.every((c) => c.isNotEmpty)) {
+                      type = 'auth';
+                      codeList = _authCode;
+                    } else {
+                      _errorStackKey.currentState?.showError(
+                        "Please enter verification code",
+                      );
+                      return;
+                    }
 
-              try {
-                // Verify the code depending on type
-                bool verified = false;
-                if (type == 'auth') {
-                  verified = await AuthService.verifyTOTP(
-                    email: _controller.text.trim(),
-                    code: codeList.join(),
-                  );
-                } else {
-                  verified = await AuthService.verifyResetCode(
-                    identifier: _controller.text.trim(),
-                    code: codeList.join(),
-                  );
-                }
+                    try {
+                      // Verify the code depending on type
+                      bool verified = false;
+                      if (type == 'auth') {
+                        verified = await AuthService.verifyTOTP(
+                          email: _controller.text.trim(),
+                          code: codeList.join(),
+                        );
+                      } else {
+                        verified = await AuthService.verifyResetCode(
+                          identifier: _controller.text.trim(),
+                          code: codeList.join(),
+                        );
+                      }
 
-                if (!verified) {
-                  _errorStackKey.currentState?.showError(
-                    "Invalid or expired code",
-                  );
-                  return;
-                }
+                      if (!verified) {
+                        _errorStackKey.currentState?.showError(
+                          "Invalid or expired code",
+                        );
+                        return;
+                      }
 
-                // Reset password
-                await AuthService.resetPassword(
-                  identifier: _controller.text.trim(),
-                  code: codeList.join(),
-                  newPassword: _passwordController.text,
-                  confirmPassword: _confirmPasswordController.text,
-                  method: type,
-                );
+                      // Reset password
+                      await AuthService.resetPassword(
+                        identifier: _controller.text.trim(),
+                        code: codeList.join(),
+                        newPassword: _passwordController.text,
+                        confirmPassword: _confirmPasswordController.text,
+                        method: type,
+                      );
 
-                // Show overlay after successful verification and reset
-                setState(() => _showPasswordChangedOverlay = true);
-                Timer(const Duration(seconds: 3), () {
-                  setState(() => _showPasswordChangedOverlay = false);
-                  Navigator.pushReplacementNamed(context, '/sign-in');
-                });
-              } catch (e) {
-                _errorStackKey.currentState?.showError(e.toString());
-              }
-            } else {
-              _errorStackKey.currentState?.showError(
-                "Please follow password requirements",
-              );
-            }
-          },
+                      // Show overlay after successful verification and reset
+                      setState(() => _showPasswordChangedOverlay = true);
+                      Timer(const Duration(seconds: 3), () {
+                        setState(() => _showPasswordChangedOverlay = false);
+                        Navigator.pushReplacementNamed(context, '/sign-in');
+                      });
+                    } catch (e) {
+                      _errorStackKey.currentState?.showError(e.toString());
+                    }
+                  } else {
+                    _errorStackKey.currentState?.showError(
+                      "Please follow password requirements",
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
         ),
-
         const SizedBox(width: 20),
         Expanded(
           child: Padding(

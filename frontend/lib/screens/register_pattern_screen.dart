@@ -62,6 +62,12 @@ class _MobileRegisterPatternScreenState
     'assets/images/locking5.png',
   ];
 
+  // Add hover and pressed states for back and logout buttons
+  bool _isBackHovered = false;
+  bool _isBackPressed = false;
+  bool _isLogoutHovered = false;
+  bool _isLogoutPressed = false;
+
   @override
   void initState() {
     super.initState();
@@ -103,41 +109,77 @@ class _MobileRegisterPatternScreenState
           ),
           const SizedBox(width: 20),
 
-          CustomButton(
-            text: 'Back',
-            width: 90,
-            height: 45,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            textColor: Colors.white,
-            borderColor: const Color(0xFF00F0FF),
-            backgroundColor: const Color(0xFF0B1320),
-            onTap: () {
-              // Prevent going back when in confirm mode
-              if (isConfirmMode) {
-                _errorStackKey.currentState?.showError(
-                  "Please complete pattern confirmation first",
-                );
-              } else {
-                Navigator.pop(context);
-              }
-            },
+          // Back button with hover and click effects
+          MouseRegion(
+            onEnter: (_) => setState(() => _isBackHovered = true),
+            onExit: (_) => setState(() => _isBackHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => _isBackPressed = true),
+              onTapUp: (_) => setState(() => _isBackPressed = false),
+              onTapCancel: () => setState(() => _isBackPressed = false),
+              child: Transform.scale(
+                scale: _isBackPressed ? 0.95 : 1.0,
+                child: CustomButton(
+                  text: 'Back',
+                  width: 90,
+                  height: 45,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  textColor: Colors.white,
+                  borderColor: const Color(0xFF00F0FF),
+                  backgroundColor: _isBackHovered
+                      ? const Color(0xFF00F0FF).withOpacity(0.15)
+                      : _isBackPressed
+                      ? const Color(0xFF00F0FF).withOpacity(0.25)
+                      : const Color(0xFF0B1320),
+                  onTap: () {
+                    // Prevent going back when in confirm mode
+                    if (isConfirmMode) {
+                      _errorStackKey.currentState?.showError(
+                        "Please complete pattern confirmation first",
+                      );
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(width: 20),
 
-          CustomButton(
-            text: 'Logout',
-            width: 110,
-            height: 45,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            textColor: Colors.white,
-            borderColor: const Color(0xFF00F0FF),
-            backgroundColor: const Color(0xFF0B1320),
-            onTap: () async {
-              _logout();
-            },
+          // Logout button with hover and click effects
+          MouseRegion(
+            onEnter: (_) => setState(() => _isLogoutHovered = true),
+            onExit: (_) => setState(() => _isLogoutHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => _isLogoutPressed = true),
+              onTapUp: (_) => setState(() => _isLogoutPressed = false),
+              onTapCancel: () => setState(() => _isLogoutPressed = false),
+              child: Transform.scale(
+                scale: _isLogoutPressed ? 0.95 : 1.0,
+                child: CustomButton(
+                  text: 'Logout',
+                  width: 110,
+                  height: 45,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  textColor: Colors.white,
+                  borderColor: const Color(0xFF00F0FF),
+                  backgroundColor: _isLogoutHovered
+                      ? const Color(0xFF00F0FF).withOpacity(0.15)
+                      : _isLogoutPressed
+                      ? const Color(0xFF00F0FF).withOpacity(0.25)
+                      : const Color(0xFF0B1320),
+                  onTap: () async {
+                    _logout();
+                  },
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(width: 20),
@@ -1453,19 +1495,19 @@ class _ProgressSteps extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (label.isNotEmpty)
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-              height: 1.0,
-              color: Colors.white,
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                height: 1.0,
+                color: Colors.white,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.visible,
             ),
-             maxLines: 2,
-             overflow: TextOverflow.visible,
-          ),
         ],
       ),
     );

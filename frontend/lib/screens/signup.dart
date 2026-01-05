@@ -47,6 +47,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   bool _isMaleHovered = false;
   bool _isFemaleHovered = false;
   bool _isNextHovered = false;
+  bool _isNextPressed = false;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -64,6 +65,11 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   String? _firstNameError;
   String? _lastNameError;
 
+  // Cursor position trackers
+  int _firstNameCursorPos = 0;
+  int _lastNameCursorPos = 0;
+  int _sponsorCursorPos = 0;
+
   @override
   void initState() {
     super.initState();
@@ -78,9 +84,16 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     super.didChangeDependencies();
     final user = context.read<UserProvider>();
 
-    _firstNameController.text = user.firstName;
-    _lastNameController.text = user.lastName;
-    _sponsorController.text = user.sponsorCode;
+    // Only set initial values if controllers are empty to avoid overriding user input
+    if (_firstNameController.text.isEmpty) {
+      _firstNameController.text = user.firstName;
+    }
+    if (_lastNameController.text.isEmpty) {
+      _lastNameController.text = user.lastName;
+    }
+    if (_sponsorController.text.isEmpty) {
+      _sponsorController.text = user.sponsorCode;
+    }
     _genderController.text = user.gender;
     _selectedGender = user.gender;
 
@@ -103,6 +116,19 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     _lastFocusNode.dispose();
     _sponsorFocusNode.dispose();
     super.dispose();
+  }
+
+  // Helper method to capitalize words
+  String _capitalizeWords(String text) {
+    if (text.isEmpty) return text;
+
+    final words = text.split(' ');
+    final capitalizedWords = words.map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1);
+    }).toList();
+
+    return capitalizedWords.join(' ');
   }
 
   // Validation methods that trigger on field exit
@@ -317,11 +343,132 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     }
   }
 
+  // Helper method to handle text changes with cursor preservation
+  void _handleFirstNameChange(String value, {bool fromProvider = false}) {
+    if (fromProvider) {
+      _firstNameController.text = value;
+      return;
+    }
+
+    // Get cursor position before any changes
+    final cursorPosition = _firstNameController.selection.baseOffset;
+
+    // Apply capitalization
+    final capitalizedValue = _capitalizeWords(value);
+
+    // Update the provider
+    context.read<UserProvider>().setFirstName(capitalizedValue);
+
+    // Only update controller if the text actually changed
+    if (_firstNameController.text != capitalizedValue) {
+      _firstNameController.text = capitalizedValue;
+
+      // Calculate new cursor position
+      int newCursorPosition = cursorPosition;
+
+      // If we're at the end, keep cursor at end
+      if (cursorPosition >= value.length) {
+        newCursorPosition = capitalizedValue.length;
+      } else {
+        // Otherwise, try to maintain position
+        // For simple capitalization (no length change), position stays the same
+        newCursorPosition = cursorPosition.clamp(0, capitalizedValue.length);
+      }
+
+      // Set cursor position
+      _firstNameController.selection = TextSelection.collapsed(
+        offset: newCursorPosition,
+      );
+    }
+
+    // Trigger validation
+    _validateFirstName();
+  }
+
+  void _handleLastNameChange(String value, {bool fromProvider = false}) {
+    if (fromProvider) {
+      _lastNameController.text = value;
+      return;
+    }
+
+    // Get cursor position before any changes
+    final cursorPosition = _lastNameController.selection.baseOffset;
+
+    // Apply capitalization
+    final capitalizedValue = _capitalizeWords(value);
+
+    // Update the provider
+    context.read<UserProvider>().setLastName(capitalizedValue);
+
+    // Only update controller if the text actually changed
+    if (_lastNameController.text != capitalizedValue) {
+      _lastNameController.text = capitalizedValue;
+
+      // Calculate new cursor position
+      int newCursorPosition = cursorPosition;
+
+      // If we're at the end, keep cursor at end
+      if (cursorPosition >= value.length) {
+        newCursorPosition = capitalizedValue.length;
+      } else {
+        // Otherwise, try to maintain position
+        newCursorPosition = cursorPosition.clamp(0, capitalizedValue.length);
+      }
+
+      // Set cursor position
+      _lastNameController.selection = TextSelection.collapsed(
+        offset: newCursorPosition,
+      );
+    }
+
+    // Trigger validation
+    _validateLastName();
+  }
+
+  void _handleSponsorChange(String value, {bool fromProvider = false}) {
+    if (fromProvider) {
+      _sponsorController.text = value;
+      return;
+    }
+
+    // Get cursor position before any changes
+    final cursorPosition = _sponsorController.selection.baseOffset;
+
+    // Filter to digits only
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Update the provider
+    context.read<UserProvider>().setSponsorCode(digitsOnly);
+
+    // Only update controller if the text actually changed
+    if (_sponsorController.text != digitsOnly) {
+      _sponsorController.text = digitsOnly;
+
+      // Calculate how many non-digits were removed before cursor
+      int nonDigitsBeforeCursor = 0;
+      for (int i = 0; i < cursorPosition && i < value.length; i++) {
+        if (!RegExp(r'[0-9]').hasMatch(value[i])) {
+          nonDigitsBeforeCursor++;
+        }
+      }
+
+      // Calculate new cursor position
+      int newCursorPosition = cursorPosition - nonDigitsBeforeCursor;
+      newCursorPosition = newCursorPosition.clamp(0, digitsOnly.length);
+
+      // Set cursor position
+      _sponsorController.selection = TextSelection.collapsed(
+        offset: newCursorPosition,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final signUpData = Provider.of<UserProvider>(context);
     final fontProvider = Provider.of<FontSizeProvider>(context);
 
+    // Listen to provider changes but don't rebuild the entire widget
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
@@ -450,197 +597,170 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            // First Name field with ValueListenableBuilder
                             Expanded(
-                              child: TextField(
-                                controller: _firstNameController,
-                                focusNode: _firstFocusNode,
-                                inputFormatters: [
-                                  // Capitalize first letter of every word
-                                  TextInputFormatter.withFunction((
-                                    oldValue,
-                                    newValue,
+                              child: Selector<UserProvider, String>(
+                                selector: (_, provider) => provider.firstName,
+                                builder: (context, firstName, child) {
+                                  // Sync controller with provider without causing rebuild
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
                                   ) {
-                                    if (newValue.text.isEmpty) {
-                                      return newValue;
+                                    if (_firstNameController.text !=
+                                            firstName &&
+                                        !_firstFocusNode.hasFocus) {
+                                      _firstNameController.text = firstName;
                                     }
+                                  });
 
-                                    // Capitalize first letter of each word
-                                    final text = newValue.text;
-                                    final words = text.split(' ');
-                                    final capitalizedWords = words.map((word) {
-                                      if (word.isEmpty) return '';
-                                      return word[0].toUpperCase() +
-                                          word.substring(1);
-                                    }).toList();
-
-                                    final capitalizedText = capitalizedWords
-                                        .join(' ');
-
-                                    // Return new text with proper cursor position
-                                    return TextEditingValue(
-                                      text: capitalizedText,
-                                      selection: newValue.selection.copyWith(
-                                        baseOffset:
-                                            newValue.selection.baseOffset +
-                                            (capitalizedText.length -
-                                                text.length),
-                                        extentOffset:
-                                            newValue.selection.extentOffset +
-                                            (capitalizedText.length -
-                                                text.length),
+                                  return TextField(
+                                    controller: _firstNameController,
+                                    focusNode: _firstFocusNode,
+                                    textAlign: TextAlign.start,
+                                    onChanged: (value) {
+                                      _handleFirstNameChange(value);
+                                    },
+                                    onEditingComplete: () {
+                                      // Validate when user presses done/next
+                                      _validateFirstNameAndShowError();
+                                      // Move focus to next field
+                                      FocusScope.of(
+                                        context,
+                                      ).requestFocus(_lastFocusNode);
+                                    },
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: fontProvider.getScaledSize(15),
+                                      color: const Color(0xFF00F0FF),
+                                    ),
+                                    decoration: InputDecoration(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 40,
+                                            vertical: 10,
+                                          ),
+                                      labelText: "First Name",
+                                      alignLabelWithHint: true,
+                                      labelStyle: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: fontProvider.getScaledSize(
+                                          15,
+                                        ),
+                                        color: Colors.white54,
+                                        height: 1.0,
                                       ),
-                                    );
-                                  }),
-                                ],
-                                onChanged: (value) {
-                                  context.read<UserProvider>().setFirstName(
-                                    value,
+                                      floatingLabelStyle: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                      ),
+                                      floatingLabelAlignment:
+                                          FloatingLabelAlignment.start,
+                                      floatingLabelBehavior:
+                                          FloatingLabelBehavior.auto,
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF00F0FF),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF00F0FF),
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
                                   );
                                 },
-                                onEditingComplete: () {
-                                  // Validate when user presses done/next
-                                  _validateFirstNameAndShowError();
-                                  // Move focus to next field
-                                  FocusScope.of(
-                                    context,
-                                  ).requestFocus(_lastFocusNode);
-                                },
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: fontProvider.getScaledSize(15),
-                                  color: Color(0xFF00F0FF),
-                                ),
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 15,
-                                    vertical: 10,
-                                  ),
-                                  labelText: "First Name",
-                                  labelStyle: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: fontProvider.getScaledSize(15),
-                                    color: Colors.white54,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF00F0FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF00F0FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
                               ),
                             ),
 
                             const SizedBox(width: 14),
 
+                            // Last Name field with ValueListenableBuilder
                             Expanded(
-                              child: TextField(
-                                controller: _lastNameController,
-                                focusNode: _lastFocusNode,
-                                inputFormatters: [
-                                  // Capitalize first letter of every word
-                                  TextInputFormatter.withFunction((
-                                    oldValue,
-                                    newValue,
+                              child: Selector<UserProvider, String>(
+                                selector: (_, provider) => provider.lastName,
+                                builder: (context, lastName, child) {
+                                  // Sync controller with provider without causing rebuild
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
                                   ) {
-                                    if (newValue.text.isEmpty) {
-                                      return newValue;
+                                    if (_lastNameController.text != lastName &&
+                                        !_lastFocusNode.hasFocus) {
+                                      _lastNameController.text = lastName;
                                     }
+                                  });
 
-                                    // Capitalize first letter of each word
-                                    final text = newValue.text;
-                                    final words = text.split(' ');
-                                    final capitalizedWords = words.map((word) {
-                                      if (word.isEmpty) return '';
-                                      return word[0].toUpperCase() +
-                                          word.substring(1);
-                                    }).toList();
-
-                                    final capitalizedText = capitalizedWords
-                                        .join(' ');
-
-                                    // Return new text with proper cursor position
-                                    return TextEditingValue(
-                                      text: capitalizedText,
-                                      selection: newValue.selection.copyWith(
-                                        baseOffset:
-                                            newValue.selection.baseOffset +
-                                            (capitalizedText.length -
-                                                text.length),
-                                        extentOffset:
-                                            newValue.selection.extentOffset +
-                                            (capitalizedText.length -
-                                                text.length),
+                                  return TextField(
+                                    controller: _lastNameController,
+                                    focusNode: _lastFocusNode,
+                                    textAlign: TextAlign.start,
+                                    onChanged: (value) {
+                                      _handleLastNameChange(value);
+                                    },
+                                    onEditingComplete: () {
+                                      // Validate when user presses done/next
+                                      _validateLastNameAndShowError();
+                                      // Remove focus
+                                      FocusScope.of(context).unfocus();
+                                    },
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: fontProvider.getScaledSize(15),
+                                      color: const Color(0xFF00F0FF),
+                                    ),
+                                    decoration: InputDecoration(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 45,
+                                            vertical: 10,
+                                          ),
+                                      labelText: "Last Name",
+                                      alignLabelWithHint: true,
+                                      labelStyle: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: fontProvider.getScaledSize(
+                                          15,
+                                        ),
+                                        color: Colors.white54,
+                                        height: 1.0,
                                       ),
-                                    );
-                                  }),
-                                ],
-                                onChanged: (value) {
-                                  context.read<UserProvider>().setLastName(
-                                    value,
+                                      floatingLabelStyle: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                      ),
+                                      floatingLabelAlignment:
+                                          FloatingLabelAlignment.start,
+                                      floatingLabelBehavior:
+                                          FloatingLabelBehavior.auto,
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF00F0FF),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF00F0FF),
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
                                   );
                                 },
-                                onEditingComplete: () {
-                                  // Validate when user presses done/next
-                                  _validateLastNameAndShowError();
-                                  // Remove focus
-                                  FocusScope.of(context).unfocus();
-                                },
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: fontProvider.getScaledSize(15),
-                                  color: Color(0xFF00F0FF),
-                                ),
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 15,
-                                    vertical: 10,
-                                  ),
-                                  labelText: "Last Name",
-                                  labelStyle: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: fontProvider.getScaledSize(15),
-                                    color: Colors.white54,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF00F0FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF00F0FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
                               ),
                             ),
                           ],
@@ -670,67 +790,78 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                         const SizedBox(height: 16),
                         Stack(
                           children: [
-                            TextField(
-                              controller: _sponsorController,
-                              focusNode: _sponsorFocusNode,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              onChanged: (value) {
-                                context.read<UserProvider>().setSponsorCode(
-                                  value,
+                            // Sponsor field with ValueListenableBuilder
+                            Selector<UserProvider, String>(
+                              selector: (_, provider) => provider.sponsorCode,
+                              builder: (context, sponsorCode, child) {
+                                // Sync controller with provider without causing rebuild
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (_sponsorController.text != sponsorCode &&
+                                      !_sponsorFocusNode.hasFocus) {
+                                    _sponsorController.text = sponsorCode;
+                                  }
+                                });
+
+                                return TextField(
+                                  controller: _sponsorController,
+                                  focusNode: _sponsorFocusNode,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (value) {
+                                    _handleSponsorChange(value);
+                                  },
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: fontProvider.getScaledSize(15),
+                                    color: const Color(0xFF00F0FF),
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 30,
+                                      vertical: 12,
+                                    ),
+                                    hintText: "Sponsor Code or link (Optional)",
+                                    hintStyle: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: fontProvider.getScaledSize(15),
+                                      color: Colors.white54,
+                                    ),
+                                    labelText: "Sponsor",
+                                    labelStyle: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: fontProvider.getScaledSize(15),
+                                      color: Colors.white54,
+                                    ),
+                                    floatingLabelStyle: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
+                                    floatingLabelBehavior:
+                                        FloatingLabelBehavior.auto,
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF00F0FF),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF00F0FF),
+                                        width: 1,
+                                      ),
+                                    ),
+                                  ),
                                 );
                               },
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: fontProvider.getScaledSize(15),
-                                color: Color(0xFF00F0FF),
-                              ),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 15,
-                                  vertical: 12,
-                                ),
-                                hintText: "Sponsor Code (Optional)",
-                                hintStyle: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: fontProvider.getScaledSize(15),
-                                  color: Colors.white54,
-                                ),
-                                labelText: "Sponsor",
-                                labelStyle: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: fontProvider.getScaledSize(15),
-                                  color: Colors.white54,
-                                ),
-                                floatingLabelStyle: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
-                                floatingLabelBehavior:
-                                    FloatingLabelBehavior.auto,
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF00F0FF),
-                                    width: 1,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF00F0FF),
-                                    width: 1,
-                                  ),
-                                ),
-                              ),
                             ),
                             Positioned(
                               top: 8,
@@ -902,19 +1033,16 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                         Expanded(
                           child: Container(
                             height: 4,
-                            margin: EdgeInsets.only(
+                            margin: const EdgeInsets.only(
                               top: 0,
                               right: 8,
                             ), // 8px space from button
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
-                              gradient: LinearGradient(
+                              gradient: const LinearGradient(
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
-                                colors: const [
-                                  Color(0xFF0B1320),
-                                  Color(0xFF00F0FF),
-                                ],
+                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
                               ),
                             ),
                           ),
@@ -929,33 +1057,59 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                           cursor: _allFieldsValid
                               ? SystemMouseCursors.click
                               : SystemMouseCursors.forbidden,
-                          child: CustomButton(
-                            text: "Next",
-                            width: 106,
-                            height: 40,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            borderRadius: 10,
-                            borderColor: _allFieldsValid
-                                ? const Color(0xFF00F0FF)
-                                : const Color(0xFF4A5568),
-                            textColor: _allFieldsValid
-                                ? Colors.white
-                                : const Color(0xFF718096),
-                            backgroundColor: _allFieldsValid
-                                ? (_isNextHovered
-                                      ? const Color(
-                                          0xFF00F0FF,
-                                        ).withOpacity(0.15)
-                                      : const Color(0xFF0B1320))
-                                : const Color(0xFF0B1320),
-                            onTap: () {
-                              if (_allFieldsValid) {
-                                _handleNextTap();
-                              } else {
-                                _validateAllFieldsAndShowErrors();
-                              }
-                            },
+                          child: GestureDetector(
+                            onTapDown: _allFieldsValid
+                                ? (_) {
+                                    setState(() => _isNextPressed = true);
+                                  }
+                                : null,
+                            onTapUp: _allFieldsValid
+                                ? (_) {
+                                    setState(() => _isNextPressed = false);
+                                  }
+                                : null,
+                            onTapCancel: _allFieldsValid
+                                ? () {
+                                    setState(() => _isNextPressed = false);
+                                  }
+                                : null,
+                            child: Transform.scale(
+                              scale: _allFieldsValid && _isNextPressed
+                                  ? 0.95
+                                  : 1.0,
+                              child: CustomButton(
+                                text: "Next",
+                                width: 106,
+                                height: 40,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                borderRadius: 10,
+                                borderColor: _allFieldsValid
+                                    ? const Color(0xFF00F0FF)
+                                    : const Color(0xFF4A5568),
+                                textColor: _allFieldsValid
+                                    ? Colors.white
+                                    : const Color(0xFF718096),
+                                backgroundColor: _allFieldsValid
+                                    ? (_isNextHovered
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.15)
+                                          : _isNextPressed
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.25)
+                                          : const Color(0xFF0B1320))
+                                    : const Color(0xFF0B1320),
+                                onTap: () {
+                                  if (_allFieldsValid) {
+                                    _handleNextTap();
+                                  } else {
+                                    _validateAllFieldsAndShowErrors();
+                                  }
+                                },
+                              ),
+                            ),
                           ),
                         ),
 
@@ -963,19 +1117,16 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                         Expanded(
                           child: Container(
                             height: 4,
-                            margin: EdgeInsets.only(
+                            margin: const EdgeInsets.only(
                               top: 0,
                               left: 8,
                             ), // 8px space from button
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(11),
-                              gradient: LinearGradient(
+                              gradient: const LinearGradient(
                                 begin: Alignment.centerRight,
                                 end: Alignment.centerLeft,
-                                colors: const [
-                                  Color(0xFF0B1320),
-                                  Color(0xFF00F0FF),
-                                ],
+                                colors: [Color(0xFF0B1320), Color(0xFF00F0FF)],
                               ),
                             ),
                           ),
