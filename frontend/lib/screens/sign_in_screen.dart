@@ -26,7 +26,6 @@ class _SignInPageState extends State<SignInPage> {
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
-
   bool _showPassword = false;
   bool _rememberMe = false;
   bool _isClicked = false; // Added for button animation
@@ -42,6 +41,9 @@ class _SignInPageState extends State<SignInPage> {
   bool _codeDisabled = false;
   bool _showCodeSent = false;
   bool _hasCodeBeenSentBefore = false;
+
+  bool _isSignInHovered = false;
+  bool _isSignInPressed = false;
 
   @override
   void initState() {
@@ -257,7 +259,6 @@ class _SignInPageState extends State<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: LayoutBuilder(
@@ -356,6 +357,12 @@ class _SignInPageState extends State<SignInPage> {
                   }
                 });
               },
+              isSignInHovered: _isSignInHovered,
+              isSignInPressed: _isSignInPressed,
+              onSignInHoveredChanged: (value) =>
+                  setState(() => _isSignInHovered = value),
+              onSignInPressedChanged: (value) =>
+                  setState(() => _isSignInPressed = value),
             );
           }
         },
@@ -404,6 +411,10 @@ class MobileSignInPage extends StatelessWidget {
   final bool isClicked;
   final bool hasCodeBeenSentBefore;
   final VoidCallback onButtonClick;
+  final bool isSignInHovered;
+  final bool isSignInPressed;
+  final Function(bool) onSignInHoveredChanged;
+  final Function(bool) onSignInPressedChanged;
 
   const MobileSignInPage({
     super.key,
@@ -434,11 +445,15 @@ class MobileSignInPage extends StatelessWidget {
     required this.isClicked,
     required this.hasCodeBeenSentBefore,
     required this.onButtonClick,
+    required this.isSignInHovered,
+    required this.isSignInPressed,
+    required this.onSignInHoveredChanged,
+    required this.onSignInPressedChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-  final fontProvider = Provider.of<FontSizeProvider>(context, listen: false);
+    final fontProvider = Provider.of<FontSizeProvider>(context, listen: false);
 
     return Stack(
       children: [
@@ -505,7 +520,7 @@ class MobileSignInPage extends StatelessWidget {
                   children: [
                     _buildSignInButton(context),
                     const SizedBox(height: 20),
-                     Text(
+                    Text(
                       'You built your vault \nNow unlock it',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -529,7 +544,6 @@ class MobileSignInPage extends StatelessWidget {
   }
 
   Widget _buildEmailInput(BuildContext context) {
-    
     final fontProvider = Provider.of<FontSizeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 17),
@@ -788,7 +802,7 @@ class MobileSignInPage extends StatelessWidget {
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-           Expanded(
+          Expanded(
             child: Text(
               'Remember Me On This Device',
               style: TextStyle(
@@ -813,7 +827,7 @@ class MobileSignInPage extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-             Positioned(
+            Positioned(
               top: -4,
               left: -1,
               child: Text(
@@ -1022,7 +1036,14 @@ class MobileSignInPage extends StatelessWidget {
 
   Widget _buildSignInButton(BuildContext context) {
     final fontProvider = Provider.of<FontSizeProvider>(context);
-    
+
+    // Determine if sign in is enabled based on all conditions
+    final bool isSignInEnabled =
+        controller.text.trim().isNotEmpty &&
+        passwordController.text.trim().isNotEmpty &&
+        codecontrollers.map((c) => c.text.trim()).join().length == 6 &&
+        isCodeCorrect;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -1042,117 +1063,179 @@ class MobileSignInPage extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 20),
-        CustomButton(
-          text: 'Sign In',
-          width: 120,
-          height: 45,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          textColor: Colors.white,
-          borderColor: const Color(0xFF00F0FF),
-          backgroundColor: const Color(0xFF0B1320),
-          onTap: () async {
-            final identifier = controller.text.trim();
-            final password = passwordController.text.trim();
-            final enteredCode = codecontrollers
-                .map((c) => c.text.trim())
-                .join();
+        MouseRegion(
+          onEnter: (_) => isSignInEnabled ? onSignInHoveredChanged(true) : null,
+          onExit: (_) => onSignInHoveredChanged(false),
+          cursor: isSignInEnabled
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.forbidden,
+          child: GestureDetector(
+            onTapDown: isSignInEnabled
+                ? (_) {
+                    onSignInPressedChanged(true);
+                  }
+                : null,
+            onTapUp: isSignInEnabled
+                ? (_) {
+                    onSignInPressedChanged(false);
+                  }
+                : null,
+            onTapCancel: isSignInEnabled
+                ? () {
+                    onSignInPressedChanged(false);
+                  }
+                : null,
+            child: Transform.scale(
+              scale: isSignInEnabled && isSignInPressed ? 0.95 : 1.0,
+              child: CustomButton(
+                text: 'Sign In',
+                width: 120,
+                height: 45,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                borderRadius: 10,
+                borderColor: isSignInEnabled
+                    ? const Color(0xFF00F0FF)
+                    : const Color(0xFF4A5568),
+                textColor: isSignInEnabled
+                    ? Colors.white
+                    : const Color(0xFF718096),
+                backgroundColor: isSignInEnabled
+                    ? (isSignInHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : isSignInPressed
+                          ? const Color(0xFF00F0FF).withOpacity(0.25)
+                          : const Color(0xFF0B1320))
+                    : const Color(0xFF0B1320),
+                onTap: () async {
+                  if (isSignInEnabled) {
+                    final identifier = controller.text.trim();
+                    final password = passwordController.text.trim();
+                    final enteredCode = codecontrollers
+                        .map((c) => c.text.trim())
+                        .join();
 
-            if (identifier.isEmpty) {
-              errorStackKey.currentState?.showError(
-                'Please enter your eid/email',
-                duration: const Duration(seconds: 5),
-              );
-              return;
-            }
-            if (password.isEmpty) {
-              errorStackKey.currentState?.showError(
-                'Please enter your password',
-                duration: const Duration(seconds: 5),
-              );
-              return;
-            }
-            if (enteredCode.length != 6) {
-              errorStackKey.currentState?.showError(
-                'Enter the 6-digit code sent to your email address',
-                duration: const Duration(seconds: 5),
-              );
-              return;
-            }
-            if (!isCodeCorrect) {
-              errorStackKey.currentState?.showError(
-                'Please wait for code verification',
-                duration: const Duration(seconds: 5),
-              );
-              return;
-            }
+                    try {
+                      final success = await AuthService.signIn(
+                        identifier: identifier,
+                        password: password,
+                        code: enteredCode,
+                        rememberMe: rememberMe,
+                      );
 
-            try {
-              final success = await AuthService.signIn(
-                identifier: identifier,
-                password: password,
-                code: enteredCode,
-                rememberMe: rememberMe,
-              );
+                      if (success) {
+                        // 🟢 Give storage time to write values
+                        await Future.delayed(const Duration(milliseconds: 100));
 
-              if (success) {
-                // 🟢 Give storage time to write values
-                await Future.delayed(const Duration(milliseconds: 100));
+                        final pinRegistered =
+                            (await AuthService.storage.read(
+                              key: 'pinRegistered',
+                            )) ==
+                            'true';
 
-                final pinRegistered =
-                    (await AuthService.storage.read(key: 'pinRegistered')) ==
-                    'true';
+                        final patternRegistered =
+                            (await AuthService.storage.read(
+                              key: 'patternRegistered',
+                            )) ==
+                            'true';
 
-                final patternRegistered =
-                    (await AuthService.storage.read(
-                      key: 'patternRegistered',
-                    )) ==
-                    'true';
+                        print(
+                          "PIN: $pinRegistered, PATTERN: $patternRegistered",
+                        );
 
-                print("PIN: $pinRegistered, PATTERN: $patternRegistered");
+                        if (!pinRegistered && !patternRegistered) {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/register-pin',
+                          );
+                        } else if (pinRegistered && !patternRegistered) {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/register-pattern',
+                          );
+                        } else {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/sign-in-pin',
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      print('Sign in error: $e');
+                      String message = 'Invalid login credentials';
+                      final s = e.toString();
 
-                if (!pinRegistered && !patternRegistered) {
-                  Navigator.pushReplacementNamed(context, '/register-pin');
-                } else if (pinRegistered && !patternRegistered) {
-                  Navigator.pushReplacementNamed(context, '/register-pattern');
-                } else {
-                  Navigator.pushReplacementNamed(context, '/sign-in-pin');
-                }
-              }
-            } catch (e) {
-              print('Sign in error: $e');
-              String message = 'Invalid login credentials';
-              final s = e.toString();
+                      try {
+                        final jsonStr = s.startsWith('Exception: ')
+                            ? s.substring(11)
+                            : s;
+                        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
 
-              try {
-                final jsonStr = s.startsWith('Exception: ')
-                    ? s.substring(11)
-                    : s;
-                final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+                        if (map.containsKey('remainingSeconds')) {
+                          final secs = (map['remainingSeconds'] as num).toInt();
+                          final h = secs ~/ 3600;
+                          final m = (secs % 3600) ~/ 60;
+                          final sec = secs % 60;
+                          message =
+                              'Your account is locked. It will be unlocked in\n${h}h ${m}m ${sec}s';
+                        } else if (map.containsKey('error') &&
+                            map['error'].toString().toLowerCase().contains(
+                              'expired',
+                            )) {
+                          message = 'Code expired. Please request a new one';
+                        } else if (map.containsKey('error')) {
+                          message = map['error'];
+                        }
+                      } catch (_) {
+                        // Fallback: keep generic message
+                      }
 
-                if (map.containsKey('remainingSeconds')) {
-                  final secs = (map['remainingSeconds'] as num).toInt();
-                  final h = secs ~/ 3600;
-                  final m = (secs % 3600) ~/ 60;
-                  final sec = secs % 60;
-                  message =
-                      'Your account is locked. It will be unlocked in\n${h}h ${m}m ${sec}s';
-                } else if (map.containsKey('error') &&
-                    map['error'].toString().toLowerCase().contains('expired')) {
-                  message = 'Code expired. Please request a new one';
-                } else if (map.containsKey('error')) {
-                  message = map['error'];
-                }
-              } catch (_) {
-                // Fallback: keep generic message
-              }
+                      errorStackKey.currentState?.showError(
+                        message,
+                        duration: const Duration(seconds: 5),
+                      );
+                    }
+                  } else {
+                    // Show error messages when button is disabled but clicked
+                    final identifier = controller.text.trim();
+                    final password = passwordController.text.trim();
+                    final enteredCode = codecontrollers
+                        .map((c) => c.text.trim())
+                        .join();
 
-              errorStackKey.currentState?.showError(
-                message,
-                duration: const Duration(seconds: 5),
-              );
-            }
-          },
+                    if (identifier.isEmpty) {
+                      errorStackKey.currentState?.showError(
+                        'Please enter your eid/email',
+                        duration: const Duration(seconds: 5),
+                      );
+                      return;
+                    }
+                    if (password.isEmpty) {
+                      errorStackKey.currentState?.showError(
+                        'Please enter your password',
+                        duration: const Duration(seconds: 5),
+                      );
+                      return;
+                    }
+                    if (enteredCode.length != 6) {
+                      errorStackKey.currentState?.showError(
+                        'Enter the 6-digit code sent to your email address',
+                        duration: const Duration(seconds: 5),
+                      );
+                      return;
+                    }
+                    if (!isCodeCorrect) {
+                      errorStackKey.currentState?.showError(
+                        'Please wait for code verification',
+                        duration: const Duration(seconds: 5),
+                      );
+                      return;
+                    }
+                  }
+                },
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 20),
         Expanded(

@@ -815,39 +815,38 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   final CurrencyService _currencyService = CurrencyService();
-double? _selectedPrice;
+  double? _selectedPrice;
 
-void _selectCurrency(String currencyCode, String currencySymbol) async {
-  setState(() {
-    _selectedCurrency = '$currencyCode($currencySymbol)';
-  });
+  void _selectCurrency(String currencyCode, String currencySymbol) async {
+    setState(() {
+      _selectedCurrency = '$currencyCode($currencySymbol)';
+    });
 
-  try {
-    // 🔐 JWT already identifies the user
-    await _currencyService.updateUserCurrency(currencyCode);
-    print("Currency updated on backend");
-  } catch (e) {
-    print("Failed to update currency: $e");
+    try {
+      // 🔐 JWT already identifies the user
+      await _currencyService.updateUserCurrency(currencyCode);
+      print("Currency updated on backend");
+    } catch (e) {
+      print("Failed to update currency: $e");
+    }
+
+    // Fetch prices
+    final currencies = await _currencyService.getCurrencies();
+
+    final selected = currencies.firstWhere(
+      (c) => c.symbol == currencyCode,
+      orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0),
+    );
+
+    setState(() {
+      _selectedPrice = selected.price;
+    });
+
+    print('Selected currency: $currencyCode');
+    print('Price: $_selectedPrice');
+
+    _closeAllMenus();
   }
-
-  // Fetch prices
-  final currencies = await _currencyService.getCurrencies();
-
-  final selected = currencies.firstWhere(
-    (c) => c.symbol == currencyCode,
-    orElse: () => CurrencyPrice(code: '', symbol: '', name: '', price: 0),
-  );
-
-  setState(() {
-    _selectedPrice = selected.price;
-  });
-
-  print('Selected currency: $currencyCode');
-  print('Price: $_selectedPrice');
-
-  _closeAllMenus();
-}
-
 
   // void _selectCurrency(String currencyCode, String currencySymbol) {
   //   setState(() {
@@ -908,11 +907,11 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final notificationsMenuHeight = screenHeight * 0.6;
+    final notificationsMenuHeight = screenHeight * 0.9;
     final profileMenuHeight = screenHeight * 0.8;
     final fontSizeMenuHeight = screenHeight * 0.35;
-    final languageMenuHeight = screenHeight * 0.7;
-    final currencyMenuHeight = screenHeight * 0.5;
+    final languageMenuHeight = screenHeight * 0.9;
+    final currencyMenuHeight = screenHeight * 0.9;
     final freezeAccountMenuHeight = screenHeight * 0.9;
     final patternMenuHeight = screenHeight * 0.62;
     final verificationMenuHeight = screenHeight * 0.7;
@@ -1260,15 +1259,17 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showNotificationsMenu,
             onToggle: _toggleNotificationsMenu,
             onClose: _closeAllMenus,
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
               height: 9,
               fit: BoxFit.contain,
             ),
-            child: Container(
-              constraints: BoxConstraints(maxHeight: notificationsMenuHeight),
+            child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Header - Fixed height
                   Container(
@@ -1312,14 +1313,21 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
 
                   const SizedBox(height: 1.7),
 
-                  // ListView - Takes remaining space
-                  Expanded(
+                  // Notifications List with height constraint
+                  Container(
+                    constraints: BoxConstraints(
+                      maxHeight:
+                          notificationsMenuHeight -
+                          100, // Reserve space for header
+                    ),
                     child: ListView.builder(
                       padding: const EdgeInsets.only(
                         top: 25, // Add top padding for gap
-                        bottom: 10,
+                        bottom: 20,
                       ),
                       itemCount: 20,
+                      shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
                       itemBuilder: (context, index) {
                         return _buildNotificationItem(
                           index % 2 == 0 ? "11:52 AM" : "Yesterday",
@@ -1339,6 +1347,8 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showProfileMenu,
             onToggle: _toggleProfileMenu,
             onClose: _closeAllMenus,
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1444,6 +1454,8 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showFontSizeMenu,
             onClose: _closeAllMenus, // This is already there
             onToggle: _toggleFontSizeMenu, // ADD THIS LINE
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1477,21 +1489,22 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
           ),
 
           // Language Menu
-          // Language Menu - UPDATED with same structure as main.dart but keeping vLine.svg
           SlideUpMenu(
             menuHeight: languageMenuHeight,
             isVisible: _showLanguageMenu,
             onToggle: _toggleLanguageMenu,
             onClose: _closeAllMenus,
+            maxHeight: languageMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
               height: 9,
               fit: BoxFit.contain,
             ),
-            child: Container(
-              constraints: BoxConstraints(maxHeight: languageMenuHeight),
+            child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // SEARCH FIELD
                   Container(
@@ -1558,75 +1571,102 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
                     ),
                   ),
 
-                  const SizedBox(height: 0),
+                  const SizedBox(height: 10),
 
-                  // LANGUAGE LIST - Takes remaining space
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 50,
-                        vertical: 8,
-                      ),
-                      itemCount: _filteredLanguages.length,
-                      physics: const ClampingScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        final language = _filteredLanguages[index];
-                        return GestureDetector(
-                          onTap: () {
-                            _selectLanguage(language['name']!);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 30,
-                                  child: SvgPicture.asset(
-                                    language['flag']!,
-                                    width: 30,
-                                    height: 20,
-                                    fit: BoxFit.contain,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              width: 30,
-                                              height: 20,
-                                              color: Colors.grey,
-                                              child: const Icon(
-                                                Icons.flag,
-                                                size: 16,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                  ),
-                                ),
-                                const SizedBox(width: 15),
-                                Expanded(
-                                  child: Text(
-                                    language['name']!,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight:
-                                          _selectedLanguage == language['name']!
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                                if (_selectedLanguage == language['name']!)
-                                  const Icon(
-                                    Icons.check,
-                                    color: Color(0xFF00F0FF),
-                                    size: 20,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                  // LANGUAGE LIST with height constraint
+                  Container(
+                    constraints: BoxConstraints(
+                      maxHeight:
+                          languageMenuHeight - 100, // Reserve space for header
                     ),
+                    child: _filteredLanguages.isEmpty
+                        ? Container(
+                            height: 100,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'No languages found',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 16,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(
+                              left: 50,
+                              right: 50,
+                              bottom: 20,
+                            ),
+                            itemCount: _filteredLanguages.length,
+                            physics: const ClampingScrollPhysics(),
+                            shrinkWrap: true,
+                            itemBuilder: (context, index) {
+                              final language = _filteredLanguages[index];
+                              final isSelected =
+                                  _selectedLanguage == language['name']!;
+
+                              return GestureDetector(
+                                onTap: () {
+                                  _selectLanguage(language['name']!);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12.0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 30,
+                                        child: SvgPicture.asset(
+                                          language['flag']!,
+                                          width: 30,
+                                          height: 20,
+                                          fit: BoxFit.contain,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  Container(
+                                                    width: 30,
+                                                    height: 20,
+                                                    color: Colors.grey,
+                                                    child: const Icon(
+                                                      Icons.flag,
+                                                      size: 16,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 15),
+                                      Expanded(
+                                        child: Text(
+                                          language['name']!,
+                                          style: TextStyle(
+                                            // Highlight selected language text with cyan color
+                                            color: isSelected
+                                                ? const Color(
+                                                    0xFF00F0FF,
+                                                  ) // #00F0FF
+                                                : Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons.check,
+                                          color: Color(0xFF00F0FF), // #00F0FF
+                                          size: 20,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -1639,6 +1679,8 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showCurrencyMenu,
             onToggle: _toggleCurrencyMenu,
             onClose: _closeAllMenus,
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -1648,7 +1690,7 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             child: SingleChildScrollView(
               // Wrap with SingleChildScrollView
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(2.5),
                 child: Column(
                   mainAxisSize: MainAxisSize.min, // Use min to fit content
                   children: [
@@ -1656,7 +1698,7 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 8,
+                        vertical: 0,
                       ),
                       child: Stack(
                         children: [
@@ -1684,7 +1726,7 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
 
                           // Search content
                           Container(
-                            padding: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.only(bottom: 0),
                             child: Row(
                               children: [
                                 // Search icon - using Icon widget as fallback
@@ -1833,6 +1875,8 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showFreezeAccountMenu,
             onToggle: _toggleFreezeAccountMenu,
             onClose: _closeAllMenus,
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -2106,6 +2150,8 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showPatternMenu,
             onToggle: _togglePatternMenu,
             onClose: _closeAllMenus,
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,
@@ -2309,6 +2355,8 @@ void _selectCurrency(String currencyCode, String currencySymbol) async {
             isVisible: _showVerificationMenu,
             onToggle: _toggleVerificationMenu,
             onClose: _closeAllMenus,
+            maxHeight: notificationsMenuHeight,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,

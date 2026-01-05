@@ -15,6 +15,8 @@ class SelectAccountSlideUpMenu extends StatefulWidget {
   final Widget? child;
   final double minHeight;
   final double maxHeight;
+  final double closeThreshold;
+  final double openThreshold;
 
   const SelectAccountSlideUpMenu({
     Key? key,
@@ -32,6 +34,8 @@ class SelectAccountSlideUpMenu extends StatefulWidget {
     this.initiallyVisible = false,
     this.isVisible,
     this.child,
+    this.closeThreshold = 0.15,
+    this.openThreshold = 0.85,
   }) : super(key: key);
 
   @override
@@ -44,12 +48,10 @@ class _SelectAccountSlideUpMenuState extends State<SelectAccountSlideUpMenu>
   late AnimationController _animationController;
   late Animation<double> _animation;
   double _currentHeight = 0;
-  double _dragStartY = 0;
-  double _dragStartHeight = 0;
+  double _startDragY = 0;
+  double _startDragHeight = 0;
   bool _isDragging = false;
-
-  // Close threshold - if dragged below this height, close the menu
-  static const double _closeThresholdRatio = 0.5; // 50% of menu height
+  bool _closingNormally = false;
 
   @override
   void initState() {
@@ -78,34 +80,52 @@ class _SelectAccountSlideUpMenuState extends State<SelectAccountSlideUpMenu>
     if (widget.isVisible != oldWidget.isVisible) {
       if (widget.isVisible == true) {
         _currentHeight = widget.menuHeight;
-        _isDragging = false;
+        _closingNormally = false;
         _animationController.forward();
-      } else if (widget.isVisible == false) {
+      } else if (widget.isVisible == false && !_closingNormally) {
         _animationController.reverse();
       }
     }
   }
 
+  void _toggleMenu() {
+    if (widget.isVisible == null) {
+      if (_animationController.status == AnimationStatus.completed) {
+        _animationController.reverse();
+      } else {
+        _currentHeight = widget.menuHeight;
+        _animationController.forward();
+      }
+    } else {
+      widget.onToggle?.call();
+    }
+  }
+
+  void _closeFromDrag() {
+    _closingNormally = false;
+    _animationController.value = 0;
+    widget.onClose?.call();
+    _currentHeight = widget.menuHeight;
+  }
+
+  void _closeNormally() {
+    _closingNormally = true;
+    _animationController.reverse();
+  }
+
   void _handleDragStart(DragStartDetails details) {
     setState(() {
       _isDragging = true;
-      _dragStartY = details.globalPosition.dy;
-      _dragStartHeight = _currentHeight;
+      _startDragY = details.globalPosition.dy;
+      _startDragHeight = _currentHeight;
     });
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
     if (!_isDragging) return;
 
-    // Calculate how much we've dragged (positive = down, negative = up)
-    final double dragDelta = details.globalPosition.dy - _dragStartY;
-
-    // New height = start height - drag distance
-    // Positive dragDelta (drag down) = height decreases
-    // Negative dragDelta (drag up) = height increases
-    double newHeight = _dragStartHeight - dragDelta;
-
-    // Constrain height
+    final double deltaY = _startDragY - details.globalPosition.dy;
+    double newHeight = _startDragHeight + deltaY;
     newHeight = newHeight.clamp(widget.minHeight, widget.maxHeight);
 
     setState(() {
@@ -116,23 +136,28 @@ class _SelectAccountSlideUpMenuState extends State<SelectAccountSlideUpMenu>
   void _handleDragEnd(DragEndDetails details) {
     if (!_isDragging) return;
 
-    // Check if dragged below threshold to close
-    final closeThresholdHeight = widget.menuHeight * _closeThresholdRatio;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final currentHeightPercentage = _currentHeight / screenHeight;
 
-    if (_currentHeight <= closeThresholdHeight) {
-      // Close the menu
-      setState(() {
-        _isDragging = false;
-      });
-      _animationController.value = 0;
-      _currentHeight = widget.menuHeight; // Reset for next opening
-      widget.onClose?.call();
-    } else {
-      // Keep the menu at the dragged height
-      setState(() {
-        _isDragging = false;
-      });
+    if (currentHeightPercentage < widget.closeThreshold) {
+      _closeFromDrag();
+    } else if (currentHeightPercentage > widget.openThreshold) {
+      _closeMenuByOpeningFully();
     }
+
+    setState(() {
+      _isDragging = false;
+    });
+  }
+
+  void _closeMenuByOpeningFully() {
+    setState(() {
+      _currentHeight = widget.maxHeight;
+    });
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _closeFromDrag();
+    });
   }
 
   @override
@@ -147,20 +172,17 @@ class _SelectAccountSlideUpMenuState extends State<SelectAccountSlideUpMenu>
       animation: _animation,
       builder: (context, child) {
         // Don't render if animation is at 0 and not visible
-        if (_animation.value == 0 && widget.isVisible == false) {
+        if (!_closingNormally && _animationController.value == 0) {
           return const SizedBox.shrink();
         }
 
         double displayHeight;
 
         if (_isDragging) {
-          // When actively dragging, use current dragged height
           displayHeight = _currentHeight;
         } else if (_animationController.value < 1.0) {
-          // When animating open/close
           displayHeight = widget.menuHeight * _animation.value;
         } else {
-          // When fully open and not dragging, use current height
           displayHeight = _currentHeight;
         }
 
@@ -171,69 +193,70 @@ class _SelectAccountSlideUpMenuState extends State<SelectAccountSlideUpMenu>
             -(widget.menuHeight) + (_animation.value * widget.menuHeight);
 
         // Calculate content height (ensure it's not negative)
-        final double contentHeight = displayHeight - 50;
+        final double dragHandleHeight = 50;
+        final double contentHeight = displayHeight - dragHandleHeight;
         final double safeContentHeight = contentHeight > 0 ? contentHeight : 0;
 
         return Positioned(
           bottom: bottomPosition,
           left: 7,
           right: 7,
-          child: Container(
-            height: displayHeight,
-            decoration: BoxDecoration(
-              color: widget.backgroundColor,
-              boxShadow:
-                  _animation.value > 0.1 && displayHeight > widget.minHeight
-                  ? [
-                      BoxShadow(
-                        color: widget.shadowColor,
-                        offset: const Offset(0, -6),
-                        blurRadius: 10,
-                      ),
-                    ]
-                  : [],
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(widget.borderRadius),
-                topRight: Radius.circular(widget.borderRadius),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragStart: _handleDragStart,
+            onVerticalDragUpdate: _handleDragUpdate,
+            onVerticalDragEnd: _handleDragEnd,
+            child: Container(
+              height: displayHeight,
+              decoration: BoxDecoration(
+                color: widget.backgroundColor,
+                boxShadow:
+                    _animation.value > 0.1 && displayHeight > widget.minHeight
+                    ? [
+                        BoxShadow(
+                          color: widget.shadowColor,
+                          offset: const Offset(0, -6),
+                          blurRadius: 10,
+                        ),
+                      ]
+                    : [],
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(widget.borderRadius),
+                  topRight: Radius.circular(widget.borderRadius),
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                // Drag handle area
-                GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onVerticalDragStart: _handleDragStart,
-                  onVerticalDragUpdate: _handleDragUpdate,
-                  onVerticalDragEnd: _handleDragEnd,
-                  onTap: () {
-                    if (_animationController.status ==
-                        AnimationStatus.completed) {
-                      _animationController.reverse().then((_) {
+              child: Column(
+                children: [
+                  // Drag handle area
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      if (_animationController.status ==
+                          AnimationStatus.completed) {
+                        _closeNormally();
                         widget.onToggle?.call();
-                      });
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 50,
-                    color: Colors.transparent,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: widget.dragHandle ?? _defaultDragHandle(),
+                      } else {
+                        _toggleMenu();
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: dragHandleHeight,
+                      color: Colors.transparent,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: widget.dragHandle ?? _defaultDragHandle(),
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Menu content with explicit height constraint
-                if (safeContentHeight >
-                    0) // Only show content if there's positive height
-                  SizedBox(
-                    height: safeContentHeight,
-                    child: widget.child ?? _defaultContent(),
-                  ),
-              ],
+                  // Menu content - Use Expanded instead of fixed height
+                  if (safeContentHeight > 0)
+                    Expanded(child: widget.child ?? _defaultContent()),
+                ],
+              ),
             ),
           ),
         );
