@@ -22,7 +22,8 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
 
-  bool _isClicked = false; // Added for button animation
+  bool _isSendEidHovered = false;
+  bool _isSendEidPressed = false;
   bool _hasCodeBeenSentBefore = false;
 
   // Overlay and animation
@@ -51,23 +52,10 @@ class _ForgotEidPageState extends State<ForgotEidPage>
   }
 
   void _handleGetEid() async {
-    // Show visual feedback
-    setState(() {
-      _isClicked = true;
-    });
-
     final email = _controller.text.trim();
 
     if (email.isEmpty) {
       _errorStackKey.currentState?.showError('Please enter your Email');
-      // Reset animation
-      Future.delayed(Duration(milliseconds: 200), () {
-        if (mounted) {
-          setState(() {
-            _isClicked = false;
-          });
-        }
-      });
       return;
     }
 
@@ -77,13 +65,6 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       _errorStackKey.currentState?.showError(
         'Please enter a valid email address',
       );
-      Future.delayed(Duration(milliseconds: 200), () {
-        if (mounted) {
-          setState(() {
-            _isClicked = false;
-          });
-        }
-      });
       return;
     }
 
@@ -98,15 +79,6 @@ class _ForgotEidPageState extends State<ForgotEidPage>
       _openOverlay();
     } catch (e) {
       _errorStackKey.currentState?.showError('Failed to send EID: $e');
-    } finally {
-      // Reset animation after short delay
-      Future.delayed(Duration(milliseconds: 200), () {
-        if (mounted) {
-          setState(() {
-            _isClicked = false;
-          });
-        }
-      });
     }
   }
 
@@ -133,10 +105,21 @@ class _ForgotEidPageState extends State<ForgotEidPage>
             showOverlay: _showOverlay,
             slideController: _slideController,
             slideAnimation: _slideAnimation,
-            isClicked: _isClicked,
+            isSendEidHovered: _isSendEidHovered,
+            isSendEidPressed: _isSendEidPressed,
             onHandleGetEid: _handleGetEid,
             onOpenOverlay: _openOverlay,
             onCloseOverlay: _closeOverlay,
+            onSendEidHoverChanged: (isHovered) {
+              setState(() {
+                _isSendEidHovered = isHovered;
+              });
+            },
+            onSendEidPressChanged: (isPressed) {
+              setState(() {
+                _isSendEidPressed = isPressed;
+              });
+            },
           );
         },
       ),
@@ -151,10 +134,13 @@ class MobileForgotEidPage extends StatefulWidget {
   final bool showOverlay;
   final AnimationController slideController;
   final Animation<Offset> slideAnimation;
-  final bool isClicked;
+  final bool isSendEidHovered;
+  final bool isSendEidPressed;
   final VoidCallback onHandleGetEid;
   final VoidCallback onOpenOverlay;
   final VoidCallback onCloseOverlay;
+  final ValueChanged<bool> onSendEidHoverChanged;
+  final ValueChanged<bool> onSendEidPressChanged;
 
   const MobileForgotEidPage({
     super.key,
@@ -164,10 +150,13 @@ class MobileForgotEidPage extends StatefulWidget {
     required this.showOverlay,
     required this.slideController,
     required this.slideAnimation,
-    required this.isClicked,
+    required this.isSendEidHovered,
+    required this.isSendEidPressed,
     required this.onHandleGetEid,
     required this.onOpenOverlay,
     required this.onCloseOverlay,
+    required this.onSendEidHoverChanged,
+    required this.onSendEidPressChanged,
   });
 
   @override
@@ -175,6 +164,13 @@ class MobileForgotEidPage extends StatefulWidget {
 }
 
 class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
+  bool get _isValidEmail {
+    final email = widget.controller.text.trim();
+    if (email.isEmpty) return false;
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegex.hasMatch(email);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -186,7 +182,7 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
   @override
   Widget build(BuildContext context) {
     final fontProvider = Provider.of<FontSizeProvider>(context);
-    
+
     return Stack(
       children: [
         Padding(
@@ -494,16 +490,52 @@ class _MobileForgotEidPageState extends State<MobileForgotEidPage> {
           ),
         ),
         const SizedBox(width: 20),
-        CustomButton(
-          width: 120,
-          height: 45,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          textColor: Colors.white,
-          borderColor: const Color(0xFF00F0FF),
-          backgroundColor: const Color(0xFF0B1320),
-          text: 'Send EID',
-          onTap: widget.onHandleGetEid,
+        MouseRegion(
+          onEnter: (_) =>
+              _isValidEmail ? widget.onSendEidHoverChanged(true) : null,
+          onExit: (_) => widget.onSendEidHoverChanged(false),
+          cursor: _isValidEmail
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.forbidden,
+          child: GestureDetector(
+            onTapDown: _isValidEmail
+                ? (_) {
+                    widget.onSendEidPressChanged(true);
+                  }
+                : null,
+            onTapUp: _isValidEmail
+                ? (_) {
+                    widget.onSendEidPressChanged(false);
+                  }
+                : null,
+            onTapCancel: _isValidEmail
+                ? () {
+                    widget.onSendEidPressChanged(false);
+                  }
+                : null,
+            child: Transform.scale(
+              scale: _isValidEmail && widget.isSendEidPressed ? 0.95 : 1.0,
+              child: CustomButton(
+                width: 120,
+                height: 45,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                textColor: Colors.white,
+                borderColor: _isValidEmail
+                    ? const Color(0xFF00F0FF)
+                    : const Color(0xFF4A5568),
+                backgroundColor: _isValidEmail
+                    ? (widget.isSendEidHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : widget.isSendEidPressed
+                          ? const Color(0xFF00F0FF).withOpacity(0.25)
+                          : const Color(0xFF0B1320))
+                    : const Color(0xFF0B1320),
+                text: 'Send EID',
+                onTap: widget.onHandleGetEid,
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 20),
         Expanded(

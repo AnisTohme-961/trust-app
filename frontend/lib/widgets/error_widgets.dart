@@ -217,121 +217,106 @@ class _ErrorBannerState extends State<ErrorBanner>
         child: AnimatedBuilder(
           animation: _progressController,
           builder: (context, child) {
-            return Container(
-              width: double.infinity,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B1320),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0xFFAF2222),
-                    offset: Offset(0, 3),
-                    blurRadius: 8,
+            return IntrinsicHeight(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0B1320),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20), // Changed from topLeft
+                    bottomRight: Radius.circular(20), // Changed from topRight
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(23, 20, 23, 20),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF42222),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.priority_high,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: Text(
-                              widget.message,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                                height: 1.3,
-                                letterSpacing: 0,
-                                color: Colors.white,
-                                decoration: TextDecoration.none,
-                                decorationColor: Colors.transparent,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0xFFAF2222),
+                      offset: Offset(0, 3),
+                      blurRadius: 8,
                     ),
-
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        height: 2,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: 1.0 - _progressController.value,
-                            child: Container(
-                              height: 2,
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20), // Changed from topLeft
+                    bottomRight: Radius.circular(20), // Changed from topRight
+                  ),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(23, 30, 23, 28),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF42222),
-                                borderRadius: const BorderRadius.only(
-                                  topRight: Radius.circular(1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.priority_high,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                widget.message,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                  height: 1.3,
+                                  letterSpacing: 0,
+                                  color: Colors.white,
+                                  decoration: TextDecoration.none,
+                                  decorationColor: Colors.transparent,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFFF42222,
-                                    ).withOpacity(0.5),
-                                    blurRadius: 3,
-                                    spreadRadius: 1,
-                                    offset: const Offset(0, 0),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 2,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: 1.0 - _progressController.value,
+                              child: Container(
+                                height: 2,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF42222),
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(1),
                                   ),
-                                ],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFF42222,
+                                      ).withOpacity(0.5),
+                                      blurRadius: 3,
+                                      spreadRadius: 1,
+                                      offset: const Offset(0, 0),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-
-                    // Positioned(
-                    //   top: 10,
-                    //   left: 0,
-                    //   right: 0,
-                    //   child: Center(
-                    //     child: Container(
-                    //       width: 40,
-                    //       height: 4,
-                    //       decoration: BoxDecoration(
-                    //         color: Colors.white.withOpacity(0.3),
-                    //         borderRadius: BorderRadius.circular(2),
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -352,6 +337,7 @@ class ErrorStack extends StatefulWidget {
 class ErrorStackState extends State<ErrorStack> {
   final List<_ErrorItem> _errors = [];
   final Map<_ErrorItem, _BannerState> _bannerStates = {};
+  final Map<_ErrorItem, double> _bannerHeights = {};
   OverlayEntry? _overlayEntry;
 
   @override
@@ -365,13 +351,17 @@ class ErrorStackState extends State<ErrorStack> {
   void _createOverlay() {
     _overlayEntry = OverlayEntry(
       builder: (context) {
-        final bannerHeight = 120.0;
-        final spacing = 16.0;
+        double totalHeight = 0.0;
 
-        // Explicitly convert to double by multiplying with 1.0
-        final double totalHeight = _errors.isNotEmpty
-            ? (_errors.length * (bannerHeight + spacing) - spacing).toDouble()
-            : 0.0;
+        // Calculate total height by summing all banner heights
+        for (int i = 0; i < _errors.length; i++) {
+          final item = _errors[i];
+          final bannerHeight = _bannerHeights[item] ?? 120.0; // Default height
+          final spacing = i < _errors.length - 1
+              ? 16.0
+              : 0.0; // No spacing after last
+          totalHeight += bannerHeight + spacing;
+        }
 
         return Positioned(
           left: 0,
@@ -384,12 +374,7 @@ class ErrorStackState extends State<ErrorStack> {
               child: Stack(
                 children: [
                   for (int i = 0; i < _errors.length; i++)
-                    _buildPositionedBanner(
-                      _errors[i],
-                      i,
-                      bannerHeight,
-                      spacing,
-                    ),
+                    _buildPositionedBanner(_errors[i], i),
                 ],
               ),
             ),
@@ -403,18 +388,20 @@ class ErrorStackState extends State<ErrorStack> {
     }
   }
 
-  Widget _buildPositionedBanner(
-    _ErrorItem item,
-    int index,
-    double bannerHeight,
-    double spacing,
-  ) {
+  Widget _buildPositionedBanner(_ErrorItem item, int index) {
     final state = _bannerStates[item];
+
+    // Calculate top position by summing heights of previous banners
+    double topPosition = 0.0;
+    for (int i = 0; i < index; i++) {
+      final prevItem = _errors[i];
+      final prevHeight = _bannerHeights[prevItem] ?? 120.0;
+      topPosition += prevHeight + 16.0; // 16 is the spacing
+    }
 
     return Positioned(
       key: ValueKey(item),
-      // Explicitly convert to double
-      top: (index * (bannerHeight + spacing)).toDouble(),
+      top: topPosition,
       left: 0,
       right: 0,
       child: AnimatedOpacity(
@@ -426,16 +413,28 @@ class ErrorStackState extends State<ErrorStack> {
             _performItemRemoval(item);
           }
         },
-        child: ErrorBanner(
-          key: ValueKey(item),
-          message: item.message,
-          duration: const Duration(seconds: 3),
-          onDismiss: () => _removeError(item),
-          onTap: (isPaused, remainingTime) =>
-              _handleBannerTap(item, isPaused, remainingTime),
-          onDismissAllAbove: () => _removeAllAbove(item),
-          initiallyPaused: state?.isPaused ?? false,
-          initialRemainingTime: state?.remainingTime,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final height = context.size?.height ?? 120.0;
+              if (_bannerHeights[item] != height) {
+                _bannerHeights[item] = height;
+                _overlayEntry?.markNeedsBuild();
+              }
+            });
+
+            return ErrorBanner(
+              key: ValueKey(item),
+              message: item.message,
+              duration: const Duration(seconds: 3),
+              onDismiss: () => _removeError(item),
+              onTap: (isPaused, remainingTime) =>
+                  _handleBannerTap(item, isPaused, remainingTime),
+              onDismissAllAbove: () => _removeAllAbove(item),
+              initiallyPaused: state?.isPaused ?? false,
+              initialRemainingTime: state?.remainingTime,
+            );
+          },
         ),
       ),
     );
@@ -459,6 +458,7 @@ class ErrorStackState extends State<ErrorStack> {
       setState(() {
         _errors.remove(item);
         _bannerStates.remove(item);
+        _bannerHeights.remove(item);
       });
 
       _overlayEntry?.markNeedsBuild();
@@ -478,6 +478,7 @@ class ErrorStackState extends State<ErrorStack> {
         errorItem.isDismissing = true;
         errorItem.timer?.cancel();
         _bannerStates.remove(errorItem);
+        _bannerHeights.remove(errorItem);
       });
     }
 

@@ -16,6 +16,8 @@ class SimpleSlideUpMenu extends StatefulWidget {
   final Widget? child;
   final double minHeight;
   final double maxHeight;
+  final double closeThreshold; // NEW: Added closeThreshold
+  final double openThreshold; // NEW: Added openThreshold
 
   const SimpleSlideUpMenu({
     Key? key,
@@ -34,6 +36,8 @@ class SimpleSlideUpMenu extends StatefulWidget {
     this.initiallyVisible = false,
     this.isVisible,
     this.child,
+    this.closeThreshold = 0.15, // NEW: Default value
+    this.openThreshold = 0.85, // NEW: Default value
   }) : super(key: key);
 
   @override
@@ -49,9 +53,6 @@ class _SimpleSlideUpMenuState extends State<SimpleSlideUpMenu>
   double _startDragHeight = 0;
   bool _isDragging = false;
   bool _closingNormally = false;
-
-  // Close threshold (percentage of screen height)
-  static const double _closeThreshold = 0.15;
 
   @override
   void initState() {
@@ -153,10 +154,16 @@ class _SimpleSlideUpMenuState extends State<SimpleSlideUpMenu>
     final screenHeight = MediaQuery.of(context).size.height;
     final currentHeightPercentage = _currentHeight / screenHeight;
 
-    // Check if dragged below threshold (close condition)
-    if (currentHeightPercentage < _closeThreshold) {
+    // Check if dragged below close threshold (close condition)
+    if (currentHeightPercentage < widget.closeThreshold) {
       // Close the menu immediately from drag (no slide down)
       _closeFromDrag();
+    }
+    // Check if dragged above open threshold (open fully condition)
+    else if (currentHeightPercentage > widget.openThreshold) {
+      // Open menu fully - snap to maxHeight
+      // This will actually close the menu since it goes off-screen
+      _closeMenuByOpeningFully();
     } else {
       // Keep the menu at the dragged height
       // No snap back - just stay where it is
@@ -164,6 +171,22 @@ class _SimpleSlideUpMenuState extends State<SimpleSlideUpMenu>
 
     setState(() {
       _isDragging = false;
+    });
+  }
+
+  void _closeMenuByOpeningFully() {
+    // When dragged to top, we want to:
+    // 1. Animate to maxHeight (or screen height) to slide off screen
+    // 2. Then close the menu
+
+    // First, animate to maxHeight
+    setState(() {
+      _currentHeight = widget.maxHeight;
+    });
+
+    // After animation, close the menu
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _closeFromDrag();
     });
   }
 

@@ -21,6 +21,7 @@ import '../widgets/slide_up_menu_widget.dart';
 import 'screens/settings_screen.dart';
 import 'package:flutter/services.dart';
 import './screens/protect_access.dart';
+import './screens/signup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,19 +65,20 @@ class MyApp extends StatelessWidget {
           );
           userProvider.loadFromStorage();
 
-          return ZoomablePage( 
+          return ZoomablePage(
             child: MaterialApp(
               debugShowCheckedModeBanner: false,
               theme: ThemeData(
                 textSelectionTheme: const TextSelectionThemeData(
                   cursorColor: Color(0xFF00F0FF),
+                  selectionHandleColor: Colors.white,
                 ),
               ),
               home: const ResponsiveHomePage(),
               routes: appRoutes().map(
                 (key, builder) => MapEntry(
                   key,
-                  (context) => ZoomablePage(child: builder(context)), 
+                  (context) => ZoomablePage(child: builder(context)),
                 ),
               ),
             ),
@@ -117,6 +119,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
   List<Map<String, String>> _filteredLanguages = [];
   final TextEditingController _languageSearchController =
       TextEditingController();
+  String _selectedLanguage = '';
 
   List<Map<String, String>> get _languages => LanguagesService.getLanguages();
 
@@ -158,6 +161,33 @@ class _MobileHomePageState extends State<MobileHomePage> {
         },
       ),
     );
+  }
+
+  // Method to handle language selection
+  void _selectLanguage(Map<String, String> language) {
+    setState(() {
+      _selectedLanguage = language['name']!;
+      _languageSearchController.clear(); // Clear the search field
+      _filteredLanguages = _languages; // Reset to show all languages
+      _languageDropdownOpen = false; // Close the dropdown
+    });
+    // You might want to add additional logic here for what happens when a language is selected
+  }
+
+  // Method to filter languages (if you haven't implemented it yet)
+  void _filterLanguages(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLanguages = _languages;
+      } else {
+        _filteredLanguages = _languages
+            .where(
+              (language) =>
+                  language['name']!.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
+    });
   }
 
   @override
@@ -391,6 +421,7 @@ class _MobileHomePageState extends State<MobileHomePage> {
                     curve: Curves.easeOut,
                     minHeight: 100,
                     maxHeight: MediaQuery.of(context).size.height * 0.9,
+                    openThreshold: 0.89,
                     dragHandle: Padding(
                       padding: const EdgeInsets.only(left: 20),
                       child: CustomPaint(
@@ -398,146 +429,134 @@ class _MobileHomePageState extends State<MobileHomePage> {
                         painter: VLinePainter(),
                       ),
                     ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // SEARCH FIELD - Fixed height
-                          Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 50,
-                              vertical: 5,
-                            ),
-                            child: TextField(
-                              controller: _languageSearchController,
-                              inputFormatters: [
-                                // Capitalize first letter of every word
-                                TextInputFormatter.withFunction((
-                                  oldValue,
-                                  newValue,
-                                ) {
-                                  if (newValue.text.isEmpty) {
-                                    return newValue;
-                                  }
-
-                                  // Capitalize first letter of each word
-                                  final text = newValue.text;
-                                  final words = text.split(' ');
-                                  final capitalizedWords = words.map((word) {
-                                    if (word.isEmpty) return '';
-                                    return word[0].toUpperCase() +
-                                        word.substring(1).toLowerCase();
-                                  }).toList();
-
-                                  final capitalizedText = capitalizedWords.join(
-                                    ' ',
-                                  );
-
-                                  // Return new text with proper cursor position
-                                  return TextEditingValue(
-                                    text: capitalizedText,
-                                    selection: newValue.selection.copyWith(
-                                      baseOffset:
-                                          newValue.selection.baseOffset +
-                                          (capitalizedText.length -
-                                              text.length),
-                                      extentOffset:
-                                          newValue.selection.extentOffset +
-                                          (capitalizedText.length -
-                                              text.length),
-                                    ),
-                                  );
-                                }),
-                              ],
-                              onChanged: (value) {
-                                final query = value.toLowerCase();
-                                setState(() {
-                                  _filteredLanguages = _languages
-                                      .where(
-                                        (c) => c['name']!
-                                            .toLowerCase()
-                                            .contains(query),
-                                      )
-                                      .toList();
-                                });
-                              },
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
+                    child: SizedBox(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // SEARCH FIELD
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 50,
+                                vertical: 5,
                               ),
-                              decoration: InputDecoration(
-                                hintText: 'Search Language',
-                                hintStyle: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
+                              child: TextField(
+                                controller: _languageSearchController,
+                                inputFormatters: [
+                                  // Capitalize first letter of every word
+                                  TextInputFormatter.withFunction((
+                                    oldValue,
+                                    newValue,
+                                  ) {
+                                    if (newValue.text.isEmpty) {
+                                      return newValue;
+                                    }
+
+                                    // Capitalize first letter of each word
+                                    final text = newValue.text;
+                                    final words = text.split(' ');
+                                    final capitalizedWords = words.map((word) {
+                                      if (word.isEmpty) return '';
+                                      return word[0].toUpperCase() +
+                                          word.substring(1).toLowerCase();
+                                    }).toList();
+
+                                    final capitalizedText = capitalizedWords
+                                        .join(' ');
+
+                                    // Return new text with proper cursor position
+                                    return TextEditingValue(
+                                      text: capitalizedText,
+                                      selection: newValue.selection.copyWith(
+                                        baseOffset:
+                                            newValue.selection.baseOffset +
+                                            (capitalizedText.length -
+                                                text.length),
+                                        extentOffset:
+                                            newValue.selection.extentOffset +
+                                            (capitalizedText.length -
+                                                text.length),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (value) {
+                                  final query = value.toLowerCase();
+                                  setState(() {
+                                    _filteredLanguages = _languages
+                                        .where(
+                                          (c) => c['name']!
+                                              .toLowerCase()
+                                              .contains(query),
+                                        )
+                                        .toList();
+                                  });
+                                },
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
+                                decoration: InputDecoration(
+                                  hintText: 'Search Language',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
                               ),
                             ),
-                          ),
 
-                          // DIVIDER - Fixed height
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 50),
-                            child: Divider(
-                              color: Colors.white24,
-                              thickness: 0.5,
-                              height: 1,
+                            // DIVIDER
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 50),
+                              child: Divider(
+                                color: Colors.white24,
+                                thickness: 0.5,
+                                height: 1,
+                              ),
                             ),
-                          ),
 
-                          const SizedBox(height: 10),
-
-                          // LANGUAGE LIST - Flexible height with max constraint
-                          Container(
-                            constraints: BoxConstraints(
-                              maxHeight:
-                                  dropdownHeight -
-                                  100, // Reserve space for header
-                            ),
-                            child: _filteredLanguages.isEmpty
-                                ? Container(
-                                    height: 100,
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'No languages found',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7),
-                                        fontSize: 16,
+                            // LANGUAGE LIST
+                            _filteredLanguages.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: Center(
+                                      child: Text(
+                                        "No languages found",
+                                        style: TextStyle(color: Colors.white),
                                       ),
                                     ),
                                   )
                                 : ListView.builder(
-                                    padding: const EdgeInsets.only(
-                                      left: 50,
-                                      right: 50,
-                                      bottom: 20,
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 50,
+                                      vertical: 8,
                                     ),
                                     itemCount: _filteredLanguages.length,
-                                    physics: const ClampingScrollPhysics(),
-                                    shrinkWrap: true,
                                     itemBuilder: (context, index) {
-                                      final country = _filteredLanguages[index];
+                                      final language =
+                                          _filteredLanguages[index];
+                                      final isSelected =
+                                          language['name'] == _selectedLanguage;
                                       return GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _languageSearchController.text =
-                                                country['name']!;
-                                            _languageDropdownOpen = false;
-                                          });
-                                        },
+                                        onTap: () => _selectLanguage(language),
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
-                                            vertical: 12.0,
+                                            vertical: 8.0,
                                           ),
                                           child: Row(
                                             children: [
                                               SvgPicture.asset(
-                                                country['flag']!,
+                                                language['flag']!,
                                                 width: 30,
                                                 height: 30,
+                                                fit: BoxFit.contain,
                                                 errorBuilder:
                                                     (
                                                       context,
@@ -557,21 +576,34 @@ class _MobileHomePageState extends State<MobileHomePage> {
                                               const SizedBox(width: 10),
                                               Expanded(
                                                 child: Text(
-                                                  country['name']!,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
+                                                  language['name']!,
+                                                  style: TextStyle(
+                                                    color: isSelected
+                                                        ? const Color(
+                                                            0xFF00F0FF,
+                                                          )
+                                                        : Colors.white,
                                                     fontSize: 16,
+                                                    fontWeight: isSelected
+                                                        ? FontWeight.w600
+                                                        : FontWeight.normal,
                                                   ),
                                                 ),
                                               ),
+                                              if (isSelected)
+                                                const Icon(
+                                                  Icons.check,
+                                                  color: Color(0xFF00F0FF),
+                                                  size: 20,
+                                                ),
                                             ],
                                           ),
                                         ),
                                       );
                                     },
                                   ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

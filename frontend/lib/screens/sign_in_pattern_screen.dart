@@ -24,6 +24,12 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
 
   Timer? _clearTimer;
 
+  // State variables for button interactions
+  bool _isBackHovered = false;
+  bool _isBackPressed = false;
+  bool _isLogoutHovered = false;
+  bool _isLogoutPressed = false;
+
   Future<void> _logout() async {
     try {
       await AuthService.deleteToken();
@@ -113,7 +119,6 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
     final gridSize = min(screenWidth * 0.85, 320.0);
 
     final fontProvider = Provider.of<FontSizeProvider>(context);
-
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -358,35 +363,82 @@ class _SignInPatternScreenState extends State<SignInPatternScreen> {
           ),
           const SizedBox(width: 20),
 
-          CustomButton(
-            text: 'Back',
-            width: 90,
-            height: 45,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            textColor: Colors.white,
-            borderColor: const Color(0xFF00F0FF),
-            backgroundColor: const Color(0xFF0B1320),
-            onTap: () {
-              Navigator.pop(context);
-            },
+          // BACK BUTTON with hover and press effects
+          MouseRegion(
+            onEnter: (_) => setState(() => _isBackHovered = true),
+            onExit: (_) => setState(() => _isBackHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTapDown: (_) {
+                setState(() => _isBackPressed = true);
+              },
+              onTapUp: (_) {
+                setState(() => _isBackPressed = false);
+              },
+              onTapCancel: () {
+                setState(() => _isBackPressed = false);
+              },
+              child: Transform.scale(
+                scale: _isBackPressed ? 0.95 : 1.0,
+                child: CustomButton(
+                  text: 'Back',
+                  width: 90,
+                  height: 45,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  textColor: Colors.white,
+                  borderColor: const Color(0xFF00F0FF),
+                  backgroundColor: _isBackHovered
+                      ? const Color(0xFF00F0FF).withOpacity(0.15)
+                      : _isBackPressed
+                      ? const Color(0xFF00F0FF).withOpacity(0.25)
+                      : const Color(0xFF0B1320),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(width: 20),
 
-          // 🚪 LOGOUT BUTTON
-          CustomButton(
-            text: 'Logout',
-            width: 110,
-            height: 45,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            textColor: Colors.white,
-            borderColor: const Color(0xFF00F0FF),
-            backgroundColor: const Color(0xFF0B1320),
-            onTap: () async {
-              _logout();
-            },
+          // LOGOUT BUTTON with hover and press effects
+          MouseRegion(
+            onEnter: (_) => setState(() => _isLogoutHovered = true),
+            onExit: (_) => setState(() => _isLogoutHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTapDown: (_) {
+                setState(() => _isLogoutPressed = true);
+              },
+              onTapUp: (_) {
+                setState(() => _isLogoutPressed = false);
+              },
+              onTapCancel: () {
+                setState(() => _isLogoutPressed = false);
+              },
+              child: Transform.scale(
+                scale: _isLogoutPressed ? 0.95 : 1.0,
+                child: CustomButton(
+                  text: 'Logout',
+                  width: 110,
+                  height: 45,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  textColor: Colors.white,
+                  borderColor: const Color(0xFF00F0FF),
+                  backgroundColor: _isLogoutHovered
+                      ? const Color(0xFF00F0FF).withOpacity(0.15)
+                      : _isLogoutPressed
+                      ? const Color(0xFF00F0FF).withOpacity(0.25)
+                      : const Color(0xFF0B1320),
+                  onTap: () async {
+                    _logout();
+                  },
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(width: 20),

@@ -46,7 +46,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
   // Button hover states
   bool _isBackHovered = false;
+  bool _isBackPressed = false;
   bool _isNextHovered = false;
+  bool _isNextPressed = false;
   bool _isGetCodeHovered = false;
   bool _isGetCodeClicked = false;
 
@@ -60,6 +62,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _datePicked = false;
   bool _isFirstTimeOpeningDob =
       true; // Track if it's the first time opening DOB picker
+
+  // Flag path
+  String _selectedCountryFlagPath =
+      'assets/images/iconFlag.svg'; // Default flag
 
   // Validation states
   bool _countryValid = false;
@@ -142,6 +148,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
 
     // Initialize countries
     _filteredCountries = List.from(countries);
+
+    // Initialize flag path
+    _selectedCountryFlagPath = 'assets/images/iconFlag.svg';
 
     // Add focus listener for email validation
     _emailFocusNode.addListener(_validateEmailOnUnfocus);
@@ -326,6 +335,15 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       _selectedCountryId = userProvider.countryId;
       _countryFieldController.text = userProvider.country;
       _countryValid = true;
+
+      // Try to find and set the corresponding flag
+      final countryData = countries.firstWhere(
+        (c) => c['name'] == userProvider.country,
+        orElse: () => {},
+      );
+      if (countryData.isNotEmpty && countryData['flag'] != null) {
+        _selectedCountryFlagPath = countryData['flag']!;
+      }
     }
 
     // Prefill email
@@ -568,6 +586,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
       _countryFieldController.text = country['name']!;
       _countryDropdownOpen = false;
       _validateCountry();
+
+      // Set the selected country flag path
+      _selectedCountryFlagPath =
+          country['flag'] ?? 'assets/images/iconFlag.svg';
     });
     final userProvider = context.read<UserProvider>();
     userProvider.setCountry(_selectedCountry, _selectedCountryId);
@@ -1048,8 +1070,14 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       width: 18,
                                       height: 18,
                                       child: SvgPicture.asset(
-                                        'assets/images/iconFlag.svg',
+                                        _selectedCountryFlagPath,
                                         fit: BoxFit.contain,
+                                        placeholderBuilder: (context) =>
+                                            Container(
+                                              width: 18,
+                                              height: 18,
+                                              color: Colors.grey,
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -1061,7 +1089,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       readOnly: true,
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: fontProvider.getScaledSize(15),
+                                        fontSize: fontProvider.getScaledSize(
+                                          15,
+                                        ),
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Inter',
                                       ),
@@ -1069,7 +1099,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         hintText: "Country",
                                         hintStyle: TextStyle(
                                           color: Color(0xFFA5A6A8),
-                                          fontSize: fontProvider.getScaledSize(15),
+                                          fontSize: fontProvider.getScaledSize(
+                                            15,
+                                          ),
                                           fontWeight: FontWeight.w500,
                                           fontFamily: 'Inter',
                                           height: 1.0,
@@ -1251,6 +1283,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         contentPadding: EdgeInsets.symmetric(
                                           vertical: 0.0,
                                         ),
+                                        hintText: "",
                                       ),
                                       onChanged: (value) {
                                         final userProvider = context
@@ -1263,7 +1296,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         FocusScope.of(context).unfocus();
                                       },
                                       style: TextStyle(
-                                        fontSize: fontProvider.getScaledSize(15),
+                                        fontSize: fontProvider.getScaledSize(
+                                          15,
+                                        ),
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Inter',
                                         color: Color(0xFF00F0FF),
@@ -1279,35 +1314,96 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                               ],
                             ),
                           ),
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 200),
-                            left: 40,
-                            top:
+
+                          // Floating label - Positioned to move from next to icon to top-left
+                          Positioned(
+                            left:
                                 (_emailController.text.isNotEmpty ||
                                     _isEmailFocused)
-                                ? -6
-                                : 20,
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 200),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize:
-                                    (_emailController.text.isNotEmpty ||
-                                        _isEmailFocused)
-                                    ? 13
-                                    : 15,
-                                fontWeight: FontWeight.w500,
-                                fontFamily: 'Inter',
-                                backgroundColor:
-                                    (_emailController.text.isNotEmpty ||
-                                        _isEmailFocused)
-                                    ? const Color(0xFF0B1320)
-                                    : Colors.transparent,
-                                height: 1.0,
+                                ? 12 // When floating: align with container's left padding (far left)
+                                : 44, // When placeholder: 12 (left padding) + 16 (icon width) + 16 (SizedBox)
+                            child: SizedBox(
+                              height: 50,
+                              width:
+                                  (_emailController.text.isNotEmpty ||
+                                      _isEmailFocused)
+                                  ? 80 // Wider when floating to accommodate background
+                                  : 60, // Narrower when placeholder
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  // Background container that moves
+                                  AnimatedPositioned(
+                                    duration: const Duration(milliseconds: 200),
+                                    top:
+                                        (_emailController.text.isNotEmpty ||
+                                            _isEmailFocused)
+                                        ? -8 // Half above the border when floating
+                                        : 19, // Vertically centered when placeholder
+                                    child: IgnorePointer(
+                                      ignoring:
+                                          (_emailController.text.isEmpty &&
+                                          !_isEmailFocused),
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal:
+                                              (_emailController
+                                                      .text
+                                                      .isNotEmpty ||
+                                                  _isEmailFocused)
+                                              ? 8
+                                              : 0,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              (_emailController
+                                                      .text
+                                                      .isNotEmpty ||
+                                                  _isEmailFocused)
+                                              ? const Color(0xFF0B1320)
+                                              : Colors.transparent,
+                                        ),
+                                        child: Center(
+                                          child: AnimatedDefaultTextStyle(
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            style: TextStyle(
+                                              color:
+                                                  (_emailController
+                                                          .text
+                                                          .isNotEmpty ||
+                                                      _isEmailFocused)
+                                                  ? Colors.white
+                                                  : Colors.white.withOpacity(
+                                                      0.5,
+                                                    ),
+                                              fontSize:
+                                                  (_emailController
+                                                          .text
+                                                          .isNotEmpty ||
+                                                      _isEmailFocused)
+                                                  ? fontProvider.getScaledSize(
+                                                      12,
+                                                    )
+                                                  : fontProvider.getScaledSize(
+                                                      15,
+                                                    ),
+                                              fontWeight: FontWeight.w500,
+                                              fontFamily: 'Inter',
+                                              height: 1.0,
+                                            ),
+                                            child: const Text("Email"),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: const Text("Email"),
                             ),
                           ),
+
                           Positioned(
                             top: 10,
                             right: 10,
@@ -1358,7 +1454,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w500,
-                                        fontSize: fontProvider.getScaledSize(15),
+                                        fontSize: fontProvider.getScaledSize(
+                                          15,
+                                        ),
                                         color: Colors.white,
                                         height: 1.0,
                                       ),
@@ -1704,34 +1802,35 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           onExit: (_) => setState(() => _isBackHovered = false),
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Container(
-                              width: 106,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: const Color(0xFF00F0FF),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  CustomButton(
-                                    text: "Back",
-                                    width: 100,
-                                    height: 40,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                    textColor: _isBackHovered
-                                        ? const Color(0xFF00F0FF)
-                                        : Colors.white,
-                                    backgroundColor: Colors.transparent,
-                                    borderColor: Colors.transparent,
-                                    onTap: () => Navigator.pop(context),
-                                  ),
-                                ],
+                            onTapDown: (_) {
+                              setState(() => _isBackPressed = true);
+                            },
+                            onTapUp: (_) {
+                              setState(() => _isBackPressed = false);
+                              Navigator.of(context).pop();
+                            },
+                            onTapCancel: () {
+                              setState(() => _isBackPressed = false);
+                            },
+                            child: Transform.scale(
+                              scale: _isBackPressed ? 0.95 : 1.0,
+                              child: CustomButton(
+                                text: "Back",
+                                width: 106,
+                                height: 40,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                borderRadius: 10,
+                                borderColor: const Color(0xFF00F0FF),
+                                textColor: Colors.white,
+                                backgroundColor: _isBackHovered
+                                    ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                    : (_isBackPressed
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.25)
+                                          : const Color(0xFF0B1320)),
+                                onTap: () => Navigator.pop(context),
                               ),
                             ),
                           ),
@@ -1748,22 +1847,59 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           cursor: _allFieldsValid
                               ? SystemMouseCursors.click
                               : SystemMouseCursors.forbidden,
-                          child: CustomButton(
-                            text: "Next",
-                            width: 105,
-                            height: 40,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            textColor: _allFieldsValid
-                                ? (_isNextHovered
-                                      ? const Color(0xFF00F0FF)
-                                      : Colors.white)
-                                : const Color(0xFF718096),
-                            backgroundColor: Colors.transparent,
-                            borderColor: _allFieldsValid
-                                ? const Color(0xFF00F0FF)
-                                : const Color(0xFF4A5568),
-                            onTap: _handleNextTap,
+                          child: GestureDetector(
+                            onTapDown: _allFieldsValid
+                                ? (_) {
+                                    setState(() => _isNextPressed = true);
+                                  }
+                                : null,
+                            onTapUp: _allFieldsValid
+                                ? (_) {
+                                    setState(() => _isNextPressed = false);
+                                  }
+                                : null,
+                            onTapCancel: _allFieldsValid
+                                ? () {
+                                    setState(() => _isNextPressed = false);
+                                  }
+                                : null,
+                            child: Transform.scale(
+                              scale: _allFieldsValid && _isNextPressed
+                                  ? 0.95
+                                  : 1.0,
+                              child: CustomButton(
+                                text: "Next",
+                                width: 106,
+                                height: 40,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                borderRadius: 10,
+                                borderColor: _allFieldsValid
+                                    ? const Color(0xFF00F0FF)
+                                    : const Color(0xFF4A5568),
+                                textColor: _allFieldsValid
+                                    ? Colors.white
+                                    : const Color(0xFF718096),
+                                backgroundColor: _allFieldsValid
+                                    ? (_isNextHovered
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.15)
+                                          : _isNextPressed
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.25)
+                                          : const Color(0xFF0B1320))
+                                    : const Color(0xFF0B1320),
+                                onTap: () {
+                                  if (_allFieldsValid) {
+                                    _handleNextTap();
+                                  } else {
+                                    _validateAllFieldsAndShowErrors();
+                                  }
+                                },
+                              ),
+                            ),
                           ),
                         ),
 
@@ -1841,6 +1977,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
             curve: Curves.easeOut,
             minHeight: 100,
             maxHeight: MediaQuery.of(context).size.height * 0.9,
+            openThreshold: 0.89,
             dragHandle: Padding(
               padding: const EdgeInsets.only(left: 20),
               child: CustomPaint(
@@ -1956,6 +2093,12 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                         width: 30,
                                         height: 30,
                                         fit: BoxFit.contain,
+                                        placeholderBuilder: (context) =>
+                                            Container(
+                                              width: 30,
+                                              height: 30,
+                                              color: Colors.grey,
+                                            ),
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
@@ -1993,7 +2136,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
           // DOB DROPDOWN POPUP
           SlideUpMenu(
             menuHeight: 370,
-            maxHeight: 500,
+            maxHeight: dropdownHeight,
             isVisible: _dobDropdownOpen,
             onToggle: () {
               final willOpen = !_dobDropdownOpen;
@@ -2017,6 +2160,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
             borderRadius: 20.0,
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeOut,
+            openThreshold: 0.89,
             dragHandle: SvgPicture.asset(
               'assets/images/vLine.svg',
               width: 90,

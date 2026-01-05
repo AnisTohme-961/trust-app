@@ -27,6 +27,14 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
   Timer? _validationTimer; // Timer for debouncing validation
   Timer? _clearPinTimer; // Timer to clear PIN after error
 
+  // Button hover and press states
+  bool _isBackHovered = false;
+  bool _isBackPressed = false;
+  bool _isLogoutHovered = false;
+  bool _isLogoutPressed = false;
+  bool _isKeypadNextHovered = false;
+  bool _isKeypadNextPressed = false;
+
   // Reference to the ErrorStackState to show errors
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
@@ -218,33 +226,75 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
             ),
           ),
           const SizedBox(width: 20),
-          CustomButton(
-            text: 'Back',
-            width: 100,
-            height: 45,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            textColor: Colors.white,
-            borderColor: const Color(0xFF00F0FF),
-            backgroundColor: const Color(0xFF0B1320),
-            onTap: () {
-              Navigator.pop(context);
-            },
+
+          // Back Button with hover and click effects
+          MouseRegion(
+            onEnter: (_) => setState(() => _isBackHovered = true),
+            onExit: (_) => setState(() => _isBackHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => _isBackPressed = true),
+              onTapUp: (_) => setState(() => _isBackPressed = false),
+              onTapCancel: () => setState(() => _isBackPressed = false),
+              child: Transform.scale(
+                scale: _isBackPressed ? 0.95 : 1.0,
+                child: CustomButton(
+                  text: 'Back',
+                  width: 100,
+                  height: 45,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  borderRadius: 10,
+                  borderColor: const Color(0xFF00F0FF),
+                  textColor: Colors.white,
+                  backgroundColor: _isBackHovered
+                      ? const Color(0xFF00F0FF).withOpacity(0.15)
+                      : _isBackPressed
+                      ? const Color(0xFF00F0FF).withOpacity(0.25)
+                      : const Color(0xFF0B1320),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
           ),
+
           const SizedBox(width: 20),
-          CustomButton(
-            text: 'Logout',
-            width: 120,
-            height: 45,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            textColor: Colors.white,
-            borderColor: const Color(0xFF00F0FF),
-            backgroundColor: const Color(0xFF0B1320),
-            onTap: () async {
-              await _logout();
-            },
+
+          // Logout Button with hover and click effects
+          MouseRegion(
+            onEnter: (_) => setState(() => _isLogoutHovered = true),
+            onExit: (_) => setState(() => _isLogoutHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTapDown: (_) => setState(() => _isLogoutPressed = true),
+              onTapUp: (_) => setState(() => _isLogoutPressed = false),
+              onTapCancel: () => setState(() => _isLogoutPressed = false),
+              child: Transform.scale(
+                scale: _isLogoutPressed ? 0.95 : 1.0,
+                child: CustomButton(
+                  text: 'Logout',
+                  width: 120,
+                  height: 45,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  borderRadius: 10,
+                  borderColor: const Color(0xFF00F0FF),
+                  textColor: Colors.white,
+                  backgroundColor: _isLogoutHovered
+                      ? const Color(0xFF00F0FF).withOpacity(0.15)
+                      : _isLogoutPressed
+                      ? const Color(0xFF00F0FF).withOpacity(0.25)
+                      : const Color(0xFF0B1320),
+                  onTap: () async {
+                    await _logout();
+                  },
+                ),
+              ),
+            ),
           ),
+
           const SizedBox(width: 20),
           Expanded(
             child: Container(
@@ -265,7 +315,6 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
     final fontProvider = Provider.of<FontSizeProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -439,6 +488,14 @@ class _SignInPinScreenState extends State<SignInPinScreen> {
                     isPinComplete: _pin.length == 4,
                     isValidating: _isValidating,
                     hasValidationError: _hasValidationError,
+                    isKeypadNextHovered: _isKeypadNextHovered,
+                    isKeypadNextPressed: _isKeypadNextPressed,
+                    onKeypadNextHoverChanged: (isHovered) {
+                      setState(() => _isKeypadNextHovered = isHovered);
+                    },
+                    onKeypadNextPressChanged: (isPressed) {
+                      setState(() => _isKeypadNextPressed = isPressed);
+                    },
                   ),
 
                   const SizedBox(height: 10),
@@ -502,6 +559,10 @@ class _Keypad extends StatelessWidget {
   final bool isPinComplete; // PIN has 4 digits (but may not be validated yet)
   final bool isValidating; // Validation in progress
   final bool hasValidationError; // PIN validation failed
+  final bool isKeypadNextHovered;
+  final bool isKeypadNextPressed;
+  final Function(bool) onKeypadNextHoverChanged;
+  final Function(bool) onKeypadNextPressChanged;
 
   const _Keypad({
     required this.onKeyTap,
@@ -510,6 +571,10 @@ class _Keypad extends StatelessWidget {
     required this.isPinComplete,
     required this.isValidating,
     required this.hasValidationError,
+    required this.isKeypadNextHovered,
+    required this.isKeypadNextPressed,
+    required this.onKeypadNextHoverChanged,
+    required this.onKeypadNextPressChanged,
   });
 
   @override
@@ -537,23 +602,93 @@ class _Keypad extends StatelessWidget {
               // Determine Next button border color - ALWAYS grey unless valid
               Color nextButtonBorderColor;
               Color nextButtonTextColor;
+              Color nextButtonBackgroundColor;
 
               if (isPinValid) {
                 nextButtonBorderColor = Color(0xFF00F0FF); // Blue when valid
                 nextButtonTextColor = Colors.white; // White text when valid
+                nextButtonBackgroundColor = isKeypadNextHovered
+                    ? Color(0xFF00F0FF).withOpacity(0.15)
+                    : isKeypadNextPressed
+                    ? Color(0xFF00F0FF).withOpacity(0.25)
+                    : Color(0xFF0B1320);
               } else {
-                nextButtonBorderColor =
-                    Colors.grey; // Always grey when not valid
-                nextButtonTextColor = Colors.grey; // Grey text when not valid
+                nextButtonBorderColor = Color(
+                  0xFF4A5568,
+                ); // Grey when not valid
+                nextButtonTextColor = Color(
+                  0xFF718096,
+                ); // Grey text when not valid
+                nextButtonBackgroundColor = Color(0xFF0B1320);
               }
 
+              // For Next button, wrap it with MouseRegion and GestureDetector
+              if (isNext) {
+                return MouseRegion(
+                  onEnter: (_) =>
+                      isPinValid ? onKeypadNextHoverChanged(true) : null,
+                  onExit: (_) => onKeypadNextHoverChanged(false),
+                  cursor: isPinValid
+                      ? SystemMouseCursors.click
+                      : SystemMouseCursors.forbidden,
+                  child: GestureDetector(
+                    onTapDown: isPinValid
+                        ? (_) => onKeypadNextPressChanged(true)
+                        : null,
+                    onTapUp: isPinValid
+                        ? (_) {
+                            onKeypadNextPressChanged(false);
+                            onKeyTap(text);
+                          }
+                        : null,
+                    onTapCancel: isPinValid
+                        ? () => onKeypadNextPressChanged(false)
+                        : null,
+                    child: Transform.scale(
+                      scale: isPinValid && isKeypadNextPressed ? 0.95 : 1.0,
+                      child: Container(
+                        width: 103,
+                        height: 49,
+                        decoration: BoxDecoration(
+                          color: nextButtonBackgroundColor,
+                          border: Border.all(
+                            color: nextButtonBorderColor,
+                            width: 3,
+                          ),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        alignment: Alignment.center,
+                        child:
+                            isPinComplete &&
+                                !isPinValid &&
+                                !hasValidationError &&
+                                isValidating
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : Text(
+                                text,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 20,
+                                  color: nextButtonTextColor,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              // For other buttons (numbers and Back), keep existing behavior
               return GestureDetector(
-                onTap: () {
-                  if (isNext && !isPinValid) {
-                    return; // Ignore tap if not valid
-                  }
-                  onKeyTap(text);
-                },
+                onTap: () => onKeyTap(text),
                 child: Container(
                   width: 103,
                   height: 49,
@@ -562,12 +697,9 @@ class _Keypad extends StatelessWidget {
                       color: isBack
                           ? (hasValidationError
                                 ? Color(0xFFFF0000)
-                                : Colors
-                                      .red) // Red for back button during error
-                          : isNext
-                          ? nextButtonBorderColor
+                                : Color(0xFFFF0000)) // Red for back button
                           : Color(0xFF00F0FF), // Blue for number buttons
-                      width: isBack || isNext ? 3 : 1,
+                      width: isBack ? 3 : 1,
                     ),
                     borderRadius: BorderRadius.circular(9),
                   ),
@@ -582,30 +714,13 @@ class _Keypad extends StatelessWidget {
                               : Colors.white,
                           fit: BoxFit.contain,
                         )
-                      : isNext &&
-                            isPinComplete &&
-                            !isPinValid &&
-                            !hasValidationError &&
-                            isValidating
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.grey,
-                          ),
-                        )
                       : Text(
                           text,
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            fontWeight: isNext
-                                ? FontWeight.w500
-                                : FontWeight.w800,
-                            fontSize: isNext ? 20 : 30,
-                            color: isNext
-                                ? nextButtonTextColor // Use determined text color
-                                : Colors.white, // White for number buttons
+                            fontWeight: FontWeight.w800,
+                            fontSize: 30,
+                            color: Colors.white,
                           ),
                         ),
                 ),

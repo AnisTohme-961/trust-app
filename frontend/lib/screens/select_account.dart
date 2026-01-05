@@ -14,6 +14,9 @@ class SelectAccountContent extends StatefulWidget {
 class _SelectAccountContentState extends State<SelectAccountContent> {
   final ScrollController _scrollController = ScrollController();
 
+  bool _isAddNewProfileHovered = false;
+  bool _isAddNewProfilePressed = false;
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -175,18 +178,43 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
               ),
             ),
             SizedBox(width: isTablet ? 20 : 10),
-            CustomButton(
-              text: 'Add New Profile',
-              width: buttonWidth,
-              height: buttonHeight,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              textColor: Colors.white,
-              borderColor: const Color(0xFF00F0FF),
-              backgroundColor: const Color(0xFF0B1320),
-              onTap: () {
-                Navigator.pushNamed(context, '/sign-in');
-              },
+            MouseRegion(
+              onEnter: (_) => setState(() => _isAddNewProfileHovered = true),
+              onExit: (_) => setState(() => _isAddNewProfileHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTapDown: (_) {
+                  setState(() => _isAddNewProfilePressed = true);
+                },
+                onTapUp: (_) {
+                  setState(() => _isAddNewProfilePressed = false);
+                  Navigator.pushNamed(context, '/sign-in');
+                },
+                onTapCancel: () {
+                  setState(() => _isAddNewProfilePressed = false);
+                },
+                child: Transform.scale(
+                  scale: _isAddNewProfilePressed ? 0.95 : 1.0,
+                  child: CustomButton(
+                    text: 'Add New Profile',
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w600,
+                    textColor: Colors.white,
+                    borderColor: const Color(0xFF00F0FF),
+                    backgroundColor: _isAddNewProfileHovered
+                        ? const Color(0xFF00F0FF).withOpacity(0.15)
+                        : (_isAddNewProfilePressed
+                              ? const Color(0xFF00F0FF).withOpacity(0.25)
+                              : const Color(0xFF0B1320)),
+                    borderRadius: 10,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/sign-in');
+                    },
+                  ),
+                ),
+              ),
             ),
             SizedBox(width: isTablet ? 20 : 10),
             Expanded(

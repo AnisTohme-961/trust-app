@@ -81,11 +81,18 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
   bool _selectAccountOpen = false;
   bool _languageDropdownOpen = false;
   List<LanguageModel> _filteredLanguages = [];
+  String? _selectedLanguage;
 
   final TextEditingController _languageSearchController =
       TextEditingController();
 
   final storage = const FlutterSecureStorage();
+
+  bool _isSignInHovered = false;
+  bool _isSignInPressed = false;
+
+  bool _isSignUpHovered = false;
+  bool _isSignUpPressed = false;
 
   // dynamic list from language_api_service.dart:
   List<Map<String, String>> get _languages => LanguagesService.getLanguages();
@@ -95,6 +102,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
   void initState() {
     super.initState();
     _filteredCountries = _languages;
+    _selectedLanguage = "English";
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -122,7 +130,8 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final double dropdownHeight = screenHeight * 0.559;
+    final double dropdownHeight = screenHeight * 0.9;
+    final double selectAccountdropdownHeight = screenHeight * 0.6;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
@@ -233,27 +242,89 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                     children: [
                       const SizedBox(height: 20),
                       // Sign In Button
-                      CustomButton(
-                        text: 'Sign In',
-                        width: 150,
-                        height: 40,
-                        fontSize: 20,
-                        onTap: () {
-                          setState(() {
-                            _selectAccountOpen = true;
-                          });
-                        },
+                      MouseRegion(
+                        onEnter: (_) => setState(() => _isSignInHovered = true),
+                        onExit: (_) => setState(() => _isSignInHovered = false),
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTapDown: (_) {
+                            setState(() => _isSignInPressed = true);
+                          },
+                          onTapUp: (_) {
+                            setState(() => _isSignInPressed = false);
+                            setState(() {
+                              _selectAccountOpen = true;
+                            });
+                          },
+                          onTapCancel: () {
+                            setState(() => _isSignInPressed = false);
+                          },
+                          child: Transform.scale(
+                            scale: _isSignInPressed ? 0.95 : 1.0,
+                            child: CustomButton(
+                              text: 'Sign In',
+                              width: 150,
+                              height: 40,
+                              fontSize: 20,
+                              textColor: Colors.white,
+                              backgroundColor: _isSignInHovered
+                                  ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                  : (_isSignInPressed
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.25)
+                                        : const Color(0xFF0B1320)),
+                              borderColor: const Color(0xFF00F0FF),
+                              borderRadius: 10,
+                              onTap: () {
+                                setState(() {
+                                  _selectAccountOpen = true;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 30),
                       // Sign Up Button
-                      CustomButton(
-                        text: 'Sign Up',
-                        width: 150,
-                        height: 40,
-                        fontSize: 20,
-                        onTap: () {
-                          _navigateToNextPage(context);
-                        },
+                      MouseRegion(
+                        onEnter: (_) => setState(() => _isSignUpHovered = true),
+                        onExit: (_) => setState(() => _isSignUpHovered = false),
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTapDown: (_) {
+                            setState(() => _isSignUpPressed = true);
+                          },
+                          onTapUp: (_) {
+                            setState(() => _isSignUpPressed = false);
+                            _navigateToNextPage(context);
+                          },
+                          onTapCancel: () {
+                            setState(() => _isSignUpPressed = false);
+                          },
+                          child: Transform.scale(
+                            scale: _isSignUpPressed ? 0.95 : 1.0,
+                            child: CustomButton(
+                              text: 'Sign Up',
+                              width: 150,
+                              height: 40,
+                              fontSize: 20,
+                              textColor: Colors.white,
+                              backgroundColor: _isSignUpHovered
+                                  ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                  : (_isSignUpPressed
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.25)
+                                        : const Color(0xFF0B1320)),
+                              borderColor: const Color(0xFF00F0FF),
+                              borderRadius: 10,
+                              onTap: () {
+                                _navigateToNextPage(context);
+                              },
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -289,7 +360,7 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
             // SELECT ACCOUNT POPUP - USING SelectAccountSlideUpMenu
             if (_selectAccountOpen)
               SelectAccountSlideUpMenu(
-                menuHeight: dropdownHeight,
+                menuHeight: selectAccountdropdownHeight,
                 isVisible: _selectAccountOpen,
                 onToggle: () {
                   setState(() {
@@ -307,6 +378,8 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                 duration: const Duration(milliseconds: 400),
                 curve: Curves.easeOut,
                 minHeight: 300,
+                maxHeight: dropdownHeight, // Use the same height variable
+                openThreshold: 0.89,
                 dragHandle: Padding(
                   padding: const EdgeInsets.only(left: 20),
                   child: CustomPaint(
@@ -314,15 +387,13 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                     painter: VLinePainter(),
                   ),
                 ),
-                child: SizedBox(
-                  height: dropdownHeight - 50, // Subtract drag handle height
-                  child: SelectAccountContent(
-                    onClose: () {
-                      setState(() {
-                        _selectAccountOpen = false;
-                      });
-                    },
-                  ),
+                child: SelectAccountContent(
+                  // REMOVE SizedBox wrapper
+                  onClose: () {
+                    setState(() {
+                      _selectAccountOpen = false;
+                    });
+                  },
                 ),
               ),
 
@@ -355,12 +426,11 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                     painter: VLinePainter(),
                   ),
                 ),
-                child: SizedBox(
-                  height: dropdownHeight - 50, // Subtract drag handle height
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // SEARCH FIELD - Fixed height
-                      // SEARCH FIELD - Fixed height
+                      // SEARCH FIELD
                       Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 50,
@@ -442,64 +512,111 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         ),
                       ),
 
-                      // LANGUAGE LIST - Takes remaining space
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 50,
-                            vertical: 8,
-                          ),
-                          itemCount: _filteredCountries.length,
-                          physics: const ClampingScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            final country = _filteredCountries[index];
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _languageSearchController.text =
-                                      country['name']!;
-                                  _languageDropdownOpen = false;
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
+                      const SizedBox(height: 10),
+
+                      // LANGUAGE LIST with height constraint
+                      Container(
+                        constraints: BoxConstraints(
+                          maxHeight:
+                              dropdownHeight - 100, // Reserve space for header
+                        ),
+                        child: _filteredCountries.isEmpty
+                            ? Container(
+                                height: 100,
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'No languages found',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 16,
+                                  ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    SvgPicture.asset(
-                                      country['flag']!,
-                                      width: 30,
-                                      height: 30,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                width: 30,
-                                                height: 30,
-                                                color: Colors.grey,
-                                                child: const Icon(
-                                                  Icons.flag,
-                                                  size: 20,
-                                                  color: Colors.white,
-                                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(
+                                  left: 50,
+                                  right: 50,
+                                  bottom: 20,
+                                ),
+                                itemCount: _filteredCountries.length,
+                                physics: const ClampingScrollPhysics(),
+                                shrinkWrap: true,
+                                itemBuilder: (context, index) {
+                                  final country = _filteredCountries[index];
+                                  // Check if this is the selected language
+                                  // You'll need to track the selected language in your state
+                                  bool isSelected =
+                                      _selectedLanguage != null &&
+                                      country['name'] ==
+                                          _selectedLanguage; // Replace with your actual selected language check
+                                  // For example: isSelected = country['name'] == _selectedLanguage;
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      // Handle language selection
+                                      // Don't update the search controller text
+                                      // Just close the dropdown and update selection
+                                      setState(() {
+                                        _selectedLanguage = country['name'];
+                                        _languageDropdownOpen = false;
+
+                                        _languageSearchController.clear();
+                                        _filteredCountries = _languages;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            country['flag']!,
+                                            width: 30,
+                                            height: 30,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                                      width: 30,
+                                                      height: 30,
+                                                      color: Colors.grey,
+                                                      child: const Icon(
+                                                        Icons.flag,
+                                                        size: 20,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              country['name']!,
+                                              style: TextStyle(
+                                                color: isSelected
+                                                    ? const Color(
+                                                        0xFF00F0FF,
+                                                      ) // Highlight selected language
+                                                    : Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
                                               ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        country['name']!,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
+                                            ),
+                                          ),
+                                          // Show checkmark for selected language
+                                          if (isSelected)
+                                            const Icon(
+                                              Icons.check,
+                                              color: Color(0xFF00F0FF),
+                                              size: 20,
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
                       ),
                     ],
                   ),

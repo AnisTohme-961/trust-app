@@ -40,6 +40,9 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
+  bool _isGetStartedHovered = false;
+  bool _isGetStartedPressed = false;
+
   @override
   void initState() {
     super.initState();
@@ -334,24 +337,60 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage>
                           const SizedBox(width: 10),
 
                           // "Get Started" button
-                          CustomButton(
-                            text: "Get Started",
-                            width: 161,
-                            height: 40,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            textColor: Colors.white,
-                            backgroundColor: Colors.transparent,
-                            borderColor: const Color(0xFF00F0FF),
-                            borderRadius: 10,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterPage(),
+                          MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _isGetStartedHovered = true),
+                            onExit: (_) =>
+                                setState(() => _isGetStartedHovered = false),
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTapDown: (_) {
+                                setState(() => _isGetStartedPressed = true);
+                              },
+                              onTapUp: (_) {
+                                setState(() => _isGetStartedPressed = false);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const RegisterPage(),
+                                  ),
+                                );
+                              },
+                              onTapCancel: () {
+                                setState(() => _isGetStartedPressed = false);
+                              },
+                              child: Transform.scale(
+                                scale: _isGetStartedPressed ? 0.95 : 1.0,
+                                child: CustomButton(
+                                  text: "Get Started",
+                                  width: 161,
+                                  height: 40,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  textColor: Colors.white,
+                                  backgroundColor: _isGetStartedHovered
+                                      ? const Color(
+                                          0xFF00F0FF,
+                                        ).withOpacity(0.15)
+                                      : (_isGetStartedPressed
+                                            ? const Color(
+                                                0xFF00F0FF,
+                                              ).withOpacity(0.25)
+                                            : const Color(0xFF0B1320)),
+                                  borderColor: const Color(0xFF00F0FF),
+                                  borderRadius: 10,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const RegisterPage(),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
 
                           const SizedBox(width: 10),
