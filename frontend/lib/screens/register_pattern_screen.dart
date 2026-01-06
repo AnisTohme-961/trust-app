@@ -369,6 +369,22 @@ class _MobileRegisterPatternScreenState
                               ),
                             ),
                             const _ProgressSteps(),
+                            Positioned(
+                              top: 30,
+                              right: 0, 
+                              bottom: 0,
+                              child: Text(
+                                'Register Pattern',
+                                maxLines: 1,
+                                softWrap: false,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1363,6 +1379,7 @@ class _PatternPainter extends CustomPainter {
 }
 
 // ===== Progress Line =====
+// ===== Progress Line - FIXED VERSION =====
 class _ProgressLine extends StatelessWidget {
   final int totalSteps;
   final int completedSteps;
@@ -1383,37 +1400,27 @@ class _ProgressLine extends StatelessWidget {
           final segmentCount = totalSteps - 1;
           final filledSegments = completedSteps - 1;
 
-          // Divide the width into filled + remaining
+          // Calculate filled and remaining widths
           final filledWidth = totalWidth * (filledSegments / segmentCount);
           final remainingWidth = totalWidth - filledWidth;
 
-          // Define gradient for the filled part
-          final gradients = [
-            const LinearGradient(
-              colors: [Color(0xFF00F0FF), Color(0xFF0EA0BB)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            const LinearGradient(
-              colors: [Color(0xFF13D2C7), Color(0xFF01259E)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            const LinearGradient(
-              colors: [Color(0xFF01259E), Color(0xFF01259E)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            const LinearGradient(
-              colors: [Color(0xFF01259E), Color(0xFF00259E)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+          // Define the gradient colors that match your step colors
+          final gradientColors = [
+            Color(0xFF00F0FF), // Step 1 - Bright Cyan
+            Color(0xFF0EA0BB), // Step 2 - Teal
+            Color(0xFF0764AD), // Step 3 - Blue
+            Color(0xFF01259E), // Step 4 - Dark Blue
           ];
+
+          // Calculate gradient stops for even distribution
+          final stops = List.generate(
+            gradientColors.length,
+            (i) => i / (gradientColors.length - 1),
+          );
 
           return Row(
             children: [
-              // FILLED PART
+              // -------- FILLED PART --------
               Container(
                 width: filledWidth,
                 height: 5,
@@ -1422,14 +1429,16 @@ class _ProgressLine extends StatelessWidget {
                     topLeft: Radius.circular(100),
                     bottomLeft: Radius.circular(100),
                   ),
-                  gradient:
-                      gradients[filledSegments > 0
-                          ? filledSegments - 1
-                          : 0], // pick gradient for last filled segment
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    stops: stops,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
                 ),
               ),
 
-              // REMAINING PART
+              // -------- REMAINING PART --------
               Container(
                 width: remainingWidth,
                 height: 5,
@@ -1465,11 +1474,7 @@ class _ProgressSteps extends StatelessWidget {
           _buildStep("", filled: true, filledColor: const Color(0xFF0EA0BB)),
           _buildStep("", filled: true, filledColor: const Color(0xFF0764AD)),
           _buildStep("", filled: true, filledColor: const Color(0xFF01259E)),
-          _buildStep(
-            "Register Pattern",
-            filled: true,
-            filledColor: const Color(0xFF01259E),
-          ),
+          _buildStep("", filled: true, filledColor: const Color(0xFF01259E)),
         ],
       ),
     );

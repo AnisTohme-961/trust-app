@@ -1658,6 +1658,7 @@ class _ProgressLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
     return SizedBox(
       width: double.infinity,
       child: LayoutBuilder(
@@ -1670,6 +1671,19 @@ class _ProgressLine extends StatelessWidget {
           final filledWidth = totalWidth * (filledSegments / segmentCount);
           final remainingWidth = totalWidth - filledWidth;
 
+           final gradientColors = [
+            Color(0xFF00F0FF), 
+            Color(0xFF0EA0BB), 
+            Color(0xFF0764AD),
+            Color(0xFF01259E), 
+          ];
+
+            final stops = List.generate(
+            gradientColors.length,
+            (i) => i / (gradientColors.length - 1),
+          );
+
+
           return Row(
             children: [
               // -------- FILLED PART --------
@@ -1681,8 +1695,9 @@ class _ProgressLine extends StatelessWidget {
                     topLeft: Radius.circular(100),
                     bottomLeft: Radius.circular(100),
                   ),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00F0FF), Color(0xFF0EA0BB)],
+                    gradient: LinearGradient(
+                    colors: gradientColors,
+                  stops: stops,
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                   ),
@@ -1715,26 +1730,37 @@ class _ProgressSteps extends StatelessWidget {
   const _ProgressSteps({super.key, this.originalPin});
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStep("", filled: true),
-          _buildStep("", filled: true, filledColor: Color(0xFF0EA0BB)),
-          _buildStep("", filled: true, filledColor: Color(0xFF0764AD)),
-          _buildStep(
-            "Register Live",
-            filled: true,
-            filledColor: Color(0xFF01259E),
-          ),
-          _buildStep(""),
-        ],
+@override
+Widget build(BuildContext context) {
+  final steps = [
+    {"label": "", "color": Color(0xFF00F0FF)},
+    {"label": "", "color": Color(0xFF0EA0BB)},
+    {"label": "", "color": Color(0xFF0764AD)},
+    {"label": "Register Live", "color": Color(0xFF01259E)},
+    {"label": "", "color": Colors.white},
+  ];
+
+  return SizedBox(
+    width: double.infinity,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: List.generate(
+        steps.length,
+        (index) {
+          final step = steps[index];
+          final filled = index <= 3; // mark first 4 as filled (adjust dynamically)
+          return _buildStep(
+            step["label"] as String,
+            filled: filled,
+            filledColor: step["color"] as Color,
+          );
+        },
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   static Widget _buildStep(
     String label, {

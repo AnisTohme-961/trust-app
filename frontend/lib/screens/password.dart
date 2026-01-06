@@ -481,7 +481,13 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
   @override
   Widget build(BuildContext context) {
     final fontProvider = Provider.of<FontSizeProvider>(context);
-
+    const stepColors = {
+      0: Color(0xFF13D2C7),
+      1: Color(0xFF0EA0BB), 
+      2: Color(0xFF0764AD),
+      3: Color(0xFF0177B3),
+      4: Color(0xFF01259E),
+    };
     return Scaffold(
       backgroundColor: const Color(0xFF0B1320),
       body: SafeArea(
@@ -636,7 +642,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                         gradient: const LinearGradient(
                                           colors: [
                                             Color(0xFF13D2C7),
-                                            Color(0xFF00259E),
+                                            Color(0xFF0177B3),
                                           ],
                                           begin: Alignment.centerLeft,
                                           end: Alignment.centerRight,
@@ -671,9 +677,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                   child: _buildStep(
                                     i == 2 ? "Security Base" : "",
                                     filled: i <= 2,
-                                    filledColor: i == 2
-                                        ? const Color(0xFF0EA0BB)
-                                        : null,
+                                    filledColor: stepColors[i],
                                   ),
                                 ),
                             ],

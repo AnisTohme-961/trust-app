@@ -74,6 +74,14 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   void initState() {
     super.initState();
 
+    final user = context.read<UserProvider>();
+   
+    _firstNameController.text = user.firstName;
+    _lastNameController.text = user.lastName;
+    _sponsorController.text = user.sponsorCode;
+    _genderController.text = user.gender;
+    _selectedGender = user.gender;
+
     // Add focus listeners for validation on field exit
     _firstFocusNode.addListener(_validateFirstNameOnUnfocus);
     _lastFocusNode.addListener(_validateLastNameOnUnfocus);
@@ -82,21 +90,6 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final user = context.read<UserProvider>();
-
-    // Only set initial values if controllers are empty to avoid overriding user input
-    if (_firstNameController.text.isEmpty) {
-      _firstNameController.text = user.firstName;
-    }
-    if (_lastNameController.text.isEmpty) {
-      _lastNameController.text = user.lastName;
-    }
-    if (_sponsorController.text.isEmpty) {
-      _sponsorController.text = user.sponsorCode;
-    }
-    _genderController.text = user.gender;
-    _selectedGender = user.gender;
-
     // Validate initial values
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _validateFirstName();
@@ -551,8 +544,8 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                         // Background line
                         Positioned(
                           top: 9.5,
-                          left: 39,
-                          right: 39,
+                          left: 40,
+                          right: 40,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               const totalSteps = 5;
@@ -623,7 +616,7 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                                     i == 0 ? "Profile Start" : "",
                                     filled: i <= 0,
                                     filledColor: i == 0
-                                        ? const Color(0xFF0EA0BB)
+                                        ? Color(0xFF00F0FF)
                                         : null,
                                   ),
                                 ),
@@ -1382,14 +1375,6 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
   void initState() {
     super.initState();
 
-    // Add focus listeners for validation on field exit
-    _firstFocusNode.addListener(_validateFirstNameOnUnfocus);
-    _lastFocusNode.addListener(_validateLastNameOnUnfocus);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     final user = context.read<UserProvider>();
 
     _firstNameController.text = user.firstName;
@@ -1398,7 +1383,15 @@ class _SignUpPageTabletState extends State<SignUpPageTablet> {
     _genderController.text = user.gender;
     _selectedGender = user.gender;
 
-    // Validate initial values
+    // Add focus listeners for validation on field exit
+    _firstFocusNode.addListener(_validateFirstNameOnUnfocus);
+    _lastFocusNode.addListener(_validateLastNameOnUnfocus);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _validateFirstName();
       _validateLastName();
