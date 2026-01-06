@@ -61,9 +61,11 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   bool _isBackHovered = false;
   bool _isBackPressed = false;
 
-  // State for the other Next button
-  bool _isSecondNextHovered = false;
-  bool _isSecondNextPressed = false;
+  // State for Clear button
+  bool _isClearPressed = false;
+
+  // State for number buttons
+  Map<String, bool> _numberButtonPressed = {};
 
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
@@ -77,29 +79,70 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
   void initState() {
     super.initState();
     _numbers = List.generate(10, (i) => i.toString())..shuffle();
+
+    // Initialize all number button states
+    for (var num in _numbers) {
+      _numberButtonPressed[num] = false;
+    }
+    _numberButtonPressed['Clear'] = false;
+    _numberButtonPressed['Logout'] = false;
   }
 
   void _onKeyTap(String value) {
-    setState(() {
-      if (value == 'Clear') {
-        _pin.clear();
-        _validatePin();
-      } else if (value == 'Logout') {
-        _logout();
-      } else {
-        if (_pin.length < 4) {
-          _pin.add(value);
-          if (_pin.length == 4) {
-            // Validate automatically when 4 digits are entered
-            _validatePinAutomatically();
-          } else {
-            // Clear validation state if not 4 digits
-            _pinMatching = false;
-            _pinValid = false;
-          }
+    if (value == 'Clear') {
+      // Clear button pressed animation
+      setState(() {
+        _numberButtonPressed['Clear'] = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _numberButtonPressed['Clear'] = false;
+            _pin.clear();
+            _validatePin();
+          });
         }
-      }
-    });
+      });
+    } else if (value == 'Logout') {
+      // Logout button pressed animation
+      setState(() {
+        _numberButtonPressed['Logout'] = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _numberButtonPressed['Logout'] = false;
+          });
+          _logout();
+        }
+      });
+    } else {
+      // Number button pressed animation
+      setState(() {
+        _numberButtonPressed[value] = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _numberButtonPressed[value] = false;
+            if (_pin.length < 4) {
+              _pin.add(value);
+              if (_pin.length == 4) {
+                // Validate automatically when 4 digits are entered
+                _validatePinAutomatically();
+              } else {
+                // Clear validation state if not 4 digits
+                _pinMatching = false;
+                _pinValid = false;
+              }
+            }
+          });
+        }
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -361,6 +404,47 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
     }
   }
 
+  void _handleNextTap() {
+    if (_allFieldsValid) {
+      setState(() {
+        _isNextPressed = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _isNextPressed = false;
+          });
+          _onNext();
+        }
+      });
+    } else {
+      _validateAllFieldsAndShowErrors();
+    }
+  }
+
+  void _handleBackTap() {
+    setState(() {
+      _isBackPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isBackPressed = false;
+        });
+        if (widget.originalPin != null) {
+          // Prevent manual back button when in confirm PIN mode
+          _errorStackKey.currentState?.showError(
+            "Please complete PIN confirmation first",
+          );
+        } else {
+          Navigator.pop(context);
+        }
+      }
+    });
+  }
+
   // Check if all required fields are valid
   bool get _allFieldsValid {
     if (widget.originalPin != null) {
@@ -381,12 +465,8 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
     required bool isPressed,
     required VoidCallback onHoverEnter,
     required VoidCallback onHoverExit,
-    required VoidCallback onTapDown,
-    required VoidCallback onTapUp,
-    required VoidCallback onTapCancel,
     double width = 106,
     double height = 40,
-    bool useCustomButton = false,
   }) {
     return MouseRegion(
       onEnter: (_) => isEnabled ? onHoverEnter() : null,
@@ -395,156 +475,38 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
           ? SystemMouseCursors.click
           : SystemMouseCursors.forbidden,
       child: GestureDetector(
-        onTapDown: isEnabled ? (_) => onTapDown() : null,
-        onTapUp: isEnabled ? (_) => onTapUp() : null,
-        onTapCancel: isEnabled ? onTapCancel : null,
-        onTap: onTap,
+        onTapDown: isEnabled ? (_) => onHoverEnter() : null,
+        onTapUp: isEnabled ? (_) => onTap() : null,
+        onTapCancel: isEnabled ? onHoverExit : null,
         child: Transform.scale(
           scale: isEnabled && isPressed ? 0.95 : 1.0,
-          child: useCustomButton
-              ? _buildCustomButton(
-                  text: text,
-                  width: width,
-                  height: height,
-                  isEnabled: isEnabled,
-                  isHovered: isHovered,
-                  isPressed: isPressed,
-                  onTap: onTap,
-                )
-              : _buildContainerButton(
-                  text: text,
-                  width: width,
-                  height: height,
-                  isEnabled: isEnabled,
-                  isHovered: isHovered,
-                  isPressed: isPressed,
-                  onTap: onTap,
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCustomButton({
-    required String text,
-    required double width,
-    required double height,
-    required bool isEnabled,
-    required bool isHovered,
-    required bool isPressed,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isEnabled ? const Color(0xFF00F0FF) : const Color(0xFF4A5568),
-          width: 1,
-        ),
-        color: isEnabled
-            ? (isHovered
-                  ? const Color(0xFF00F0FF).withOpacity(0.15)
-                  : isPressed
-                  ? const Color(0xFF00F0FF).withOpacity(0.25)
-                  : Colors.transparent)
-            : Colors.transparent,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 20,
-          color: isEnabled ? Colors.white : const Color(0xFF718096),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContainerButton({
-    required String text,
-    required double width,
-    required double height,
-    required bool isEnabled,
-    required bool isHovered,
-    required bool isPressed,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isEnabled ? const Color(0xFF00F0FF) : const Color(0xFF4A5568),
-          width: 1,
-        ),
-        color: isEnabled
-            ? (isHovered
-                  ? const Color(0xFF00F0FF).withOpacity(0.15)
-                  : isPressed
-                  ? const Color(0xFF00F0FF).withOpacity(0.25)
-                  : Colors.transparent)
-            : Colors.transparent,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 20,
-          color: isEnabled ? Colors.white : const Color(0xFF718096),
-        ),
-      ),
-    );
-  }
-
-  // Wrapper for NavButton to add interaction
-  Widget _wrapNavButtonWithInteraction() {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isBackHovered = true),
-      onExit: (_) => setState(() => _isBackHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isBackPressed = true),
-        onTapUp: (_) => setState(() => _isBackPressed = false),
-        onTapCancel: () => setState(() => _isBackPressed = false),
-        onTap: () {
-          if (widget.originalPin != null) {
-            // Prevent manual back button when in confirm PIN mode
-            _errorStackKey.currentState?.showError(
-              "Please complete PIN confirmation first",
-            );
-          } else {
-            Navigator.pop(context);
-          }
-        },
-        child: Transform.scale(
-          scale: _isBackPressed ? 0.95 : 1.0,
           child: Container(
-            width: 106,
-            height: 40,
+            width: width,
+            height: height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF00F0FF), width: 1),
-              color: _isBackHovered
-                  ? const Color(0xFF00F0FF).withOpacity(0.15)
-                  : _isBackPressed
-                  ? const Color(0xFF00F0FF).withOpacity(0.25)
+              border: Border.all(
+                color: isEnabled
+                    ? const Color(0xFF00F0FF)
+                    : const Color(0xFF4A5568),
+                width: 1,
+              ),
+              color: isEnabled
+                  ? (isHovered
+                        ? const Color(0xFF00F0FF).withOpacity(0.15)
+                        : isPressed
+                        ? const Color(0xFF00F0FF).withOpacity(0.25)
+                        : Colors.transparent)
                   : Colors.transparent,
             ),
             alignment: Alignment.center,
-            child: const Text(
-              "Back",
+            child: Text(
+              text,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
                 fontSize: 20,
-                color: Colors.white,
+                color: isEnabled ? Colors.white : const Color(0xFF718096),
               ),
             ),
           ),
@@ -706,8 +668,12 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                         ),
                         const SizedBox(height: 40),
 
-                        // Keypad
-                        _Keypad(onKeyTap: _onKeyTap, numbers: _numbers),
+                        // Keypad with animation support
+                        _Keypad(
+                          onKeyTap: _onKeyTap,
+                          numbers: _numbers,
+                          buttonPressedStates: _numberButtonPressed,
+                        ),
 
                         const SizedBox(height: 20),
                       ],
@@ -727,17 +693,55 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                       children: [
                         _GradientLine(isLeft: true),
                         // Back button with interaction
-                        _wrapNavButtonWithInteraction(),
+                        MouseRegion(
+                          onEnter: (_) => setState(() => _isBackHovered = true),
+                          onExit: (_) => setState(() => _isBackHovered = false),
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTapDown: (_) =>
+                                setState(() => _isBackPressed = true),
+                            onTapUp: (_) => _handleBackTap(),
+                            onTapCancel: () =>
+                                setState(() => _isBackPressed = false),
+                            child: Transform.scale(
+                              scale: _isBackPressed ? 0.95 : 1.0,
+                              child: Container(
+                                width: 106,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFF00F0FF),
+                                    width: 1,
+                                  ),
+                                  color: _isBackHovered
+                                      ? const Color(
+                                          0xFF00F0FF,
+                                        ).withOpacity(0.15)
+                                      : _isBackPressed
+                                      ? const Color(
+                                          0xFF00F0FF,
+                                        ).withOpacity(0.25)
+                                      : Colors.transparent,
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  "Back",
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 20,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                         // Next button with interaction
                         _buildInteractiveButton(
                           text: "Next",
-                          onTap: () {
-                            if (_allFieldsValid) {
-                              _onNext();
-                            } else {
-                              _validateAllFieldsAndShowErrors();
-                            }
-                          },
+                          onTap: _handleNextTap,
                           isEnabled: _allFieldsValid,
                           isHovered: _isNextHovered,
                           isPressed: _isNextPressed,
@@ -745,12 +749,8 @@ class _MobileRegisterPinScreenState extends State<MobileRegisterPinScreen> {
                               setState(() => _isNextHovered = true),
                           onHoverExit: () =>
                               setState(() => _isNextHovered = false),
-                          onTapDown: () =>
-                              setState(() => _isNextPressed = true),
-                          onTapUp: () => setState(() => _isNextPressed = false),
-                          onTapCancel: () =>
-                              setState(() => _isNextPressed = false),
-                          useCustomButton: false,
+                          width: 106,
+                          height: 40,
                         ),
                         _GradientLine(isLeft: false),
                       ],
@@ -803,9 +803,8 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
   bool _isBackHovered = false;
   bool _isBackPressed = false;
 
-  // State for the other Next button
-  bool _isSecondNextHovered = false;
-  bool _isSecondNextPressed = false;
+  // State for number buttons
+  Map<String, bool> _numberButtonPressed = {};
 
   final GlobalKey<ErrorStackState> _errorStackKey =
       GlobalKey<ErrorStackState>();
@@ -819,29 +818,70 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
   void initState() {
     super.initState();
     _numbers = List.generate(10, (i) => i.toString())..shuffle();
+
+    // Initialize all number button states
+    for (var num in _numbers) {
+      _numberButtonPressed[num] = false;
+    }
+    _numberButtonPressed['Clear'] = false;
+    _numberButtonPressed['Logout'] = false;
   }
 
   void _onKeyTap(String value) {
-    setState(() {
-      if (value == 'Clear') {
-        _pin.clear();
-        _validatePin();
-      } else if (value == 'Logout') {
-        _logout();
-      } else {
-        if (_pin.length < 4) {
-          _pin.add(value);
-          if (_pin.length == 4) {
-            // Validate automatically when 4 digits are entered
-            _validatePinAutomatically();
-          } else {
-            // Clear validation state if not 4 digits
-            _pinMatching = false;
-            _pinValid = false;
-          }
+    if (value == 'Clear') {
+      // Clear button pressed animation
+      setState(() {
+        _numberButtonPressed['Clear'] = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _numberButtonPressed['Clear'] = false;
+            _pin.clear();
+            _validatePin();
+          });
         }
-      }
-    });
+      });
+    } else if (value == 'Logout') {
+      // Logout button pressed animation
+      setState(() {
+        _numberButtonPressed['Logout'] = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _numberButtonPressed['Logout'] = false;
+          });
+          _logout();
+        }
+      });
+    } else {
+      // Number button pressed animation
+      setState(() {
+        _numberButtonPressed[value] = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _numberButtonPressed[value] = false;
+            if (_pin.length < 4) {
+              _pin.add(value);
+              if (_pin.length == 4) {
+                // Validate automatically when 4 digits are entered
+                _validatePinAutomatically();
+              } else {
+                // Clear validation state if not 4 digits
+                _pinMatching = false;
+                _pinValid = false;
+              }
+            }
+          });
+        }
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -851,6 +891,47 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
     } catch (e) {
       print("Logout failed: $e");
     }
+  }
+
+  void _handleNextTap() {
+    if (_allFieldsValid) {
+      setState(() {
+        _isNextPressed = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _isNextPressed = false;
+          });
+          _onNext();
+        }
+      });
+    } else {
+      _validateAllFieldsAndShowErrors();
+    }
+  }
+
+  void _handleBackTap() {
+    setState(() {
+      _isBackPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isBackPressed = false;
+        });
+        if (widget.originalPin != null) {
+          // Prevent manual back button when in confirm PIN mode
+          _errorStackKey.currentState?.showError(
+            "Please complete PIN confirmation first",
+          );
+        } else {
+          Navigator.pop(context);
+        }
+      }
+    });
   }
 
   // Validation methods
@@ -1107,12 +1188,8 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
     required bool isPressed,
     required VoidCallback onHoverEnter,
     required VoidCallback onHoverExit,
-    required VoidCallback onTapDown,
-    required VoidCallback onTapUp,
-    required VoidCallback onTapCancel,
     double width = 106,
     double height = 40,
-    bool useCustomButton = false,
   }) {
     return MouseRegion(
       onEnter: (_) => isEnabled ? onHoverEnter() : null,
@@ -1121,10 +1198,9 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
           ? SystemMouseCursors.click
           : SystemMouseCursors.forbidden,
       child: GestureDetector(
-        onTapDown: isEnabled ? (_) => onTapDown() : null,
-        onTapUp: isEnabled ? (_) => onTapUp() : null,
-        onTapCancel: isEnabled ? onTapCancel : null,
-        onTap: onTap,
+        onTapDown: isEnabled ? (_) => onHoverEnter() : null,
+        onTapUp: isEnabled ? (_) => onTap() : null,
+        onTapCancel: isEnabled ? onHoverExit : null,
         child: Transform.scale(
           scale: isEnabled && isPressed ? 0.95 : 1.0,
           child: Container(
@@ -1154,56 +1230,6 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                 fontWeight: FontWeight.w500,
                 fontSize: 20,
                 color: isEnabled ? Colors.white : const Color(0xFF718096),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Wrapper for NavButton to add interaction for tablet
-  Widget _wrapNavButtonWithInteraction() {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isBackHovered = true),
-      onExit: (_) => setState(() => _isBackHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isBackPressed = true),
-        onTapUp: (_) => setState(() => _isBackPressed = false),
-        onTapCancel: () => setState(() => _isBackPressed = false),
-        onTap: () {
-          if (widget.originalPin != null) {
-            // Prevent manual back button when in confirm PIN mode
-            _errorStackKey.currentState?.showError(
-              "Please complete PIN confirmation first",
-            );
-          } else {
-            Navigator.pop(context);
-          }
-        },
-        child: Transform.scale(
-          scale: _isBackPressed ? 0.95 : 1.0,
-          child: Container(
-            width: 106,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF00F0FF), width: 1),
-              color: _isBackHovered
-                  ? const Color(0xFF00F0FF).withOpacity(0.15)
-                  : _isBackPressed
-                  ? const Color(0xFF00F0FF).withOpacity(0.25)
-                  : Colors.transparent,
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              "Back",
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 20,
-                color: Colors.white,
               ),
             ),
           ),
@@ -1414,13 +1440,15 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                         ),
                                         const SizedBox(height: 30),
 
-                                        // Keypad - Larger for tablet
+                                        // Keypad - Larger for tablet with animation support
                                         SizedBox(
                                           width: 400,
                                           height: 360,
                                           child: _TabletKeypad(
                                             onKeyTap: _onKeyTap,
                                             numbers: _numbers,
+                                            buttonPressedStates:
+                                                _numberButtonPressed,
                                           ),
                                         ),
                                       ],
@@ -1438,17 +1466,69 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                         children: [
                                           _GradientLine(isLeft: true),
                                           // Back button with interaction
-                                          _wrapNavButtonWithInteraction(),
+                                          MouseRegion(
+                                            onEnter: (_) => setState(
+                                              () => _isBackHovered = true,
+                                            ),
+                                            onExit: (_) => setState(
+                                              () => _isBackHovered = false,
+                                            ),
+                                            cursor: SystemMouseCursors.click,
+                                            child: GestureDetector(
+                                              onTapDown: (_) => setState(
+                                                () => _isBackPressed = true,
+                                              ),
+                                              onTapUp: (_) => _handleBackTap(),
+                                              onTapCancel: () => setState(
+                                                () => _isBackPressed = false,
+                                              ),
+                                              child: Transform.scale(
+                                                scale: _isBackPressed
+                                                    ? 0.95
+                                                    : 1.0,
+                                                child: Container(
+                                                  width: 106,
+                                                  height: 40,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFF00F0FF,
+                                                      ),
+                                                      width: 1,
+                                                    ),
+                                                    color: _isBackHovered
+                                                        ? const Color(
+                                                            0xFF00F0FF,
+                                                          ).withOpacity(0.15)
+                                                        : _isBackPressed
+                                                        ? const Color(
+                                                            0xFF00F0FF,
+                                                          ).withOpacity(0.25)
+                                                        : Colors.transparent,
+                                                  ),
+                                                  alignment: Alignment.center,
+                                                  child: const Text(
+                                                    "Back",
+                                                    style: TextStyle(
+                                                      fontFamily: 'Inter',
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 20,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                           // Next button with interaction
                                           _buildInteractiveButton(
                                             text: "Next",
-                                            onTap: () {
-                                              if (_allFieldsValid) {
-                                                _onNext();
-                                              } else {
-                                                _validateAllFieldsAndShowErrors();
-                                              }
-                                            },
+                                            onTap: _handleNextTap,
                                             isEnabled: _allFieldsValid,
                                             isHovered: _isNextHovered,
                                             isPressed: _isNextPressed,
@@ -1457,15 +1537,6 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
                                             ),
                                             onHoverExit: () => setState(
                                               () => _isNextHovered = false,
-                                            ),
-                                            onTapDown: () => setState(
-                                              () => _isNextPressed = true,
-                                            ),
-                                            onTapUp: () => setState(
-                                              () => _isNextPressed = false,
-                                            ),
-                                            onTapCancel: () => setState(
-                                              () => _isNextPressed = false,
                                             ),
                                           ),
                                           _GradientLine(isLeft: false),
@@ -1517,8 +1588,13 @@ class _TabletRegisterPinScreenState extends State<TabletRegisterPinScreen> {
 class _TabletKeypad extends StatelessWidget {
   final void Function(String) onKeyTap;
   final List<String> numbers;
+  final Map<String, bool> buttonPressedStates;
 
-  const _TabletKeypad({required this.onKeyTap, required this.numbers});
+  const _TabletKeypad({
+    required this.onKeyTap,
+    required this.numbers,
+    required this.buttonPressedStates,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1538,31 +1614,112 @@ class _TabletKeypad extends StatelessWidget {
             children: row.map((text) {
               final isLogout = text == 'Logout';
               final isClear = text == 'Clear';
+              final isPressed = buttonPressedStates[text] ?? false;
 
               return GestureDetector(
                 onTap: () => onKeyTap(text),
-                child: Container(
-                  width: 104,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isLogout ? Colors.red : const Color(0xFF00F0FF),
-                      width: isLogout || isClear ? 4 : 2,
+                child: Transform.scale(
+                  scale: isPressed ? 0.95 : 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: 104,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isLogout ? Colors.red : const Color(0xFF00F0FF),
+                        width: isLogout || isClear ? 4 : 2,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                      color: isPressed
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : Colors.transparent,
                     ),
-                    borderRadius: BorderRadius.circular(6),
+                    alignment: Alignment.center,
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: isLogout || isClear
+                            ? FontWeight.w500
+                            : FontWeight.w800,
+                        fontSize: isLogout || isClear
+                            ? 20
+                            : 30, // 👈 only Logout & Clear = 20, others = 30
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: isLogout || isClear
-                          ? FontWeight.w500
-                          : FontWeight.w800,
-                      fontSize: isLogout || isClear
-                          ? 20
-                          : 30, // 👈 only Logout & Clear = 20, others = 30
-                      color: Colors.white,
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ===== Mobile Keypad =====
+class _Keypad extends StatelessWidget {
+  final void Function(String) onKeyTap;
+  final List<String> numbers;
+  final Map<String, bool> buttonPressedStates;
+
+  const _Keypad({
+    required this.onKeyTap,
+    required this.numbers,
+    required this.buttonPressedStates,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final buttons = [
+      [numbers[0], numbers[1], numbers[2]],
+      [numbers[3], numbers[4], numbers[5]],
+      [numbers[6], numbers[7], numbers[8]],
+      ['Logout', numbers[9], 'Clear'],
+    ];
+
+    return Column(
+      children: buttons.map((row) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 30),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: row.map((text) {
+              final isLogout = text == 'Logout';
+              final isClear = text == 'Clear';
+              final isPressed = buttonPressedStates[text] ?? false;
+
+              return GestureDetector(
+                onTap: () => onKeyTap(text),
+                child: Transform.scale(
+                  scale: isPressed ? 0.95 : 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: 103,
+                    height: 49,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isLogout ? Colors.red : const Color(0xFF00F0FF),
+                        width: isLogout || isClear ? 3 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                      color: isPressed
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : Colors.transparent,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: isLogout || isClear
+                            ? FontWeight.w500
+                            : FontWeight.w800,
+                        fontSize: isLogout || isClear ? 20 : 30,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -1801,95 +1958,6 @@ Widget build(BuildContext context) {
       ),
     );
   }
-}
-
-// ===== Keypad =====
-class _Keypad extends StatelessWidget {
-  final void Function(String) onKeyTap;
-  final List<String> numbers;
-
-  const _Keypad({required this.onKeyTap, required this.numbers});
-
-  @override
-  Widget build(BuildContext context) {
-    final buttons = [
-      [numbers[0], numbers[1], numbers[2]],
-      [numbers[3], numbers[4], numbers[5]],
-      [numbers[6], numbers[7], numbers[8]],
-      ['Logout', numbers[9], 'Clear'],
-    ];
-
-    return Column(
-      children: buttons.map((row) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 30),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: row.map((text) {
-              final isLogout = text == 'Logout';
-              final isClear = text == 'Clear';
-
-              return GestureDetector(
-                onTap: () => onKeyTap(text),
-                child: Container(
-                  width: 103,
-                  height: 49,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isLogout ? Colors.red : const Color(0xFF00F0FF),
-                      width: isLogout || isClear ? 3 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: isLogout || isClear
-                          ? FontWeight.w500
-                          : FontWeight.w800,
-                      fontSize: isLogout || isClear ? 20 : 30,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _NavButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onTap;
-  const _NavButton({required this.text, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 106,
-      height: 40,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF00F0FF), width: 1),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 20,
-          color: Colors.white,
-        ),
-      ),
-    ),
-  );
 }
 
 class _GradientLine extends StatelessWidget {

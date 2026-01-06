@@ -124,6 +124,30 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
     Navigator.pushNamed(context, '/sign-up');
   }
 
+  void _handleSignInTap() {
+    setState(() {
+      _isSignInPressed = true;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _isSignInPressed = false;
+          _selectAccountOpen = true;
+        });
+      });
+    });
+  }
+
+  void _handleSignUpTap(BuildContext context) {
+    setState(() {
+      _isSignUpPressed = true;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _isSignUpPressed = false;
+        });
+        _navigateToNextPage(context);
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
@@ -247,40 +271,42 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         onExit: (_) => setState(() => _isSignInHovered = false),
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
-                          onTapDown: (_) {
-                            setState(() => _isSignInPressed = true);
-                          },
-                          onTapUp: (_) {
-                            setState(() => _isSignInPressed = false);
-                            setState(() {
-                              _selectAccountOpen = true;
-                            });
-                          },
-                          onTapCancel: () {
-                            setState(() => _isSignInPressed = false);
-                          },
+                          onTapDown: (_) =>
+                              setState(() => _isSignInPressed = true),
+                          onTapUp: (_) => _handleSignInTap(),
+                          onTapCancel: () =>
+                              setState(() => _isSignInPressed = false),
                           child: Transform.scale(
                             scale: _isSignInPressed ? 0.95 : 1.0,
-                            child: CustomButton(
-                              text: 'Sign In',
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 100),
                               width: 150,
                               height: 40,
-                              fontSize: 20,
-                              textColor: Colors.white,
-                              backgroundColor: _isSignInHovered
-                                  ? const Color(0xFF00F0FF).withOpacity(0.15)
-                                  : (_isSignInPressed
-                                        ? const Color(
-                                            0xFF00F0FF,
-                                          ).withOpacity(0.25)
-                                        : const Color(0xFF0B1320)),
-                              borderColor: const Color(0xFF00F0FF),
-                              borderRadius: 10,
-                              onTap: () {
-                                setState(() {
-                                  _selectAccountOpen = true;
-                                });
-                              },
+                              decoration: BoxDecoration(
+                                color: _isSignInHovered
+                                    ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                    : (_isSignInPressed
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.25)
+                                          : const Color(0xFF0B1320)),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFF00F0FF),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 20.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -292,36 +318,42 @@ class _RegisterPageMobileState extends State<RegisterPageMobile> {
                         onExit: (_) => setState(() => _isSignUpHovered = false),
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
-                          onTapDown: (_) {
-                            setState(() => _isSignUpPressed = true);
-                          },
-                          onTapUp: (_) {
-                            setState(() => _isSignUpPressed = false);
-                            _navigateToNextPage(context);
-                          },
-                          onTapCancel: () {
-                            setState(() => _isSignUpPressed = false);
-                          },
+                          onTapDown: (_) =>
+                              setState(() => _isSignUpPressed = true),
+                          onTapUp: (_) => _handleSignUpTap(context),
+                          onTapCancel: () =>
+                              setState(() => _isSignUpPressed = false),
                           child: Transform.scale(
                             scale: _isSignUpPressed ? 0.95 : 1.0,
-                            child: CustomButton(
-                              text: 'Sign Up',
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 100),
                               width: 150,
                               height: 40,
-                              fontSize: 20,
-                              textColor: Colors.white,
-                              backgroundColor: _isSignUpHovered
-                                  ? const Color(0xFF00F0FF).withOpacity(0.15)
-                                  : (_isSignUpPressed
-                                        ? const Color(
-                                            0xFF00F0FF,
-                                          ).withOpacity(0.25)
-                                        : const Color(0xFF0B1320)),
-                              borderColor: const Color(0xFF00F0FF),
-                              borderRadius: 10,
-                              onTap: () {
-                                _navigateToNextPage(context);
-                              },
+                              decoration: BoxDecoration(
+                                color: _isSignUpHovered
+                                    ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                    : (_isSignUpPressed
+                                          ? const Color(
+                                              0xFF00F0FF,
+                                            ).withOpacity(0.25)
+                                          : const Color(0xFF0B1320)),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFF00F0FF),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Sign Up',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 20.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),

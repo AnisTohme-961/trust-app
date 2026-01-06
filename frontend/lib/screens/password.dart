@@ -348,7 +348,41 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
     }
   }
 
+  void _handleBackTap() {
+    setState(() {
+      _isBackPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isBackPressed = false;
+        });
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
   void _handleNextTap() {
+    if (_allFieldsValid) {
+      setState(() {
+        _isNextPressed = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _isNextPressed = false;
+          });
+          _handleNextAction();
+        }
+      });
+    } else {
+      _validateAllFieldsAndShowErrors();
+    }
+  }
+
+  void _handleNextAction() {
     if (_allFieldsValid) {
       _proceedWithSubmission();
     } else {
@@ -1234,6 +1268,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                             ),
                           ),
 
+                          // Back Button
                           MouseRegion(
                             onEnter: (_) =>
                                 setState(() => _isBackHovered = true),
@@ -1241,27 +1276,22 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 setState(() => _isBackHovered = false),
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
-                              onTapDown: (_) {
-                                setState(() => _isBackPressed = true);
-                              },
-                              onTapUp: (_) {
-                                setState(() => _isBackPressed = false);
-                                Navigator.of(context).pop();
-                              },
-                              onTapCancel: () {
-                                setState(() => _isBackPressed = false);
-                              },
-                              onTap: () => Navigator.of(context).pop(),
+                              onTapDown: (_) =>
+                                  setState(() => _isBackPressed = true),
+                              onTapUp: (_) => _handleBackTap(),
+                              onTapCancel: () =>
+                                  setState(() => _isBackPressed = false),
                               child: Transform.scale(
                                 scale: _isBackPressed ? 0.95 : 1.0,
-                                child: Container(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
                                   width: 106,
                                   height: 40,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: const Color(0xFF00F0FF),
-                                      width: 1,
+                                      width: 2,
                                     ),
                                     color: _isBackHovered
                                         ? const Color(
@@ -1279,8 +1309,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 20,
-                                        height: 1.0,
+                                        fontSize: 20.0,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -1293,6 +1322,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                           // Spacer between buttons
                           const SizedBox(width: 8),
 
+                          // Next Button
                           MouseRegion(
                             onEnter: (_) => _allFieldsValid
                                 ? setState(() => _isNextHovered = true)
@@ -1304,32 +1334,20 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                 : SystemMouseCursors.forbidden,
                             child: GestureDetector(
                               onTapDown: _allFieldsValid
-                                  ? (_) {
-                                      setState(() => _isNextPressed = true);
-                                    }
+                                  ? (_) => setState(() => _isNextPressed = true)
                                   : null,
                               onTapUp: _allFieldsValid
-                                  ? (_) {
-                                      setState(() => _isNextPressed = false);
-                                    }
+                                  ? (_) => _handleNextTap()
                                   : null,
                               onTapCancel: _allFieldsValid
-                                  ? () {
-                                      setState(() => _isNextPressed = false);
-                                    }
+                                  ? () => setState(() => _isNextPressed = false)
                                   : null,
-                              onTap: () {
-                                if (_allFieldsValid) {
-                                  _handleNextTap();
-                                } else {
-                                  _validateAllFieldsAndShowErrors();
-                                }
-                              },
                               child: Transform.scale(
                                 scale: _allFieldsValid && _isNextPressed
                                     ? 0.95
                                     : 1.0,
-                                child: Container(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
                                   width: 106,
                                   height: 40,
                                   decoration: BoxDecoration(
@@ -1338,7 +1356,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                       color: _allFieldsValid
                                           ? const Color(0xFF00F0FF)
                                           : const Color(0xFF4A5568),
-                                      width: 1,
+                                      width: 2,
                                     ),
                                     color: _allFieldsValid
                                         ? (_isNextHovered
@@ -1358,8 +1376,7 @@ class _MobilePasswordPageState extends State<MobilePasswordPage> {
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 20,
-                                        height: 1.0,
+                                        fontSize: 20.0,
                                         color: _allFieldsValid
                                             ? Colors.white
                                             : const Color(0xFF718096),
