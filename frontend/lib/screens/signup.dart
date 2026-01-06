@@ -48,6 +48,9 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
   bool _isFemaleHovered = false;
   bool _isNextHovered = false;
   bool _isNextPressed = false;
+  // Add Sign In button states
+  bool _isSignInHovered = false;
+  bool _isSignInPressed = false;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -456,6 +459,56 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
     }
   }
 
+  // Sign In button tap handler
+  void _handleSignInTap() {
+    setState(() {
+      _isSignInPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      setState(() {
+        _isSignInPressed = false;
+      });
+      Navigator.pushNamed(context, '/sign-in');
+    });
+  }
+
+  void _handleNextTap() {
+    if (_allFieldsValid) {
+      setState(() {
+        _isNextPressed = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        setState(() {
+          _isNextPressed = false;
+        });
+
+        // Navigate to next page
+        Navigator.of(context).push(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 400),
+            pageBuilder: (_, __, ___) => ResponsiveProtectAccess(),
+            transitionsBuilder: (_, animation, __, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              final tween = Tween(
+                begin: begin,
+                end: end,
+              ).chain(CurveTween(curve: Curves.easeInOut));
+              return SlideTransition(
+                position: animation.drive(tween),
+                child: child,
+              );
+            },
+          ),
+        );
+      });
+    } else {
+      _validateAllFieldsAndShowErrors();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final signUpData = Provider.of<UserProvider>(context);
@@ -503,15 +556,54 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                         ),
                         Positioned(
                           left: 0,
-                          child: CustomButton(
-                            text: 'Sign In',
-                            width: 106,
-                            height: 40,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            onTap: () {
-                              Navigator.pushNamed(context, '/sign-in');
-                            },
+                          child: MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _isSignInHovered = true),
+                            onExit: (_) =>
+                                setState(() => _isSignInHovered = false),
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTapDown: (_) =>
+                                  setState(() => _isSignInPressed = true),
+                              onTapUp: (_) => _handleSignInTap(),
+                              onTapCancel: () =>
+                                  setState(() => _isSignInPressed = false),
+                              child: Transform.scale(
+                                scale: _isSignInPressed ? 0.95 : 1.0,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
+                                  width: 106,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: _isSignInHovered
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.15)
+                                        : (_isSignInPressed
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.25)
+                                              : const Color(0xFF0B1320)),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF00F0FF),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20.0,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1109,55 +1201,55 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
                               : SystemMouseCursors.forbidden,
                           child: GestureDetector(
                             onTapDown: _allFieldsValid
-                                ? (_) {
-                                    setState(() => _isNextPressed = true);
-                                  }
+                                ? (_) => setState(() => _isNextPressed = true)
                                 : null,
                             onTapUp: _allFieldsValid
-                                ? (_) {
-                                    setState(() => _isNextPressed = false);
-                                  }
+                                ? (_) => _handleNextTap()
                                 : null,
                             onTapCancel: _allFieldsValid
-                                ? () {
-                                    setState(() => _isNextPressed = false);
-                                  }
+                                ? () => setState(() => _isNextPressed = false)
                                 : null,
                             child: Transform.scale(
                               scale: _allFieldsValid && _isNextPressed
                                   ? 0.95
                                   : 1.0,
-                              child: CustomButton(
-                                text: "Next",
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 100),
                                 width: 106,
                                 height: 40,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                borderRadius: 10,
-                                borderColor: _allFieldsValid
-                                    ? const Color(0xFF00F0FF)
-                                    : const Color(0xFF4A5568),
-                                textColor: _allFieldsValid
-                                    ? Colors.white
-                                    : const Color(0xFF718096),
-                                backgroundColor: _allFieldsValid
-                                    ? (_isNextHovered
-                                          ? const Color(
-                                              0xFF00F0FF,
-                                            ).withOpacity(0.15)
-                                          : _isNextPressed
-                                          ? const Color(
-                                              0xFF00F0FF,
-                                            ).withOpacity(0.25)
-                                          : const Color(0xFF0B1320))
-                                    : const Color(0xFF0B1320),
-                                onTap: () {
-                                  if (_allFieldsValid) {
-                                    _handleNextTap();
-                                  } else {
-                                    _validateAllFieldsAndShowErrors();
-                                  }
-                                },
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _allFieldsValid
+                                        ? const Color(0xFF00F0FF)
+                                        : const Color(0xFF4A5568),
+                                    width: 2,
+                                  ),
+                                  color: _allFieldsValid
+                                      ? (_isNextHovered
+                                            ? const Color(
+                                                0xFF00F0FF,
+                                              ).withOpacity(0.15)
+                                            : _isNextPressed
+                                            ? const Color(
+                                                0xFF00F0FF,
+                                              ).withOpacity(0.25)
+                                            : const Color(0xFF0B1320))
+                                      : const Color(0xFF0B1320),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "Next",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      color: _allFieldsValid
+                                          ? Colors.white
+                                          : const Color(0xFF718096),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1275,28 +1367,6 @@ class _SignUpPageMobileState extends State<SignUpPageMobile> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _handleNextTap() {
-    // Navigate to next page (validation already done automatically)
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (_, __, ___) => ResponsiveProtectAccess(),
-        transitionsBuilder: (_, animation, __, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          final tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: Curves.easeInOut));
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
       ),
     );
   }

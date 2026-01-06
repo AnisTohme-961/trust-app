@@ -104,6 +104,24 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage>
     return name[0].toUpperCase() + name.substring(1).toLowerCase();
   }
 
+  void _handleGetStartedTap() {
+    setState(() {
+      _isGetStartedPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isGetStartedPressed = false;
+        });
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RegisterPage()),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
@@ -344,50 +362,44 @@ class _MobileRegisterLivePageState extends State<MobileRegisterLivePage>
                                 setState(() => _isGetStartedHovered = false),
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
-                              onTapDown: (_) {
-                                setState(() => _isGetStartedPressed = true);
-                              },
-                              onTapUp: (_) {
-                                setState(() => _isGetStartedPressed = false);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const RegisterPage(),
-                                  ),
-                                );
-                              },
-                              onTapCancel: () {
-                                setState(() => _isGetStartedPressed = false);
-                              },
+                              onTapDown: (_) =>
+                                  setState(() => _isGetStartedPressed = true),
+                              onTapUp: (_) => _handleGetStartedTap(),
+                              onTapCancel: () =>
+                                  setState(() => _isGetStartedPressed = false),
                               child: Transform.scale(
                                 scale: _isGetStartedPressed ? 0.95 : 1.0,
-                                child: CustomButton(
-                                  text: "Get Started",
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
                                   width: 161,
                                   height: 40,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  textColor: Colors.white,
-                                  backgroundColor: _isGetStartedHovered
-                                      ? const Color(
-                                          0xFF00F0FF,
-                                        ).withOpacity(0.15)
-                                      : (_isGetStartedPressed
-                                            ? const Color(
-                                                0xFF00F0FF,
-                                              ).withOpacity(0.25)
-                                            : const Color(0xFF0B1320)),
-                                  borderColor: const Color(0xFF00F0FF),
-                                  borderRadius: 10,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const RegisterPage(),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF00F0FF),
+                                      width: 2,
+                                    ),
+                                    color: _isGetStartedHovered
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.15)
+                                        : (_isGetStartedPressed
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.25)
+                                              : const Color(0xFF0B1320)),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "Get Started",
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20.0,
+                                        color: Colors.white,
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

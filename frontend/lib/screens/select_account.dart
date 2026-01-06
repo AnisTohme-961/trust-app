@@ -195,23 +195,33 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
                 },
                 child: Transform.scale(
                   scale: _isAddNewProfilePressed ? 0.95 : 1.0,
-                  child: CustomButton(
-                    text: 'Add New Profile',
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
                     width: buttonWidth,
                     height: buttonHeight,
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w600,
-                    textColor: Colors.white,
-                    borderColor: const Color(0xFF00F0FF),
-                    backgroundColor: _isAddNewProfileHovered
-                        ? const Color(0xFF00F0FF).withOpacity(0.15)
-                        : (_isAddNewProfilePressed
-                              ? const Color(0xFF00F0FF).withOpacity(0.25)
-                              : const Color(0xFF0B1320)),
-                    borderRadius: 10,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/sign-in');
-                    },
+                    decoration: BoxDecoration(
+                      color: _isAddNewProfileHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : (_isAddNewProfilePressed
+                                ? const Color(0xFF00F0FF).withOpacity(0.25)
+                                : const Color(0xFF0B1320)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF00F0FF),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Add New Profile',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: fontSize,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -239,10 +249,7 @@ class _SelectAccountContentState extends State<SelectAccountContent> {
   }
 }
 
-// MobileSelectAccountContent and TabletSelectAccountContent classes
-// (these can be removed or updated similarly if needed)
-
-class MobileSelectAccountContent extends StatelessWidget {
+class MobileSelectAccountContent extends StatefulWidget {
   final VoidCallback onClose;
   final ScrollController scrollController;
 
@@ -251,6 +258,16 @@ class MobileSelectAccountContent extends StatelessWidget {
     required this.scrollController,
     super.key,
   });
+
+  @override
+  State<MobileSelectAccountContent> createState() =>
+      _MobileSelectAccountContentState();
+}
+
+class _MobileSelectAccountContentState
+    extends State<MobileSelectAccountContent> {
+  bool _isAddNewProfileHovered = false;
+  bool _isAddNewProfilePressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +350,7 @@ class MobileSelectAccountContent extends StatelessWidget {
       child: SizedBox(
         width: accountWidth,
         child: ListView.builder(
-          controller: scrollController,
+          controller: widget.scrollController,
           padding: const EdgeInsets.symmetric(vertical: 10),
           itemCount: accounts.length,
           itemBuilder: (context, index) {
@@ -388,18 +405,53 @@ class MobileSelectAccountContent extends StatelessWidget {
               ),
             ),
             SizedBox(width: isTablet ? 20 : 10),
-            CustomButton(
-              text: 'Add New Profile',
-              width: buttonWidth,
-              height: buttonHeight,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              textColor: Colors.white,
-              borderColor: const Color(0xFF00F0FF),
-              backgroundColor: const Color(0xFF0B1320),
-              onTap: () {
-                Navigator.pushNamed(context, '/sign-in');
-              },
+            MouseRegion(
+              onEnter: (_) => setState(() => _isAddNewProfileHovered = true),
+              onExit: (_) => setState(() => _isAddNewProfileHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTapDown: (_) {
+                  setState(() => _isAddNewProfilePressed = true);
+                },
+                onTapUp: (_) {
+                  setState(() => _isAddNewProfilePressed = false);
+                  Navigator.pushNamed(context, '/sign-in');
+                },
+                onTapCancel: () {
+                  setState(() => _isAddNewProfilePressed = false);
+                },
+                child: Transform.scale(
+                  scale: _isAddNewProfilePressed ? 0.95 : 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    decoration: BoxDecoration(
+                      color: _isAddNewProfileHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : (_isAddNewProfilePressed
+                                ? const Color(0xFF00F0FF).withOpacity(0.25)
+                                : const Color(0xFF0B1320)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF00F0FF),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Add New Profile',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: fontSize,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
             SizedBox(width: isTablet ? 20 : 10),
             Expanded(
@@ -424,7 +476,7 @@ class MobileSelectAccountContent extends StatelessWidget {
   }
 }
 
-class TabletSelectAccountContent extends StatelessWidget {
+class TabletSelectAccountContent extends StatefulWidget {
   final VoidCallback onClose;
   final ScrollController scrollController;
 
@@ -433,6 +485,16 @@ class TabletSelectAccountContent extends StatelessWidget {
     required this.scrollController,
     super.key,
   });
+
+  @override
+  State<TabletSelectAccountContent> createState() =>
+      _TabletSelectAccountContentState();
+}
+
+class _TabletSelectAccountContentState
+    extends State<TabletSelectAccountContent> {
+  bool _isAddNewProfileHovered = false;
+  bool _isAddNewProfilePressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +510,7 @@ class TabletSelectAccountContent extends StatelessWidget {
           // V-line handle (centered)
           Center(
             child: GestureDetector(
-              onTap: onClose,
+              onTap: widget.onClose,
               child: Padding(
                 padding: const EdgeInsets.only(top: 10.0, bottom: 10.0),
                 child: CustomPaint(
@@ -481,7 +543,7 @@ class TabletSelectAccountContent extends StatelessWidget {
               child: SizedBox(
                 width: containerWidth,
                 child: GridView.builder(
-                  controller: scrollController,
+                  controller: widget.scrollController,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12.0,
@@ -554,18 +616,53 @@ class TabletSelectAccountContent extends StatelessWidget {
               ),
             ),
             SizedBox(width: isTablet ? 20 : 10),
-            CustomButton(
-              text: 'Add New Profile',
-              width: buttonWidth,
-              height: buttonHeight,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              textColor: Colors.white,
-              borderColor: const Color(0xFF00F0FF),
-              backgroundColor: const Color(0xFF0B1320),
-              onTap: () {
-                Navigator.pushNamed(context, '/sign-in');
-              },
+            MouseRegion(
+              onEnter: (_) => setState(() => _isAddNewProfileHovered = true),
+              onExit: (_) => setState(() => _isAddNewProfileHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTapDown: (_) {
+                  setState(() => _isAddNewProfilePressed = true);
+                },
+                onTapUp: (_) {
+                  setState(() => _isAddNewProfilePressed = false);
+                  Navigator.pushNamed(context, '/sign-in');
+                },
+                onTapCancel: () {
+                  setState(() => _isAddNewProfilePressed = false);
+                },
+                child: Transform.scale(
+                  scale: _isAddNewProfilePressed ? 0.95 : 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    decoration: BoxDecoration(
+                      color: _isAddNewProfileHovered
+                          ? const Color(0xFF00F0FF).withOpacity(0.15)
+                          : (_isAddNewProfilePressed
+                                ? const Color(0xFF00F0FF).withOpacity(0.25)
+                                : const Color(0xFF0B1320)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF00F0FF),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Add New Profile',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: fontSize,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
             SizedBox(width: isTablet ? 20 : 10),
             Expanded(
@@ -735,8 +832,6 @@ class AccountFrame extends StatelessWidget {
     );
   }
 }
-
-// ... (VerticalScrollbar, VLinePainter classes remain the same) ...
 
 class VerticalScrollbar extends StatefulWidget {
   final ScrollController? controller;

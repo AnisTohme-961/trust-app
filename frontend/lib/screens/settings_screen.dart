@@ -65,6 +65,20 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showPatternMenu = false;
   bool _showVerificationMenu = false;
 
+  bool _isFreezeHovered = false;
+  bool _isFreezePressed = false;
+  bool _isDeleteHovered = false;
+  bool _isDeletePressed = false;
+
+  bool _isLeftArrowHovered = false;
+  bool _isLeftArrowPressed = false;
+
+  // For Cancel and Next buttons
+  bool _isCancelHovered = false;
+  bool _isCancelPressed = false;
+  bool _isNextHovered = false;
+  bool _isNextPressed = false;
+
   // PIN Input State
   final List<String> _pin = [];
   bool _obscurePin = true;
@@ -887,6 +901,35 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
+  void _handleFreezeTap() {
+    // Reset pressed state after a small delay like the Sign In button
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        setState(() {
+          _isFreezePressed = false;
+        });
+      }
+    });
+
+    // Call your freeze account function
+    _toggleFreezeAccountMenu();
+  }
+
+  void _handleDeleteTap() {
+    // Reset pressed state after a small delay like the Sign In button
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        setState(() {
+          _isDeletePressed = false;
+        });
+      }
+    });
+
+    // TODO: Implement your delete account logic
+    print("Delete Account tapped");
+    // _handleDeleteAccount();
+  }
+
   @override
   void dispose() {
     _wiggleController.dispose();
@@ -1143,25 +1186,100 @@ class _SettingsScreenState extends State<SettingsScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    CustomButton(
-                      text: "Freeze Account",
-                      width: 164,
-                      height: 32,
-                      textColor: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: fontProvider.getScaledSize(15),
-                      borderRadius: 10,
-                      onTap: _toggleFreezeAccountMenu,
+                    // Freeze Account Button - EXACT SAME AS SIGN IN BUTTON
+                    MouseRegion(
+                      onEnter: (_) => setState(() => _isFreezeHovered = true),
+                      onExit: (_) => setState(() => _isFreezeHovered = false),
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTapDown: (_) =>
+                            setState(() => _isFreezePressed = true),
+                        onTapUp: (_) =>
+                            _handleFreezeTap(), // Use separate method
+                        onTapCancel: () =>
+                            setState(() => _isFreezePressed = false),
+                        child: Transform.scale(
+                          scale: _isFreezePressed ? 0.95 : 1.0,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            width: 164,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: _isFreezeHovered
+                                  ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                  : (_isFreezePressed
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.25)
+                                        : const Color(0xFF0B1320)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFF00F0FF),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Freeze Account",
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: fontProvider.getScaledSize(15),
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    CustomButton(
-                      text: "Delete Account",
-                      width: 164,
-                      height: 32,
-                      textColor: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: fontProvider.getScaledSize(15),
-                      borderRadius: 10,
-                      onTap: () {},
+
+                    // Delete Account Button - EXACT SAME AS SIGN IN BUTTON
+                    MouseRegion(
+                      onEnter: (_) => setState(() => _isDeleteHovered = true),
+                      onExit: (_) => setState(() => _isDeleteHovered = false),
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTapDown: (_) =>
+                            setState(() => _isDeletePressed = true),
+                        onTapUp: (_) =>
+                            _handleDeleteTap(), // Use separate method
+                        onTapCancel: () =>
+                            setState(() => _isDeletePressed = false),
+                        child: Transform.scale(
+                          scale: _isDeletePressed ? 0.95 : 1.0,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            width: 164,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: _isDeleteHovered
+                                  ? const Color(0xFF00F0FF).withOpacity(0.15)
+                                  : (_isDeletePressed
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.25)
+                                        : const Color(0xFF0B1320)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFF00F0FF),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Delete Account",
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: fontProvider.getScaledSize(15),
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -2908,6 +3026,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   // Keypad for Freeze Account Menu
+  // Keypad for Freeze Account Menu - UPDATED with left arrow click effect
   Widget _buildFreezeAccountKeypad() {
     if (_numbers.isEmpty) {
       _numbers = List.generate(10, (i) => i.toString())..shuffle();
@@ -2930,6 +3049,12 @@ class _SettingsScreenState extends State<SettingsScreen>
               final isLeftArrow = text == 'leftArrow';
               final isClear = text == 'Clear';
 
+              // Only apply click effect to left arrow
+              if (isLeftArrow) {
+                return _buildLeftArrowButton();
+              }
+
+              // Regular buttons (numbers and Clear) stay the same
               return GestureDetector(
                 onTap: () => _onKeyTap(text),
                 child: Container(
@@ -2979,6 +3104,56 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildLeftArrowButton() {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isLeftArrowHovered = true),
+      onExit: (_) => setState(() => _isLeftArrowHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isLeftArrowPressed = true),
+        onTapUp: (_) {
+          // Call the actual function
+          _onKeyTap('leftArrow');
+
+          // Reset pressed state after delay
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted) {
+              setState(() {
+                _isLeftArrowPressed = false;
+              });
+            }
+          });
+        },
+        onTapCancel: () => setState(() => _isLeftArrowPressed = false),
+        child: Transform.scale(
+          scale: _isLeftArrowPressed ? 0.95 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            width: 104,
+            height: 50,
+            decoration: BoxDecoration(
+              color: _isLeftArrowHovered
+                  ? const Color(0xFF00F0FF).withOpacity(0.15)
+                  : (_isLeftArrowPressed
+                        ? const Color(0xFF00F0FF).withOpacity(0.25)
+                        : const Color(0xFF0B1320)),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF00F0FF), width: 2),
+            ),
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/images/leftArrowWhite.svg',
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

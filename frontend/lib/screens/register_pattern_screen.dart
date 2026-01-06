@@ -62,11 +62,15 @@ class _MobileRegisterPatternScreenState
     'assets/images/locking5.png',
   ];
 
-  // Add hover and pressed states for back and logout buttons
+  // Add hover and pressed states for all buttons
   bool _isBackHovered = false;
   bool _isBackPressed = false;
   bool _isLogoutHovered = false;
   bool _isLogoutPressed = false;
+  bool _isSignInHovered = false;
+  bool _isSignInPressed = false;
+  bool _isSignUpHovered = false;
+  bool _isSignUpPressed = false;
 
   @override
   void initState() {
@@ -84,6 +88,28 @@ class _MobileRegisterPatternScreenState
     } catch (e) {
       print("Logout failed: $e");
     }
+  }
+
+  void _handleBackTap() {
+    if (isConfirmMode) {
+      _errorStackKey.currentState?.showError(
+        "Please complete pattern confirmation first",
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  void _handleLogoutTap() async {
+    await _logout();
+  }
+
+  void _handleSignInTap() {
+    Navigator.pushNamed(context, '/sign-in');
+  }
+
+  void _handleSignUpTap() {
+    Navigator.pushNamed(context, '/sign-up');
   }
 
   Widget buildBackAndLogoutButtons(BuildContext context) {
@@ -116,33 +142,40 @@ class _MobileRegisterPatternScreenState
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               onTapDown: (_) => setState(() => _isBackPressed = true),
-              onTapUp: (_) => setState(() => _isBackPressed = false),
+              onTapUp: (_) {
+                setState(() => _isBackPressed = false);
+                _handleBackTap();
+              },
               onTapCancel: () => setState(() => _isBackPressed = false),
               child: Transform.scale(
                 scale: _isBackPressed ? 0.95 : 1.0,
-                child: CustomButton(
-                  text: 'Back',
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 100),
                   width: 90,
                   height: 45,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  textColor: Colors.white,
-                  borderColor: const Color(0xFF00F0FF),
-                  backgroundColor: _isBackHovered
-                      ? const Color(0xFF00F0FF).withOpacity(0.15)
-                      : _isBackPressed
-                      ? const Color(0xFF00F0FF).withOpacity(0.25)
-                      : const Color(0xFF0B1320),
-                  onTap: () {
-                    // Prevent going back when in confirm mode
-                    if (isConfirmMode) {
-                      _errorStackKey.currentState?.showError(
-                        "Please complete pattern confirmation first",
-                      );
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
+                  decoration: BoxDecoration(
+                    color: _isBackHovered
+                        ? const Color(0xFF00F0FF).withOpacity(0.15)
+                        : (_isBackPressed
+                              ? const Color(0xFF00F0FF).withOpacity(0.25)
+                              : const Color(0xFF0B1320)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFF00F0FF),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Back',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -157,26 +190,40 @@ class _MobileRegisterPatternScreenState
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               onTapDown: (_) => setState(() => _isLogoutPressed = true),
-              onTapUp: (_) => setState(() => _isLogoutPressed = false),
+              onTapUp: (_) {
+                setState(() => _isLogoutPressed = false);
+                _handleLogoutTap();
+              },
               onTapCancel: () => setState(() => _isLogoutPressed = false),
               child: Transform.scale(
                 scale: _isLogoutPressed ? 0.95 : 1.0,
-                child: CustomButton(
-                  text: 'Logout',
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 100),
                   width: 110,
                   height: 45,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  textColor: Colors.white,
-                  borderColor: const Color(0xFF00F0FF),
-                  backgroundColor: _isLogoutHovered
-                      ? const Color(0xFF00F0FF).withOpacity(0.15)
-                      : _isLogoutPressed
-                      ? const Color(0xFF00F0FF).withOpacity(0.25)
-                      : const Color(0xFF0B1320),
-                  onTap: () async {
-                    _logout();
-                  },
+                  decoration: BoxDecoration(
+                    color: _isLogoutHovered
+                        ? const Color(0xFF00F0FF).withOpacity(0.15)
+                        : (_isLogoutPressed
+                              ? const Color(0xFF00F0FF).withOpacity(0.25)
+                              : const Color(0xFF0B1320)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFF00F0FF),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Logout',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -318,29 +365,125 @@ class _MobileRegisterPatternScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Sign In / Sign Up Buttons
+                      // Sign In / Sign Up Buttons with click effects
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: 110,
-                            child: _OutlinedButton(
-                              text: 'Sign In',
-                              onTap: () =>
-                                  Navigator.pushNamed(context, '/sign-in'),
+                          // Sign In Button
+                          MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _isSignInHovered = true),
+                            onExit: (_) =>
+                                setState(() => _isSignInHovered = false),
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTapDown: (_) =>
+                                  setState(() => _isSignInPressed = true),
+                              onTapUp: (_) {
+                                setState(() => _isSignInPressed = false);
+                                _handleSignInTap();
+                              },
+                              onTapCancel: () =>
+                                  setState(() => _isSignInPressed = false),
+                              child: Transform.scale(
+                                scale: _isSignInPressed ? 0.95 : 1.0,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
+                                  width: 110,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: _isSignInHovered
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.15)
+                                        : (_isSignInPressed
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.25)
+                                              : const Color(0xFF0B1320)),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF00F0FF),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Sign In',
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
+
                           const SizedBox(width: 20),
-                          SizedBox(
-                            width: 110,
-                            child: _GradientButton(
-                              text: 'Sign Up',
-                              onTap: () =>
-                                  Navigator.pushNamed(context, '/sign-up'),
+
+                          // Sign Up Button
+                          MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _isSignUpHovered = true),
+                            onExit: (_) =>
+                                setState(() => _isSignUpHovered = false),
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTapDown: (_) =>
+                                  setState(() => _isSignUpPressed = true),
+                              onTapUp: (_) {
+                                setState(() => _isSignUpPressed = false);
+                                _handleSignUpTap();
+                              },
+                              onTapCancel: () =>
+                                  setState(() => _isSignUpPressed = false),
+                              child: Transform.scale(
+                                scale: _isSignUpPressed ? 0.95 : 1.0,
+                                child: Container(
+                                  width: 110,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF00F0FF),
+                                        Color(0xFF0177B3),
+                                      ],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF00F0FF,
+                                        ).withOpacity(0.5),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Sign Up',
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 10),
                       const Text(
                         'Protect Your Access',
@@ -663,6 +806,16 @@ class _TabletRegisterPatternScreenState
     'assets/images/locking5.png',
   ];
 
+  // Add hover and pressed states for tablet buttons
+  bool _isBackHovered = false;
+  bool _isBackPressed = false;
+  bool _isLogoutHovered = false;
+  bool _isLogoutPressed = false;
+  bool _isSignInHovered = false;
+  bool _isSignInPressed = false;
+  bool _isSignUpHovered = false;
+  bool _isSignUpPressed = false;
+
   @override
   void initState() {
     super.initState();
@@ -679,6 +832,31 @@ class _TabletRegisterPatternScreenState
     } catch (e) {
       print("Logout failed: $e");
     }
+  }
+
+  void _handleBackTap() {
+    if (isConfirmMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete pattern confirmation first'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  void _handleLogoutTap() async {
+    await _logout();
+  }
+
+  void _handleSignInTap() {
+    Navigator.pushNamed(context, '/sign-in');
+  }
+
+  void _handleSignUpTap() {
+    Navigator.pushNamed(context, '/sign-up');
   }
 
   Widget buildBackAndLogoutButtons(BuildContext context) {
@@ -707,46 +885,98 @@ class _TabletRegisterPatternScreenState
               ),
               const SizedBox(width: 20),
 
-              CustomButton(
-                text: 'Back',
-                width: 106,
-                height: 40,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                textColor: Colors.white,
-                borderColor: const Color(0xFF00F0FF),
-                backgroundColor: const Color(0xFF0B1320),
-                onTap: () {
-                  // Prevent going back when in confirm mode
-                  if (isConfirmMode) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Please complete pattern confirmation first',
+              // Back button for tablet with hover and click effects
+              MouseRegion(
+                onEnter: (_) => setState(() => _isBackHovered = true),
+                onExit: (_) => setState(() => _isBackHovered = false),
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTapDown: (_) => setState(() => _isBackPressed = true),
+                  onTapUp: (_) {
+                    setState(() => _isBackPressed = false);
+                    _handleBackTap();
+                  },
+                  onTapCancel: () => setState(() => _isBackPressed = false),
+                  child: Transform.scale(
+                    scale: _isBackPressed ? 0.95 : 1.0,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      width: 106,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _isBackHovered
+                            ? const Color(0xFF00F0FF).withOpacity(0.15)
+                            : (_isBackPressed
+                                  ? const Color(0xFF00F0FF).withOpacity(0.25)
+                                  : const Color(0xFF0B1320)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF00F0FF),
+                          width: 1,
                         ),
-                        duration: Duration(seconds: 2),
                       ),
-                    );
-                  } else {
-                    Navigator.pop(context);
-                  }
-                },
+                      child: Center(
+                        child: Text(
+                          'Back',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(width: 15),
 
-              CustomButton(
-                text: 'Logout',
-                width: 106,
-                height: 40,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                textColor: Colors.white,
-                borderColor: const Color(0xFF00F0FF),
-                backgroundColor: const Color(0xFF0B1320),
-                onTap: () async {
-                  _logout();
-                },
+              // Logout button for tablet with hover and click effects
+              MouseRegion(
+                onEnter: (_) => setState(() => _isLogoutHovered = true),
+                onExit: (_) => setState(() => _isLogoutHovered = false),
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTapDown: (_) => setState(() => _isLogoutPressed = true),
+                  onTapUp: (_) {
+                    setState(() => _isLogoutPressed = false);
+                    _handleLogoutTap();
+                  },
+                  onTapCancel: () => setState(() => _isLogoutPressed = false),
+                  child: Transform.scale(
+                    scale: _isLogoutPressed ? 0.95 : 1.0,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      width: 106,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _isLogoutHovered
+                            ? const Color(0xFF00F0FF).withOpacity(0.15)
+                            : (_isLogoutPressed
+                                  ? const Color(0xFF00F0FF).withOpacity(0.25)
+                                  : const Color(0xFF0B1320)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF00F0FF),
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Logout',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(width: 20),
@@ -916,31 +1146,149 @@ class _TabletRegisterPatternScreenState
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     const SizedBox(height: 50),
-                                    // Sign In / Sign Up Buttons - Centered for tablet
+                                    // Sign In / Sign Up Buttons - Centered for tablet with click effects
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        SizedBox(
-                                          width: 106,
-                                          height: 40,
-                                          child: _OutlinedButton(
-                                            text: 'Sign In',
-                                            onTap: () => Navigator.pushNamed(
-                                              context,
-                                              '/sign-in',
+                                        // Sign In Button
+                                        MouseRegion(
+                                          onEnter: (_) => setState(
+                                            () => _isSignInHovered = true,
+                                          ),
+                                          onExit: (_) => setState(
+                                            () => _isSignInHovered = false,
+                                          ),
+                                          cursor: SystemMouseCursors.click,
+                                          child: GestureDetector(
+                                            onTapDown: (_) => setState(
+                                              () => _isSignInPressed = true,
+                                            ),
+                                            onTapUp: (_) {
+                                              setState(
+                                                () => _isSignInPressed = false,
+                                              );
+                                              _handleSignInTap();
+                                            },
+                                            onTapCancel: () => setState(
+                                              () => _isSignInPressed = false,
+                                            ),
+                                            child: Transform.scale(
+                                              scale: _isSignInPressed
+                                                  ? 0.95
+                                                  : 1.0,
+                                              child: AnimatedContainer(
+                                                duration: const Duration(
+                                                  milliseconds: 100,
+                                                ),
+                                                width: 106,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  color: _isSignInHovered
+                                                      ? const Color(
+                                                          0xFF00F0FF,
+                                                        ).withOpacity(0.15)
+                                                      : (_isSignInPressed
+                                                            ? const Color(
+                                                                0xFF00F0FF,
+                                                              ).withOpacity(
+                                                                0.25,
+                                                              )
+                                                            : const Color(
+                                                                0xFF0B1320,
+                                                              )),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF00F0FF,
+                                                    ),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    'Sign In',
+                                                    style: const TextStyle(
+                                                      fontFamily: 'Inter',
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 20,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
                                         const SizedBox(width: 10),
-                                        SizedBox(
-                                          width: 106,
-                                          height: 40,
-                                          child: _GradientButton(
-                                            text: 'Sign Up',
-                                            onTap: () => Navigator.pushNamed(
-                                              context,
-                                              '/sign-up',
+                                        // Sign Up Button
+                                        MouseRegion(
+                                          onEnter: (_) => setState(
+                                            () => _isSignUpHovered = true,
+                                          ),
+                                          onExit: (_) => setState(
+                                            () => _isSignUpHovered = false,
+                                          ),
+                                          cursor: SystemMouseCursors.click,
+                                          child: GestureDetector(
+                                            onTapDown: (_) => setState(
+                                              () => _isSignUpPressed = true,
+                                            ),
+                                            onTapUp: (_) {
+                                              setState(
+                                                () => _isSignUpPressed = false,
+                                              );
+                                              _handleSignUpTap();
+                                            },
+                                            onTapCancel: () => setState(
+                                              () => _isSignUpPressed = false,
+                                            ),
+                                            child: Transform.scale(
+                                              scale: _isSignUpPressed
+                                                  ? 0.95
+                                                  : 1.0,
+                                              child: Container(
+                                                width: 106,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  gradient:
+                                                      const LinearGradient(
+                                                        colors: [
+                                                          Color(0xFF00F0FF),
+                                                          Color(0xFF0177B3),
+                                                        ],
+                                                        begin: Alignment
+                                                            .centerLeft,
+                                                        end: Alignment
+                                                            .centerRight,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: const Color(
+                                                        0xFF00F0FF,
+                                                      ).withOpacity(0.5),
+                                                      blurRadius: 10,
+                                                      spreadRadius: 2,
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    'Sign Up',
+                                                    style: const TextStyle(
+                                                      fontFamily: 'Inter',
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 20,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -1257,12 +1605,8 @@ class _TabletRegisterPatternScreenState
                         right: -10,
                         child: Image.asset(
                           'assets/images/Rectangle2.png',
-                          width: screenWidth > 600
-                              ? 120
-                              : 450, // Larger on tablets
-                          height: screenWidth > 600
-                              ? 120
-                              : 450, // Larger on tablets
+                          width: screenWidth > 600 ? 120 : 450,
+                          height: screenWidth > 600 ? 120 : 450,
                           fit: BoxFit.contain,
                         ),
                       ),
