@@ -51,6 +51,9 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
   bool _isNextPressed = false;
   bool _isGetCodeHovered = false;
   bool _isGetCodeClicked = false;
+  // Add Sign In button states
+  bool _isSignInHovered = false;
+  bool _isSignInPressed = false;
 
   // Dropdown states
   bool _countryDropdownOpen = false;
@@ -163,6 +166,22 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     // Initialize date picker after widgets are built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupDatePickerListeners();
+    });
+  }
+
+  // Sign In button tap handler
+  void _handleSignInTap() {
+    setState(() {
+      _isSignInPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isSignInPressed = false;
+        });
+        Navigator.of(context).pushNamed('/sign-in');
+      }
     });
   }
 
@@ -667,10 +686,10 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
         // _codeDisabled = true;
       });
     } else {
-         setState(() {
-      _isCodeVerified = false; // Keep it false to show red glow
-      _codeDisabled = false; // Ensure fields are editable again
-    });
+      setState(() {
+        _isCodeVerified = false; // Keep it false to show red glow
+        _codeDisabled = false; // Ensure fields are editable again
+      });
 
       Timer(const Duration(seconds: 1), () {
         if (!mounted) return;
@@ -802,9 +821,35 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
     }
   }
 
+  void _handleBackTap() {
+    setState(() {
+      _isBackPressed = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isBackPressed = false;
+        });
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
   void _handleNextTap() {
     if (_allFieldsValid) {
-      _navigateToNext();
+      setState(() {
+        _isNextPressed = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _isNextPressed = false;
+          });
+          _navigateToNext();
+        }
+      });
     } else {
       _validateAllFieldsAndShowErrors();
     }
@@ -902,26 +947,52 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                         ),
                         Positioned(
                           left: 0,
-                          child: GestureDetector(
-                            child: Container(
-                              width: 106,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  width: 1,
-                                  color: const Color(0xFF00F0FF),
+                          child: MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _isSignInHovered = true),
+                            onExit: (_) =>
+                                setState(() => _isSignInHovered = false),
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTapDown: (_) =>
+                                  setState(() => _isSignInPressed = true),
+                              onTapUp: (_) => _handleSignInTap(),
+                              onTapCancel: () =>
+                                  setState(() => _isSignInPressed = false),
+                              child: Transform.scale(
+                                scale: _isSignInPressed ? 0.95 : 1.0,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
+                                  width: 106,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: _isSignInHovered
+                                        ? const Color(
+                                            0xFF00F0FF,
+                                          ).withOpacity(0.15)
+                                        : (_isSignInPressed
+                                              ? const Color(
+                                                  0xFF00F0FF,
+                                                ).withOpacity(0.25)
+                                              : const Color(0xFF0B1320)),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF00F0FF),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 20.0,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: CustomButton(
-                                text: 'Sign In',
-                                width: 106,
-                                height: 40,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                onTap: () {
-                                  Navigator.of(context).pushNamed('/sign-in');
-                                },
                               ),
                             ),
                           ),
@@ -1010,7 +1081,6 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           children: [
                             for (var i = 0; i < 5; i++)
                               Expanded(
-                                
                                 child: _buildStep(
                                   i == 1 ? "Contact and Verify" : "",
                                   filled: i <= 1,
@@ -1083,35 +1153,35 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                   ),
                                   const SizedBox(width: 18),
                                   Expanded(
-                                    child: IgnorePointer(   // Added IgnorePointer for the dropdown to work as expected
-                                    child: TextField(
-                                      controller: _countryFieldController,
-                                      readOnly: true,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: fontProvider.getScaledSize(
-                                          15,
-                                        ),
-                                        fontWeight: FontWeight.w500,
-                                        fontFamily: 'Inter',
-                                      ),
-                                      decoration: InputDecoration(
-                                        hintText: "Country",
-                                        hintStyle: TextStyle(
-                                          color: Color(0xFFA5A6A8),
+                                    child: IgnorePointer(
+                                      // Added IgnorePointer for the dropdown to work as expected
+                                      child: TextField(
+                                        controller: _countryFieldController,
+                                        readOnly: true,
+                                        style: TextStyle(
+                                          color: Colors.white,
                                           fontSize: fontProvider.getScaledSize(
                                             15,
                                           ),
                                           fontWeight: FontWeight.w500,
                                           fontFamily: 'Inter',
-                                          height: 1.0,
                                         ),
-                                        border: InputBorder.none,
-                                        isDense: true,
+                                        decoration: InputDecoration(
+                                          hintText: "Country",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFA5A6A8),
+                                            fontSize: fontProvider
+                                                .getScaledSize(15),
+                                            fontWeight: FontWeight.w500,
+                                            fontFamily: 'Inter',
+                                            height: 1.0,
+                                          ),
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  )
                                 ],
                               ),
                             ),
@@ -1631,16 +1701,19 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                                                     ),
                                             ),
                                             if (_isCodeVerified != true)
-                                             Container(
-  width: 30,
-  height: 2,
-  color: _codeDisabled
-      ? Colors.grey
-      : (_isCodeVerified == false
-          ? Colors.red
-          : (_code[index].isEmpty ? Colors.white : Colors.transparent)),
-),
-
+                                              Container(
+                                                width: 30,
+                                                height: 2,
+                                                color: _codeDisabled
+                                                    ? Colors.grey
+                                                    : (_isCodeVerified == false
+                                                          ? Colors.red
+                                                          : (_code[index]
+                                                                    .isEmpty
+                                                                ? Colors.white
+                                                                : Colors
+                                                                      .transparent)),
+                                              ),
                                           ],
                                         ),
                                       ),
@@ -1797,40 +1870,50 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                           ),
                         ),
 
+                        // Back Button
                         MouseRegion(
                           onEnter: (_) => setState(() => _isBackHovered = true),
                           onExit: (_) => setState(() => _isBackHovered = false),
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
-                            onTapDown: (_) {
-                              setState(() => _isBackPressed = true);
-                            },
-                            onTapUp: (_) {
-                              setState(() => _isBackPressed = false);
-                              Navigator.of(context).pop();
-                            },
-                            onTapCancel: () {
-                              setState(() => _isBackPressed = false);
-                            },
+                            onTapDown: (_) =>
+                                setState(() => _isBackPressed = true),
+                            onTapUp: (_) => _handleBackTap(),
+                            onTapCancel: () =>
+                                setState(() => _isBackPressed = false),
                             child: Transform.scale(
                               scale: _isBackPressed ? 0.95 : 1.0,
-                              child: CustomButton(
-                                text: "Back",
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 100),
                                 width: 106,
                                 height: 40,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                borderRadius: 10,
-                                borderColor: const Color(0xFF00F0FF),
-                                textColor: Colors.white,
-                                backgroundColor: _isBackHovered
-                                    ? const Color(0xFF00F0FF).withOpacity(0.15)
-                                    : (_isBackPressed
-                                          ? const Color(
-                                              0xFF00F0FF,
-                                            ).withOpacity(0.25)
-                                          : const Color(0xFF0B1320)),
-                                onTap: () => Navigator.pop(context),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFF00F0FF),
+                                    width: 2,
+                                  ),
+                                  color: _isBackHovered
+                                      ? const Color(
+                                          0xFF00F0FF,
+                                        ).withOpacity(0.15)
+                                      : (_isBackPressed
+                                            ? const Color(
+                                                0xFF00F0FF,
+                                              ).withOpacity(0.25)
+                                            : const Color(0xFF0B1320)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "Back",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1839,6 +1922,7 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                         // Spacer between buttons
                         SizedBox(width: 8),
 
+                        // Next Button
                         MouseRegion(
                           onEnter: (_) => _allFieldsValid
                               ? setState(() => _isNextHovered = true)
@@ -1849,55 +1933,55 @@ class _MobileProtectAccessState extends State<MobileProtectAccess> {
                               : SystemMouseCursors.forbidden,
                           child: GestureDetector(
                             onTapDown: _allFieldsValid
-                                ? (_) {
-                                    setState(() => _isNextPressed = true);
-                                  }
+                                ? (_) => setState(() => _isNextPressed = true)
                                 : null,
                             onTapUp: _allFieldsValid
-                                ? (_) {
-                                    setState(() => _isNextPressed = false);
-                                  }
+                                ? (_) => _handleNextTap()
                                 : null,
                             onTapCancel: _allFieldsValid
-                                ? () {
-                                    setState(() => _isNextPressed = false);
-                                  }
+                                ? () => setState(() => _isNextPressed = false)
                                 : null,
                             child: Transform.scale(
                               scale: _allFieldsValid && _isNextPressed
                                   ? 0.95
                                   : 1.0,
-                              child: CustomButton(
-                                text: "Next",
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 100),
                                 width: 106,
                                 height: 40,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                borderRadius: 10,
-                                borderColor: _allFieldsValid
-                                    ? const Color(0xFF00F0FF)
-                                    : const Color(0xFF4A5568),
-                                textColor: _allFieldsValid
-                                    ? Colors.white
-                                    : const Color(0xFF718096),
-                                backgroundColor: _allFieldsValid
-                                    ? (_isNextHovered
-                                          ? const Color(
-                                              0xFF00F0FF,
-                                            ).withOpacity(0.15)
-                                          : _isNextPressed
-                                          ? const Color(
-                                              0xFF00F0FF,
-                                            ).withOpacity(0.25)
-                                          : const Color(0xFF0B1320))
-                                    : const Color(0xFF0B1320),
-                                onTap: () {
-                                  if (_allFieldsValid) {
-                                    _handleNextTap();
-                                  } else {
-                                    _validateAllFieldsAndShowErrors();
-                                  }
-                                },
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _allFieldsValid
+                                        ? const Color(0xFF00F0FF)
+                                        : const Color(0xFF4A5568),
+                                    width: 2,
+                                  ),
+                                  color: _allFieldsValid
+                                      ? (_isNextHovered
+                                            ? const Color(
+                                                0xFF00F0FF,
+                                              ).withOpacity(0.15)
+                                            : _isNextPressed
+                                            ? const Color(
+                                                0xFF00F0FF,
+                                              ).withOpacity(0.25)
+                                            : const Color(0xFF0B1320))
+                                      : const Color(0xFF0B1320),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "Next",
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      color: _allFieldsValid
+                                          ? Colors.white
+                                          : const Color(0xFF718096),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),

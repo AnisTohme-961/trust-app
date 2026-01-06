@@ -1071,168 +1071,47 @@ class MobileSignInPage extends StatelessWidget {
               : SystemMouseCursors.forbidden,
           child: GestureDetector(
             onTapDown: isSignInEnabled
-                ? (_) {
-                    onSignInPressedChanged(true);
-                  }
+                ? (_) => onSignInPressedChanged(true)
                 : null,
-            onTapUp: isSignInEnabled
-                ? (_) {
-                    onSignInPressedChanged(false);
-                  }
-                : null,
+            onTapUp: isSignInEnabled ? (_) => _handleSignInTap(context) : null,
             onTapCancel: isSignInEnabled
-                ? () {
-                    onSignInPressedChanged(false);
-                  }
+                ? () => onSignInPressedChanged(false)
                 : null,
             child: Transform.scale(
               scale: isSignInEnabled && isSignInPressed ? 0.95 : 1.0,
-              child: CustomButton(
-                text: 'Sign In',
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 100),
                 width: 120,
                 height: 45,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                borderRadius: 10,
-                borderColor: isSignInEnabled
-                    ? const Color(0xFF00F0FF)
-                    : const Color(0xFF4A5568),
-                textColor: isSignInEnabled
-                    ? Colors.white
-                    : const Color(0xFF718096),
-                backgroundColor: isSignInEnabled
-                    ? (isSignInHovered
-                          ? const Color(0xFF00F0FF).withOpacity(0.15)
-                          : isSignInPressed
-                          ? const Color(0xFF00F0FF).withOpacity(0.25)
-                          : const Color(0xFF0B1320))
-                    : const Color(0xFF0B1320),
-                onTap: () async {
-                  if (isSignInEnabled) {
-                    final identifier = controller.text.trim();
-                    final password = passwordController.text.trim();
-                    final enteredCode = codecontrollers
-                        .map((c) => c.text.trim())
-                        .join();
-
-                    try {
-                      final success = await AuthService.signIn(
-                        identifier: identifier,
-                        password: password,
-                        code: enteredCode,
-                        rememberMe: rememberMe,
-                      );
-
-                      if (success) {
-                        // 🟢 Give storage time to write values
-                        await Future.delayed(const Duration(milliseconds: 100));
-
-                        final pinRegistered =
-                            (await AuthService.storage.read(
-                              key: 'pinRegistered',
-                            )) ==
-                            'true';
-
-                        final patternRegistered =
-                            (await AuthService.storage.read(
-                              key: 'patternRegistered',
-                            )) ==
-                            'true';
-
-                        print(
-                          "PIN: $pinRegistered, PATTERN: $patternRegistered",
-                        );
-
-                        if (!pinRegistered && !patternRegistered) {
-                          Navigator.pushReplacementNamed(
-                            context,
-                            '/register-pin',
-                          );
-                        } else if (pinRegistered && !patternRegistered) {
-                          Navigator.pushReplacementNamed(
-                            context,
-                            '/register-pattern',
-                          );
-                        } else {
-                          Navigator.pushReplacementNamed(
-                            context,
-                            '/sign-in-pin',
-                          );
-                        }
-                      }
-                    } catch (e) {
-                      print('Sign in error: $e');
-                      String message = 'Invalid login credentials';
-                      final s = e.toString();
-
-                      try {
-                        final jsonStr = s.startsWith('Exception: ')
-                            ? s.substring(11)
-                            : s;
-                        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-
-                        if (map.containsKey('remainingSeconds')) {
-                          final secs = (map['remainingSeconds'] as num).toInt();
-                          final h = secs ~/ 3600;
-                          final m = (secs % 3600) ~/ 60;
-                          final sec = secs % 60;
-                          message =
-                              'Your account is locked. It will be unlocked in\n${h}h ${m}m ${sec}s';
-                        } else if (map.containsKey('error') &&
-                            map['error'].toString().toLowerCase().contains(
-                              'expired',
-                            )) {
-                          message = 'Code expired. Please request a new one';
-                        } else if (map.containsKey('error')) {
-                          message = map['error'];
-                        }
-                      } catch (_) {
-                        // Fallback: keep generic message
-                      }
-
-                      errorStackKey.currentState?.showError(
-                        message,
-                        duration: const Duration(seconds: 5),
-                      );
-                    }
-                  } else {
-                    // Show error messages when button is disabled but clicked
-                    final identifier = controller.text.trim();
-                    final password = passwordController.text.trim();
-                    final enteredCode = codecontrollers
-                        .map((c) => c.text.trim())
-                        .join();
-
-                    if (identifier.isEmpty) {
-                      errorStackKey.currentState?.showError(
-                        'Please enter your eid/email',
-                        duration: const Duration(seconds: 5),
-                      );
-                      return;
-                    }
-                    if (password.isEmpty) {
-                      errorStackKey.currentState?.showError(
-                        'Please enter your password',
-                        duration: const Duration(seconds: 5),
-                      );
-                      return;
-                    }
-                    if (enteredCode.length != 6) {
-                      errorStackKey.currentState?.showError(
-                        'Enter the 6-digit code sent to your email address',
-                        duration: const Duration(seconds: 5),
-                      );
-                      return;
-                    }
-                    if (!isCodeCorrect) {
-                      errorStackKey.currentState?.showError(
-                        'Please wait for code verification',
-                        duration: const Duration(seconds: 5),
-                      );
-                      return;
-                    }
-                  }
-                },
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSignInEnabled
+                        ? const Color(0xFF00F0FF)
+                        : const Color(0xFF4A5568),
+                    width: 2,
+                  ),
+                  color: isSignInEnabled
+                      ? (isSignInHovered
+                            ? const Color(0xFF00F0FF).withOpacity(0.15)
+                            : isSignInPressed
+                            ? const Color(0xFF00F0FF).withOpacity(0.25)
+                            : const Color(0xFF0B1320))
+                      : const Color(0xFF0B1320),
+                ),
+                child: Center(
+                  child: Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20.0,
+                      color: isSignInEnabled
+                          ? Colors.white
+                          : const Color(0xFF718096),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1290,6 +1169,77 @@ class MobileSignInPage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _handleSignInTap(BuildContext context) async {
+    if (isSignInPressed) {
+      onSignInPressedChanged(false);
+    }
+
+    final identifier = controller.text.trim();
+    final password = passwordController.text.trim();
+    final enteredCode = codecontrollers.map((c) => c.text.trim()).join();
+
+    try {
+      final success = await AuthService.signIn(
+        identifier: identifier,
+        password: password,
+        code: enteredCode,
+        rememberMe: rememberMe,
+      );
+
+      if (success) {
+        // 🟢 Give storage time to write values
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        final pinRegistered =
+            (await AuthService.storage.read(key: 'pinRegistered')) == 'true';
+
+        final patternRegistered =
+            (await AuthService.storage.read(key: 'patternRegistered')) ==
+            'true';
+
+        print("PIN: $pinRegistered, PATTERN: $patternRegistered");
+
+        if (!pinRegistered && !patternRegistered) {
+          Navigator.pushReplacementNamed(context, '/register-pin');
+        } else if (pinRegistered && !patternRegistered) {
+          Navigator.pushReplacementNamed(context, '/register-pattern');
+        } else {
+          Navigator.pushReplacementNamed(context, '/sign-in-pin');
+        }
+      }
+    } catch (e) {
+      print('Sign in error: $e');
+      String message = 'Invalid login credentials';
+      final s = e.toString();
+
+      try {
+        final jsonStr = s.startsWith('Exception: ') ? s.substring(11) : s;
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+        if (map.containsKey('remainingSeconds')) {
+          final secs = (map['remainingSeconds'] as num).toInt();
+          final h = secs ~/ 3600;
+          final m = (secs % 3600) ~/ 60;
+          final sec = secs % 60;
+          message =
+              'Your account is locked. It will be unlocked in\n${h}h ${m}m ${sec}s';
+        } else if (map.containsKey('error') &&
+            map['error'].toString().toLowerCase().contains('expired')) {
+          message = 'Code expired. Please request a new one';
+        } else if (map.containsKey('error')) {
+          message = map['error'];
+        }
+      } catch (_) {
+        // Fallback: keep generic message
+      }
+
+      errorStackKey.currentState?.showError(
+        message,
+        duration: const Duration(seconds: 5),
+      );
+    }
   }
 }
 
